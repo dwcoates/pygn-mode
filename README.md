@@ -6,6 +6,7 @@ An Emacs major-mode for viewing chess PGN files.
  * [pgn-mode](#pgn-mode)
  * [Interactive Commands](#interactive-commands)
  * [Prior Art](#prior-art)
+ * [Compatibility and Requirements](#compatibility-and-requirements)
 
 ## Quickstart
 
@@ -73,3 +74,7 @@ of each game starting with an `[Event "?"]` tagpair.
 
 emacs-chess  
 <https://github.com/jwiegley/emacs-chess>  
+
+## Compatibility and Requirements
+
+Uses if present: [nav-flash.el](http://github.com/rolandwalker/nav-flash)

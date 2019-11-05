@@ -7,7 +7,7 @@
 ;; URL: https://raw.githubusercontent.com/dwcoates/pgn-mode/master/pgn-mode.el
 ;; Version: 0.0.4
 ;; Last-Updated:  4 Nov 2019
-;; Package-Requires:
+;; Package-Requires: ((require 'nav-flash nil t))
 ;; Keywords:
 ;;
 ;; Simplified BSD License
@@ -105,6 +105,7 @@
 ;;; imports
 
 (require 'cl-lib)
+(require 'nav-flash nil t)
 
 ;;; declarations
 
@@ -413,7 +414,9 @@ With numeric prefix ARG, advance ARG games."
   (if (re-search-forward "^\\[Event " nil t arg)
       (goto-char (line-beginning-position))
     ;; else
-    (error "No next game.")))
+    (error "No next game."))
+  (when (fboundp 'nav-flash-show)
+    (nav-flash-show)))
 
 (defun pgn-mode-previous-game (arg)
   "Move back to the previous game in a multi-game PGN buffer.
@@ -426,7 +429,9 @@ With numeric prefix ARG, move back ARG games."
   (if (re-search-backward "^\\[Event " nil t arg)
       (goto-char (line-beginning-position))
     ;; else
-    (error "No previous game.")))
+    (error "No previous game."))
+  (when (fboundp 'nav-flash-show)
+    (nav-flash-show)))
 
 (defun pgn-mode-next-move (arg)
   "Advance to the next move in a PGN game.
