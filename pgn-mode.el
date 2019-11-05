@@ -2,7 +2,7 @@
 ;;
 ;; Copyright (c) 2019 Dodge Coates and Roland Walker
 ;;
-;; Author: Dodge Coates and Roland Walker
+;; Author: Dodge Coates and Roland Walker.
 ;; Homepage: https://github.com/dwcoates/pgn-mode
 ;; URL: https://raw.githubusercontent.com/dwcoates/pgn-mode/master/pgn-mode.el
 ;; Version: 0.0.4
