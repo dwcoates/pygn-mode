@@ -133,6 +133,16 @@
   :group 'pgn-mode
   :type 'int)
 
+(defcustom pgn-mode-python-path "python"
+  "Path to a Python interpreter with the python-chess library installed."
+  :group 'pgn-mode
+  :type 'string)
+
+(defcustom pgn-mode-board-size 400
+  "Size for graphical board display, expressed as pixels-per-side."
+  :group 'pgn-mode
+  :type 'int)
+
 ;;;###autoload
 (defgroup pgn-mode-faces nil
   "Faces used by pgn-mode."
@@ -469,6 +479,69 @@ Does not work for nested variations."
          (point)))
         (goto-char (point-max))
         (buffer-substring-no-properties (point-min) (point-max))))))
+
+;; todo divert error using :stderr on make-process, instead of taking only the first line of output
+(defun pgn-mode-fen-at-pos (&rest pos)
+  "Return the FEN corresponding to POS, which defaults to the point."
+  (when (not (= 0 (call-process pgn-mode-python-path nil nil nil "-c" "import chess")))
+    (error "The Python interpreter at `pgn-mode-python-path' must have the python-chess library available."))
+  (cl-callf or pos (point))
+  (save-excursion
+    (goto-char pos)
+    (let ((tries 0)
+          (pgn nil)
+          (proc nil))
+      (setq pgn (buffer-substring-no-properties (pgn-mode-game-start-position) (point)))
+      (with-temp-buffer
+        (setq proc (make-process :name "pgn-mode-fen-at-pos"
+                                 :buffer (current-buffer)
+                                 :noquery t
+                                 :command (list pgn-mode-python-path
+                                                (concat pgn-mode-script-directory "pgn_to_fen.py")
+                                                "-")))
+        (when proc
+          (process-send-string proc (concat pgn (string 10) (string 4)))
+          (accept-process-output proc .01 nil 1)
+          (while (and (process-live-p proc)
+                      (< tries 50))
+            (accept-process-output proc .01 nil 1)
+            (sit-for 0)
+            (cl-incf tries))
+          (delete-process proc)
+          (goto-char (point-min))
+          (buffer-substring-no-properties (point-min) (line-end-position)))))))
+
+;; todo divert error using :stderr on make-process, instead of taking only the first line of output
+(defun pgn-mode-board-at-pos (&rest pos)
+  "Return the SVG board corresponding to POS, which defaults to the point."
+  (when (not (= 0 (call-process pgn-mode-python-path nil nil nil "-c" "import chess")))
+    (error "The Python interpreter at `pgn-mode-python-path' must have the python-chess library available."))
+  (cl-callf or pos (point))
+  (save-excursion
+    (goto-char pos)
+    (let ((tries 0)
+          (pgn nil)
+          (proc nil))
+      (setq pgn (buffer-substring-no-properties (pgn-mode-game-start-position) (point)))
+      (with-temp-buffer
+        (setq proc (make-process :name "pgn-mode-board-at-pos"
+                                 :buffer (current-buffer)
+                                 :noquery t
+                                 :command (list pgn-mode-python-path
+                                                (concat pgn-mode-script-directory "pgn_to_board.py")
+                                                (concat "-pixels=" (number-to-string pgn-mode-board-size))
+                                                "-")))
+        (when proc
+          (process-send-string proc (concat pgn (string 10) (string 4)))
+          (accept-process-output proc .01 nil 1)
+          (while (and (process-live-p proc)
+                      (< tries 50))
+            (accept-process-output proc .01 nil 1)
+            (sit-for 0)
+            (cl-incf tries))
+          (delete-process proc)
+          (goto-char (point-min))
+          (buffer-substring-no-properties (point-min) (line-end-position)))))))
 
 ;;; font-lock
 
@@ -848,6 +921,43 @@ With numeric prefix ARG, move ARG moves forward."
       (insert svg)
       (image-mode))
     (display-buffer buf '(display-buffer-reuse-window))))
+
+(defun pgn-mode-echo-fen-at-point ()
+  "Display the FEN corresponding to the point in the echo area."
+  (interactive)
+  (message "%s" (pgn-mode-fen-at-pos)))
+
+(defun pgn-mode-display-fen-at-point ()
+  "Display the FEN corresponding to the point in a separate buffer."
+  (interactive)
+  (let ((fen (pgn-mode-fen-at-pos))
+        (buf (get-buffer-create " *pgn-mode-fen*"))
+        (win nil))
+    (with-current-buffer buf
+      (delete-region (point-min) (point-max))
+      (insert fen)
+      (display-buffer buf '(display-buffer-reuse-window))
+      (setq win (get-buffer-window buf))
+      (resize-temp-buffer-window win)
+      (set-window-dedicated-p win t))))
+
+;; todo ascii board command
+(defun pgn-mode-display-gui-board-at-point ()
+  "Display the board corresponding to the point in a separate buffer."
+  (interactive)
+  (let ((svg (pgn-mode-board-at-pos))
+        (buf (get-buffer-create " *pgn-mode-board*"))
+        (win nil))
+    (with-current-buffer buf
+      (when (eq major-mode 'image-mode)
+        (image-mode-as-text))
+      (delete-region (point-min) (point-max))
+      (insert svg)
+      (image-mode))
+    (display-buffer buf '(display-buffer-reuse-window))
+    (setq win (get-buffer-window buf))
+    (resize-temp-buffer-window win)
+    (set-window-dedicated-p win t)))
 
 (provide 'pgn-mode)
 
