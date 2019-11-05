@@ -456,10 +456,11 @@ With numeric prefix ARG, advance ARG moves forward."
                     (or (not (pgn-mode-looking-at-legal-move))
                         (pgn-mode-inside-variation-or-comment-p)))
           (setq last-point (point))
-          (cond ((pgn-mode-inside-variation-or-comment-p)
-                 (pgn-mode-forward-exit-variations-and-comments))
-                (t
-                 (forward-sexp 1)))))
+          (cond
+            ((pgn-mode-inside-variation-or-comment-p)
+             (pgn-mode-forward-exit-variations-and-comments))
+            (t
+             (forward-sexp 1)))))
       (skip-chars-forward "0-9.…\s-")
       (unless (pgn-mode-looking-at-legal-move)
         (goto-char thumb)
@@ -494,11 +495,12 @@ With numeric prefix ARG, move ARG moves backward."
                     (or (not (pgn-mode-looking-at-legal-move))
                         (pgn-mode-inside-variation-or-comment-p)))
           (setq last-point (point))
-          (cond ((pgn-mode-inside-variation-or-comment-p)
-                 (pgn-mode-backward-exit-variations-and-comments))
-                (t
-                 (skip-chars-backward "0-9.…\s-")
-                 (forward-sexp -1)))))
+          (cond
+            ((pgn-mode-inside-variation-or-comment-p)
+             (pgn-mode-backward-exit-variations-and-comments))
+            (t
+             (skip-chars-backward "0-9.…\s-")
+             (forward-sexp -1)))))
       (unless (pgn-mode-looking-at-legal-move)
         (goto-char thumb)
         (when (eq thumb start)
