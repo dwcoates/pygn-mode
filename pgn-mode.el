@@ -7,7 +7,7 @@
 ;; URL: https://raw.githubusercontent.com/dwcoates/pgn-mode/master/pgn-mode.el
 ;; Version: 0.0.4
 ;; Last-Updated:  4 Nov 2019
-;; Package-Requires: ((emacs "24.3") (nav-flash "1.0.0"))
+;; Package-Requires: ((emacs "25.0") (nav-flash "1.0.0"))
 ;; Keywords: data, games, chess
 ;;
 ;; Simplified BSD License
@@ -57,9 +57,7 @@
 ;;
 ;; TODO
 ;;
-;;     FEN-at-point.
-;;
-;;     Board-image-at-point.
+;;     Performance.
 ;;
 ;;; License
 ;;
@@ -106,6 +104,9 @@
 (require 'cl-lib)
 (require 'nav-flash nil t)
 
+(autoload 'image-toggle-display-text  "image-mode" "Show the image file as text."      nil)
+(autoload 'image-toggle-display-image "image-mode" "Show the image of the image file." nil)
+
 ;;; Declarations
 
 (eval-when-compile
@@ -121,6 +122,16 @@
   :prefix "pgn-mode-"
   :group 'data
   :group 'games)
+
+(defcustom pgn-mode-python-path "python"
+  "Path to a Python interpreter with the python-chess library installed."
+  :group 'pgn-mode
+  :type 'string)
+
+(defcustom pgn-mode-board-size 400
+  "Size for graphical board display, expressed as pixels-per-side."
+  :group 'pgn-mode
+  :type 'int)
 
 ;;;###autoload
 (defgroup pgn-mode-faces nil
@@ -153,6 +164,16 @@
   :group 'pgn-mode-faces)
 
 ;;; Variables
+
+(defvar pgn-mode-script-directory
+  (file-name-directory
+   (or load-file-name
+       (bound-and-true-p byte-compile-current-file)
+       (buffer-file-name (current-buffer))))
+  "Directory to find Python helper scripts.")
+
+(defvar pgn-mode-python-chess-succeeded nil
+  "Whether a simple python-chess command has succeeded.")
 
 ;;; Syntax table
 
@@ -200,6 +221,7 @@
 
 (defvar pgn-mode-map
   (let ((map (make-sparse-keymap)))
+    ;; menu bar and lighter
     (define-key map [menu-bar PGN]
       (cons "PGN" (make-sparse-keymap "PGN")))
     (define-key map [menu-bar PGN pgn-mode-select-game]
@@ -218,16 +240,17 @@
     (define-key map [menu-bar PGN pgn-mode-next-move]
       '(menu-item "Next Move" pgn-mode-next-move
                   :help "Navigate to the next move"))
+    (define-key map [menu-bar PGN sep-2] menu-bar-separator)
+    (define-key map [menu-bar PGN pgn-mode-display-fen-at-point]
+      '(menu-item "FEN at point" pgn-mode-display-fen-at-point
+                  :help "Display FEN at point in separate window"))
+    (define-key map [menu-bar PGN pgn-mode-display-gui-board-at-point]
+      '(menu-item "Board at point" pgn-mode-display-gui-board-at-point
+                  :help "Display GUI board at point in separate window"))
 
-    ;; todo: enable these once fen-at-point and board-at-point are merged
-    ;;
-    ;; (define-key map [menu-bar PGN sep-2] menu-bar-separator)
-    ;; (define-key map [menu-bar PGN pgn-mode-display-fen-at-point]
-    ;;   '(menu-item "FEN at point" pgn-mode-display-fen-at-point
-    ;;               :help "Display FEN at point in separate window"))
-    ;; (define-key map [menu-bar PGN pgn-mode-display-gui-board-at-point]
-    ;;   '(menu-item "Board at point" pgn-mode-display-gui-board-at-point
-    ;;               :help "Display GUI board at point in separate window"))
+    ;; mouse
+    (define-key map [mouse-2]        'pgn-mode-mouse-display-gui-board)
+    (define-key map [double-mouse-2] 'pgn-mode-mouse-display-gui-board-inclusive)
 
     ;; example keystrokes:
     ;;
@@ -346,6 +369,106 @@ POS defaults to `point'."
         (forward-line -1)
         (goto-char (line-end-position))
         (skip-syntax-backward "-")))))
+
+(defun pgn-mode-python-chess-guard ()
+  "Throw an error unless the python-chess library is available."
+  (unless pgn-mode-python-chess-succeeded
+    (if (zerop (call-process pgn-mode-python-path nil nil nil "-c" "import chess"))
+        (setq pgn-mode-python-chess-succeeded t)
+      (error "The Python interpreter at `pgn-mode-python-path' must have the python-chess library available."))))
+
+(defun pgn-mode-fen-at-pos (pos)
+  "Return the FEN corresponding to POS."
+  (pgn-mode-python-chess-guard)
+  (save-excursion
+    (goto-char pos)
+    (let ((tries 0)
+          (pgn nil)
+          (proc nil))
+      (setq pgn (buffer-substring-no-properties (pgn-mode-game-start-position) (point)))
+      (with-temp-buffer
+        (setq proc (make-process :name "pgn-mode-fen-at-pos"
+                                 :buffer (current-buffer)
+                                 :noquery t
+                                 :sentinel #'ignore
+                                 :command (list pgn-mode-python-path
+                                                (expand-file-name "pgn_to_fen.py" pgn-mode-script-directory)
+                                                "-")))
+        (when proc
+          (process-send-string proc (concat pgn (string 10)))
+          (process-send-eof proc)
+          (accept-process-output proc .01 nil 1)
+          (while (and (process-live-p proc)
+                      (< tries 50))
+            (accept-process-output proc .01 nil 1)
+            (cl-incf tries))
+          ;; doesn't work when fed bad illegal moves on input -- why?
+          (when (not (zerop (process-exit-status proc)))
+            (error "Exception during python-chess command."))
+          (delete-process proc)
+          (goto-char (point-min))
+          (buffer-substring-no-properties (point-min) (point-max)))))))
+
+(defun pgn-mode-board-at-pos (pos)
+  "Return the SVG board corresponding to POS."
+  (pgn-mode-python-chess-guard)
+  (save-excursion
+    (goto-char pos)
+    (let ((tries 0)
+          (pgn nil)
+          (proc nil))
+      (setq pgn (buffer-substring-no-properties (pgn-mode-game-start-position) (point)))
+      (with-temp-buffer
+        (setq proc (make-process :name "pgn-mode-board-at-pos"
+                                 :buffer (current-buffer)
+                                 :noquery t
+                                 :sentinel #'ignore
+                                 :command (list pgn-mode-python-path
+                                                (expand-file-name "pgn_to_board.py" pgn-mode-script-directory)
+                                                (concat "-pixels=" (number-to-string pgn-mode-board-size))
+                                                "-")))
+        (when proc
+          (process-send-string proc (concat pgn (string 10)))
+          (process-send-eof proc)
+          (accept-process-output proc .01 nil 1)
+          (while (and (process-live-p proc)
+                      (< tries 50))
+            (accept-process-output proc .01 nil 1)
+            (cl-incf tries))
+          ;; doesn't work when fed bad illegal moves on input -- why?
+          (when (not (zerop (process-exit-status proc)))
+            (error "Exception during python-chess command."))
+          (delete-process proc)
+          (goto-char (point-min))
+          (buffer-substring-no-properties (point-min) (point-max)))))))
+
+(defun pgn-mode-pgn-as-if-variation (pos &optional inclusive)
+  "PGN string as if a variation had been played until position POS.
+
+When INCLUSIVE is non-nil, synthesize a PGN inclusive of any move
+on which the point is resting.
+
+Does not work for nested variations."
+  (save-excursion
+    (goto-char pos)
+    (if inclusive
+        (progn
+          (skip-chars-forward "0-9.…\s-")
+          (skip-syntax-forward "^-"))
+      (skip-syntax-backward "^-"))
+    (let ((pgn (buffer-substring-no-properties
+                (pgn-mode-game-start-position)
+                (point))))
+    (with-temp-buffer
+      (insert pgn)
+      (when (pgn-mode-inside-variation-p)
+        (up-list -1)
+        (delete-char 1)
+        (delete-region
+         (save-excursion (forward-word-strictly -1) (point))
+         (point)))
+        (goto-char (point-max))
+        (buffer-substring-no-properties (point-min) (point-max))))))
 
 ;;; font-lock
 
@@ -570,11 +693,118 @@ With numeric prefix ARG, move ARG moves backward."
           (when (= thumb start)
             (error "No more moves.")))))))
 
-(defun pgn-mode-select-game ()
-  "Select current game in a multi-game PGN buffer."
-  (interactive)
+(defun pgn-mode-select-game (pos)
+  "Select current game in a multi-game PGN buffer.
+
+When called non-interactively, select the game containing POS."
+  (interactive "d")
+  (goto-char pos)
   (push-mark (pgn-mode-game-end-position) t t)
   (goto-char (pgn-mode-game-start-position)))
+
+(defun pgn-mode-echo-fen-at-point (pos)
+  "Display the FEN corresponding to the point in the echo area.
+
+When called non-interactively, display the FEN corresponding to POS."
+  (interactive "d")
+  (message "%s" (pgn-mode-fen-at-pos pos)))
+
+(defun pgn-mode-display-fen-at-point (pos)
+  "Display the FEN corresponding to the point in a separate buffer.
+
+When called non-interactively, display the FEN corresponding to POS."
+  (interactive "d")
+  (let* ((fen (pgn-mode-fen-at-pos pos))
+         (buf (get-buffer-create " *pgn-mode-fen*"))
+         (win (get-buffer-window buf)))
+    (with-current-buffer buf
+      (delete-region (point-min) (point-max))
+      (insert fen)
+      (goto-char (point-min))
+      (display-buffer buf '(display-buffer-reuse-window))
+      (unless win
+        (setq win (get-buffer-window buf))
+        (set-window-dedicated-p win t)
+        (resize-temp-buffer-window win)))))
+
+(defun pgn-mode-display-variation-fen-at-point (pos)
+  "Respecting variations, display the FEN corresponding to the point.
+
+When called non-interactively, display the board corresponding to POS."
+  (interactive "d")
+  (let ((pgn (pgn-mode-pgn-as-if-variation pos)))
+    (with-temp-buffer
+      (insert pgn)
+      (pgn-mode-display-fen-at-point (point-max)))))
+
+;; todo ascii board command
+(defun pgn-mode-display-gui-board-at-point (pos)
+  "Display the board corresponding to the point in a separate buffer.
+
+When called non-interactively, display the board corresponding to POS."
+  (interactive "d")
+  (let* ((svg (pgn-mode-board-at-pos pos))
+         (buf (get-buffer-create " *pgn-mode-board*"))
+         (win (get-buffer-window buf)))
+    (with-current-buffer buf
+      (when (eq major-mode 'image-mode)
+        (image-toggle-display-text))
+      (delete-region (point-min) (point-max))
+      (insert svg)
+      (setq major-mode 'image-mode)
+      (image-toggle-display-image))
+    (display-buffer buf '(display-buffer-reuse-window))
+    (unless win
+      (setq win (get-buffer-window buf))
+      (set-window-dedicated-p win t)
+      (resize-temp-buffer-window win))))
+
+(defun pgn-mode-mouse-display-gui-board (event)
+  "Display the board corresponding to the mouse click in a separate buffer."
+  (interactive "e")
+  (set-buffer (window-buffer (posn-window (event-start event))))
+  (goto-char (posn-point (event-start event)))
+  (save-excursion
+    (skip-syntax-backward "^\\s-")
+    (pgn-mode-display-gui-board-at-point (point))))
+
+(defun pgn-mode-mouse-display-gui-board-inclusive (event)
+  "Display inclusive board corresponding to the mouse click in a separate buffer.
+
+\"Inclusive\" here means that the board includes any move which contains the
+click position."
+  (interactive "e")
+  (set-buffer (window-buffer (posn-window (event-start event))))
+  (goto-char (posn-point (event-start event)))
+  (save-excursion
+    (skip-syntax-forward "^\\s-")
+    (pgn-mode-display-gui-board-at-point (point))))
+
+(defun pgn-mode-display-variation-gui-board-at-point (pos)
+  "Respecting variations, display the board corresponding to the point.
+
+When called non-interactively, display the board corresponding to POS."
+  (interactive "d")
+  (let ((pgn (pgn-mode-pgn-as-if-variation pos)))
+    (with-temp-buffer
+      (insert pgn)
+      (pgn-mode-display-gui-board-at-point (point-max)))))
+
+(defun pgn-mode-previous-move-follow-gui-board (arg)
+  "Move back to the previous move and display the updated board.
+
+With numeric prefix ARG, move ARG moves backward."
+  (interactive "p")
+  (pgn-mode-previous-move arg)
+  (pgn-mode-display-gui-board-at-point (point)))
+
+(defun pgn-mode-next-move-follow-gui-board (arg)
+  "Advance to the next move and display the updated board.
+
+With numeric prefix ARG, move ARG moves forward."
+  (interactive "p")
+  (pgn-mode-next-move arg)
+  (pgn-mode-display-gui-board-at-point (point)))
 
 (provide 'pgn-mode)
 
