@@ -485,7 +485,7 @@ With numeric prefix ARG, move ARG moves backward."
           (thumb (point)))
       (when (or (looking-at "[^\n]*\\]")
                 (and (looking-at "\\s-*$") (looking-back "\\]\\s-*" 10)))
-        (re-search-backward "\n\n" nil t))
+        (error "No more moves."))
       (dotimes (counter arg)
         (when (pgn-mode-looking-at-legal-move)
           (setq thumb (point))
