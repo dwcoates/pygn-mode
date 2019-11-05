@@ -227,10 +227,10 @@
       (pgn-mode-inside-variation-p)))
 
 (defun pgn-mode-looking-at-legal-move ()
-  "Whether the point is looking at a legal chess move.
+  "Whether the point is looking at a legal SAN chess move.
 
 Leading move numbers are allowed, and ignored."
-  (looking-at "[0-9.…\s-]*\\<\\([RNBQK][a-h]?[1-8]?x?[a-h][1-8]\\|[a-h]x?[1-8]=?[RNBQ]?\\|O-O\\|O-O-O\\)"))
+  (looking-at "[0-9.…\s-]*\\<\\([RNBQK][a-h]?[1-8]?x?[a-h][1-8]\\|[a-h]x?[1-8]=?[RNBQ]?\\|O-O\\|O-O-O\\)\\(\\+\\+?\\|#\\)?"))
 
 (defun pgn-mode-game-start-position (&optional pos)
   "Start position for the PGN game which contains position POS.
