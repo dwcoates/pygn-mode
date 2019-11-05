@@ -2,9 +2,9 @@
 ;;
 ;; Copyright (c) 2019 Dodge Coates and Roland Walker
 ;;
-;; Author: @@@
-;; Homepage: @@@
-;; URL: @@@
+;; Author: Dodge Coates and Roland Walker
+;; Homepage: https://github.com/dwcoates/pgn-mode
+;; URL: https://raw.githubusercontent.com/dwcoates/pgn-mode/master/pgn-mode.el
 ;; Version: 0.0.4
 ;; Last-Updated:  4 Nov 2019
 ;; Package-Requires:
@@ -32,6 +32,10 @@
 ;;     M-x customize-group RET pgn-mode RET
 ;;
 ;; See Also
+;;
+;;     http://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm
+;;
+;; Prior Art
 ;;
 ;;     https://github.com/jwiegley/emacs-chess
 ;;
