@@ -152,6 +152,13 @@
 
 ;;; variables
 
+(defvar pgn-mode-script-directory
+  (file-name-directory
+   (or load-file-name
+       (bound-and-true-p byte-compile-current-file)
+       (buffer-file-name (current-buffer))))
+  "Directory to find Python helper scripts.")
+
 ;;; syntax table
 
 (defvar pgn-mode-syntax-table
@@ -512,6 +519,49 @@ With numeric prefix ARG, move ARG moves backward."
   (push-mark (pgn-mode-game-start-position) t t)
   (goto-char (pgn-mode-game-end-position))
   (exchange-point-and-mark))
+
+;; todo use stdin directly instead of a tempfile, via make-process/process-send-region
+;; todo configurable choice of python interpreter
+;; todo send output to a persistent popup buffer instead of the echo area
+;; todo stop and report error if cannot execute python -c 'import chess'
+(defun pgn-mode-fen-at-point ()
+  "Display the FEN corresponding to the current point."
+  (interactive)
+  (let ((tempfile-pgn (make-temp-file "pgn-mode-"))
+        (fen nil))
+    (write-region (pgn-mode-game-start-position) (point) tempfile-pgn nil 'silent)
+    (setq fen
+          (with-temp-buffer
+            (call-process (concat pgn-mode-script-directory "pgn_to_fen.py") tempfile-pgn t nil)
+            (buffer-substring-no-properties (point-min) (point-max))))
+    (run-at-time 20 nil 'delete-file tempfile-pgn)
+    (message "%s" fen)))
+
+;; todo use stdin directly instead of a tempfile, via make-process/process-send-region
+;; todo configurable choice of python interpreter
+;; todo configurable board size
+;; todo stop and report error if cannot execute python -c 'import chess'
+(defun pgn-mode-board-at-point ()
+  "Display the board corresponding to the current point."
+  (interactive)
+  (let ((tempfile-pgn (make-temp-file "pgn-mode-"))
+        (svg nil)
+        (buf (get-buffer-create " *pgn-mode-board*")))
+    (write-region (pgn-mode-game-start-position) (point) tempfile-pgn nil 'silent)
+    (setq svg
+          (with-temp-buffer
+            (call-process (concat pgn-mode-script-directory "pgn_to_board.py") tempfile-pgn t nil)
+            (buffer-substring-no-properties (point-min) (point-max))))
+    (run-at-time 20 nil 'delete-file tempfile-pgn)
+    (unless buf
+      (generate-new-buffer "pgn-mode-board"))
+    (with-current-buffer buf
+      (when (eq major-mode 'image-mode)
+        (image-mode-as-text))
+      (delete-region (point-min) (point-max))
+      (insert svg)
+      (image-mode))
+    (display-buffer buf '(display-buffer-reuse-window))))
 
 (provide 'pgn-mode)
 
