@@ -53,12 +53,6 @@ def generate_argparser():
                            nargs='*',
                            type=argparse.FileType('r'),
                            help='File to analyze.  Input on the standard input is also accepted.')
-    argparser.add_argument('-pixels', '--pixels',
-                           metavar='PIXELS',
-                           nargs=1,
-                           type=int,
-                           default=[400],
-                           help='set pixel-side for the output.  Default is 400.')
     argparser.add_argument('-quiet', '--quiet',
                            action='store_true',
                            help='Emit less diagnostic output.')
@@ -100,7 +94,7 @@ if __name__ == '__main__':
         board = game.board()
         for move in game.mainline_moves():
             board.push(move)
-        print(chess.svg.board(board=board, size=args.pixels[0]))
+        print(chess.svg.board(board=board))
 
 #
 # Emacs
