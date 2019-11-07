@@ -274,9 +274,63 @@
     map)
   "Keymap for `pgn-mode'.")
 
+(defvar pgn-mode--python-process nil "Python process that powers pgn-mode.")
+(defvar pgn-mode--python-buffer nil "Buffer to which the pgn-mode Python process sends output.")
+
 ;;; Utility functions
 
-(defun pgn-mode-inside-comment-p ()
+(defun pgn-mode--process-running-p ()
+  "Return non-nil iff `pgn-mode--python-process' is running."
+  (and pgn-mode--python-process (process-live-p pgn-mode--python-process) t))
+
+;; TODO: check for pyhon-chess
+;; TODO: generalize script
+;; TODO: pipes?
+(defun pgn-mode--make-process (&optional force)
+  "Initialize pgn-mode `pgn-mode--python-process', optionally FORCE recreation if already exists."
+  (when (and (not force) (pgn-mode--process-running-p))
+    (error "The pgn-mode Python process already running. Use optional `force' to recreate"))
+  (when (not (= 0 (call-process pgn-mode-python-path nil nil nil "-c" "import chess")))
+    (error "The Python interpreter at `pgn-mode-python-path' must have the python-chess library available"))
+  (message (format "Initializing pgn-mode python process%s." (if force " (forcing)" "")))
+  (setq pgn-mode--python-buffer (get-buffer-create "pgn-mode-data-buffer"))
+  (setq pgn-mode--python-process
+        (make-process :name "pgn-mode-python"
+                      :buffer pgn-mode--python-buffer
+                      :noquery t
+                      :command (list pgn-mode-python-path
+                                     (concat pgn-mode-script-directory "pgn_to_fen.py") "-"))))
+(defun pgn-mode--kill-process ()
+  "Stop the currently running `pgn-mode--python-process' if it is running."
+  (when (pgn-mode--process-running-p) (delete-process pgn-mode--python-process)))
+
+(defun pgn-mode--send-process (message)
+  "Send MESSAGE to the running `pgn-mode--python-process'."
+  (if (pgn-mode--process-running-p)
+      (progn
+        (message "sending to process...\n%s\n=============" message)
+        (process-send-string pgn-mode--python-process (concat message (string 10) (string 4))))
+    (error "Need running Python process to send pgn-mode message")))
+
+(defun pgn-mode--receive-process (seconds &optional max-time)
+  "Wrap `accept-process-output' with SECONDS for `pgn-mode--python-process' for MAX-TIME."
+  (when (not (pgn-mode--process-running-p))
+    (error "Cannot fetch pgn-mode output without a running process"))
+  (when (not (get-buffer pgn-mode--python-buffer))
+    (error "Python output buffer does not exist"))
+  (with-current-buffer pgn-mode--python-buffer
+    (let ((tries 0))
+      (goto-char (point-min))
+      (while (and (progn
+                    (accept-process-output pgn-mode--python-process seconds nil 1)
+                    (= (buffer-size) 0))
+                  (< (* tries seconds) max-time))
+        (sit-for 0)
+        (cl-incf tries))
+      (goto-char (point-min))
+      (buffer-substring-no-properties (point-min) (line-end-position)))))
+
+(defun pgn-mode--inside-comment-p ()
   "Whether the point is inside a PGN comment."
   (nth 4 (syntax-ppss)))
 
@@ -287,7 +341,7 @@
 
 (defun pgn-mode-inside-variation-or-comment-p ()
   "Whether the point is inside a PGN comment or a variation."
-  (or (pgn-mode-inside-comment-p)
+  (or (pgn-mode--inside-comment-p)
       (pgn-mode-inside-variation-p)))
 
 (defun pgn-mode-looking-at-legal-move ()
@@ -480,36 +534,27 @@ Does not work for nested variations."
         (goto-char (point-max))
         (buffer-substring-no-properties (point-min) (point-max))))))
 
+(defun pgn-mode--query-process (message seconds &optional max-time force)
+  "Send MESSAGE to active `pgn-mode--python-process' every SECONDS for MAX-TIME and return response, optionally FORCE a new python process."
+  (when (not (pgn-mode--process-running-p))
+    (pgn-mode--make-process force))
+  (pgn-mode--send-process message)
+  (pgn-mode--receive-process seconds (or max-time 0.25)))
+
 ;; todo divert error using :stderr on make-process, instead of taking only the first line of output
-(defun pgn-mode-fen-at-pos (&rest pos)
+(defun pgn-mode--fen-at-pos (&rest pos)
   "Return the FEN corresponding to POS, which defaults to the point."
-  (when (not (= 0 (call-process pgn-mode-python-path nil nil nil "-c" "import chess")))
-    (error "The Python interpreter at `pgn-mode-python-path' must have the python-chess library available."))
+  (when (not (pgn-mode--process-running-p))
+    (pgn-mode--make-process))
   (cl-callf or pos (point))
   (save-excursion
-    (goto-char pos)
-    (let ((tries 0)
-          (pgn nil)
-          (proc nil))
-      (setq pgn (buffer-substring-no-properties (pgn-mode-game-start-position) (point)))
-      (with-temp-buffer
-        (setq proc (make-process :name "pgn-mode-fen-at-pos"
-                                 :buffer (current-buffer)
-                                 :noquery t
-                                 :command (list pgn-mode-python-path
-                                                (concat pgn-mode-script-directory "pgn_to_fen.py")
-                                                "-")))
-        (when proc
-          (process-send-string proc (concat pgn (string 10) (string 4)))
-          (accept-process-output proc .01 nil 1)
-          (while (and (process-live-p proc)
-                      (< tries 50))
-            (accept-process-output proc .01 nil 1)
-            (sit-for 0)
-            (cl-incf tries))
-          (delete-process proc)
-          (goto-char (point-min))
-          (buffer-substring-no-properties (point-min) (line-end-position)))))))
+    (let ((pgn (buffer-substring-no-properties (pgn-mode-game-start-position) (point))))
+      (pgn-mode--query-process pgn 0.01 0.51))))
+
+(defun pgn-mode-echo-fen-at-point ()
+  "Display the FEN corresponding to the point in the echo area."
+  (interactive)
+  (message "%s" (pgn-mode--fen-at-pos)))
 
 ;; todo divert error using :stderr on make-process, instead of taking only the first line of output
 (defun pgn-mode-board-at-pos (&rest pos)
@@ -921,11 +966,6 @@ With numeric prefix ARG, move ARG moves forward."
       (insert svg)
       (image-mode))
     (display-buffer buf '(display-buffer-reuse-window))))
-
-(defun pgn-mode-echo-fen-at-point ()
-  "Display the FEN corresponding to the point in the echo area."
-  (interactive)
-  (message "%s" (pgn-mode-fen-at-pos)))
 
 (defun pgn-mode-display-fen-at-point ()
   "Display the FEN corresponding to the point in a separate buffer."
