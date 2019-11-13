@@ -241,7 +241,7 @@ Leading move numbers are allowed, and ignored."
   "Start position for the PGN game which contains position POS.
 
 POS defaults to `point'."
-  (callf or pos (point))
+  (cl-callf or pos (point))
   (save-excursion
     (goto-char pos)
     (unless (looking-at "\\[Event ")
@@ -253,7 +253,7 @@ POS defaults to `point'."
   "End position for the PGN game which contains position POS.
 
 POS defaults to `point'."
-  (callf or pos (point))
+  (cl-callf or pos (point))
   (save-excursion
     (goto-char pos)
     (goto-char (line-end-position))
