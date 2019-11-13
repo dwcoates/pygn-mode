@@ -396,7 +396,14 @@ POS defaults to `point'."
    (setq-local font-lock-multiline t)
    (setq-local font-lock-extend-after-change-region-function 'pgn-mode-after-change-function)
    ;; especially slow
-   (add-hook 'font-lock-extend-region-functions 'pgn-mode-font-lock-extend-region t t)))
+   (add-hook 'font-lock-extend-region-functions 'pgn-mode-font-lock-extend-region t t))
+ (let ((map (make-sparse-keymap)))
+   (set-keymap-parent map (default-value 'mode-line-major-mode-keymap))
+   (define-key map (kbd "<mode-line> <mouse-4>")    'pgn-mode-previous-move)
+   (define-key map (kbd "<mode-line> <mouse-5>")    'pgn-mode-next-move)
+   (define-key map (kbd "<mode-line> <wheel-up>")   'pgn-mode-previous-move)
+   (define-key map (kbd "<mode-line> <wheel-down>") 'pgn-mode-next-move)
+   (setq-local mode-line-major-mode-keymap map)))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.[pP][gG][nN]\\'" . pgn-mode))
