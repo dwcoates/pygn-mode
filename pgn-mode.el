@@ -7,8 +7,8 @@
 ;; URL: https://raw.githubusercontent.com/dwcoates/pgn-mode/master/pgn-mode.el
 ;; Version: 0.0.4
 ;; Last-Updated:  4 Nov 2019
-;; Package-Requires: ((require 'nav-flash nil t))
-;; Keywords:
+;; Package-Requires: ((emacs "24.3") (nav-flash "1.0.0"))
+;; Keywords: data, games, chess
 ;;
 ;; Simplified BSD License
 ;;
