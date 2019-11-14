@@ -199,7 +199,36 @@
 
 (defvar pgn-mode-map
   (let ((map (make-sparse-keymap)))
-    ;; for example
+    (define-key map [menu-bar PGN]
+      (cons "PGN" (make-sparse-keymap "PGN")))
+    (define-key map [menu-bar PGN pgn-mode-select-game]
+      '(menu-item "Select Game" pgn-mode-select-game
+                  :help "Select the current game"))
+    (define-key map [menu-bar PGN pgn-mode-previous-game]
+      '(menu-item "Previous Game" pgn-mode-previous-game
+                  :help "Navigate to the previous game"))
+    (define-key map [menu-bar PGN pgn-mode-next-game]
+      '(menu-item "Next Game" pgn-mode-next-game
+                  :help "Navigate to the next game"))
+    (define-key map [menu-bar PGN sep] menu-bar-separator)
+    (define-key map [menu-bar PGN pgn-mode-previous-move]
+      '(menu-item "Previous Move" pgn-mode-previous-move
+                  :help "Navigate to the previous move"))
+    (define-key map [menu-bar PGN pgn-mode-next-move]
+      '(menu-item "Next Move" pgn-mode-next-move
+                  :help "Navigate to the next move"))
+
+    ;; todo: enable these once fen-at-point and board-at-point are merged
+    ;;
+    ;; (define-key map [menu-bar PGN sep-2] menu-bar-separator)
+    ;; (define-key map [menu-bar PGN pgn-mode-display-fen-at-point]
+    ;;   '(menu-item "FEN at point" pgn-mode-display-fen-at-point
+    ;;               :help "Display FEN at point in separate window"))
+    ;; (define-key map [menu-bar PGN pgn-mode-display-gui-board-at-point]
+    ;;   '(menu-item "Board at point" pgn-mode-display-gui-board-at-point
+    ;;               :help "Display GUI board at point in separate window"))
+
+    ;; example keystrokes:
     ;;
     ;; (define-key map (kbd "C-c C-n") 'pgn-mode-next-game)
     ;; (define-key map (kbd "C-c C-p") 'pgn-mode-previous-game)
@@ -210,10 +239,6 @@
     ;; enter/exit a parenthesized variation
     map)
   "Keymap for `pgn-mode'.")
-
-;;; lighter
-
-;; todo: the lighter menu is inheriting useless items from `text-mode'
 
 ;;; utility functions
 
@@ -383,7 +408,7 @@ POS defaults to `point'."
 ;;; major-mode definition
 
 ;;;###autoload
-(define-derived-mode pgn-mode text-mode "PGN"
+(define-derived-mode pgn-mode fundamental-mode "PGN"
  "Simple syntax highlighting for chess PGN files."
  :syntax-table pgn-mode-syntax-table
  :group 'pgn-mode
