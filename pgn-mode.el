@@ -119,7 +119,9 @@
 (defgroup pgn-mode nil
   "Simple syntax highlighting for chess PGN files."
   :version "0.0.4"
-  :prefix "pgn-mode-")
+  :prefix "pgn-mode-"
+  :group 'data
+  :group 'games)
 
 ;;;###autoload
 (defgroup pgn-mode-faces nil
