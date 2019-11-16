@@ -305,9 +305,7 @@
 (defun pgn-mode--send-process (message)
   "Send MESSAGE to the running `pgn-mode--python-process'."
   (if (pgn-mode--process-running-p)
-      (progn
-        (message "sending to process...\n%s\n=============" message)
-        (process-send-string pgn-mode--python-process (concat message (string 10) (string 4))))
+      (process-send-string pgn-mode--python-process (concat message (string 10) (string 4)))
     (error "Need running Python process to send pgn-mode message")))
 
 (defun pgn-mode--receive-process (seconds &optional max-time)
@@ -968,7 +966,7 @@ With numeric prefix ARG, move ARG moves forward."
 (defun pgn-mode-display-fen-at-point ()
   "Display the FEN corresponding to the point in a separate buffer."
   (interactive)
-  (let ((fen (pgn-mode-fen-at-pos))
+  (let ((fen (pgn-mode--fen-at-pos))
         (buf (get-buffer-create " *pgn-mode-fen*"))
         (win nil))
     (with-current-buffer buf
