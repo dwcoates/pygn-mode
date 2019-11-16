@@ -57,9 +57,6 @@
 ;;
 ;; TODO
 ;;
-;;     Support line-comments with %.  Partial try, which doesn't mix with {}:
-;;     (setq font-lock-syntactic-keywords '(("^\\(%\\).+?\\(\n\\)" (1 "<") (2 ">"))))
-;;
 ;;     FEN-at-point.
 ;;
 ;;     Board-image-at-point.
@@ -383,6 +380,19 @@ POS defaults to `point'."
           (when (re-search-forward "\n\n" nil t)
             (setq font-lock-end (point))))))))
 
+(defun pgn-mode-propertize-line-comments (start end)
+  "Put text properties on beginnings and ends of line comments.
+
+Intended to be used as a `syntax-propertize-function'."
+  (save-excursion
+    (save-match-data
+      (goto-char start)
+      (while (re-search-forward "^\\(%\\)[^\n]*\\(\n\\)" end t)
+        (put-text-property (match-beginning 1) (match-end 1)
+                           'syntax-table (string-to-syntax "!"))
+        (put-text-property (match-beginning 2) (match-end 2)
+                           'syntax-table (string-to-syntax "!"))))))
+
 (font-lock-add-keywords
  'pgn-mode
  '(
@@ -417,6 +427,9 @@ POS defaults to `point'."
  (setq-local comment-continue " ")
  (setq-local comment-multi-line t)
  (setq-local comment-style 'plain)
+ (setq-local syntax-propertize-function 'pgn-mode-propertize-line-comments)
+ (setq-local parse-sexp-lookup-properties t)
+ (setq-local parse-sexp-ignore-comments t)
  (when font-lock-maximum-decoration
    (setq-local font-lock-multiline t)
    (setq-local font-lock-extend-after-change-region-function 'pgn-mode-after-change-function)
