@@ -83,18 +83,12 @@ if __name__ == '__main__':
         print('pgn_to_fen: -quiet and -verbose are incompatible', file=sys.stderr)
         exit(1)
 
-    input_files = args.file
-    if not sys.stdin.isatty():
-        input_files = [sys.stdin, *input_files]
-
-    # should only be a single input file in the array
-    for input_file in input_files:
-        game = chess.pgn.read_game(input_file)
+    while True:
+        game = chess.pgn.read_game(sys.stdin)
         board = game.board()
         for move in game.mainline_moves():
             board.push(move)
         print(board.fen())
-
 #
 # Emacs
 #
