@@ -545,7 +545,7 @@ Does not work for nested variations."
   (cl-callf or pos (point))
   (save-excursion
     (let ((pgn (buffer-substring-no-properties (pgn-mode-game-start-position) (point))))
-      (pgn-mode--query-process pgn 0.01 0.51))))
+      (pgn-mode--query-process (concat "1 -- " pgn) 0.01 0.51))))
 
 (defun pgn-mode-echo-fen-at-point ()
   "Display the FEN corresponding to the point in the echo area."

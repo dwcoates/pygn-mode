@@ -24,9 +24,12 @@ __version__ = '1.00'
 ###
 
 import sys
+import re
+import io
 import argparse
 import textwrap
 import signal
+
 import chess.pgn
 
 ###
@@ -83,11 +86,26 @@ if __name__ == '__main__':
         print('pgn_to_fen: -quiet and -verbose are incompatible', file=sys.stderr)
         exit(1)
 
+
+
     while True:
-        game = chess.pgn.read_game(sys.stdin)
+        input_str = sys.stdin.read()
+        p = re.compile("([0-9]+) --")
+        m = p.search(input_str)
+
+        if (not m):
+            print("Bad pgn-mode python process input: {}".format(input_str))
+            continue
+
+        code = m.group(1)
+        pgn = input_str[input_str.index(m.group(0)) + len(m.group(0)):].strip()
+
+        game = chess.pgn.read_game(io.StringIO(pgn))
         board = game.board()
+
         for move in game.mainline_moves():
             board.push(move)
+
         print(board.fen())
 #
 # Emacs
