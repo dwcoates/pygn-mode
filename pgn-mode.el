@@ -262,7 +262,7 @@
   "Whether the point is looking at a legal SAN chess move.
 
 Leading move numbers are allowed, and ignored."
-  (looking-at "[0-9.…\s-]*\\<\\([RNBQK][a-h]?[1-8]?x?[a-h][1-8]\\|[a-h]x?[1-8]=?[RNBQ]?\\|O-O\\|O-O-O\\)\\(\\+\\+?\\|#\\)?"))
+  (looking-at-p "[0-9.…\s-]*\\<\\([RNBQK][a-h]?[1-8]?x?[a-h][1-8]\\|[a-h]x?[1-8]=?[RNBQ]?\\|O-O\\|O-O-O\\)\\(\\+\\+?\\|#\\)?"))
 
 (defun pgn-mode-game-start-position (&optional pos)
   "Start position for the PGN game which contains position POS.
@@ -271,8 +271,9 @@ POS defaults to `point'."
   (cl-callf or pos (point))
   (save-excursion
     (goto-char pos)
-    (unless (looking-at "\\[Event ")
-      (re-search-backward "^\\[Event " nil t))
+    (unless (looking-at-p "\\[Event ")
+      (let ((inhibit-changing-match-data t))
+        (re-search-backward "^\\[Event " nil t)))
     (forward-line 0)
     (point)))
 
@@ -282,15 +283,16 @@ POS defaults to `point'."
 POS defaults to `point'."
   (cl-callf or pos (point))
   (save-excursion
-    (goto-char pos)
-    (goto-char (line-end-position))
-    (if (re-search-forward "^\\[Event " nil t)
-        (forward-line 0)
-      ;; else
-      (goto-char (point-max)))
-    (re-search-backward "\\S-" nil t)
-    (forward-line 1)
-    (point)))
+    (save-match-data
+      (goto-char pos)
+      (goto-char (line-end-position))
+      (if (re-search-forward "^\\[Event " nil t)
+          (forward-line 0)
+        ;; else
+        (goto-char (point-max)))
+      (re-search-backward "\\S-" nil t)
+      (forward-line 1)
+      (point))))
 
 ;; todo maybe shouldn't consult looking-at here, but it works well for the
 ;; purpose of pgn-mode-next-move
@@ -298,22 +300,22 @@ POS defaults to `point'."
   "However deep in nested variations and comments, exit and skip forward."
   (while (or (> (nth 0 (syntax-ppss)) 0)
              (nth 4 (syntax-ppss))
-             (looking-at "\\s-*(")
-             (looking-at "\\s-*{"))
+             (looking-at-p "\\s-*(")
+             (looking-at-p "\\s-*{"))
     (cond
       ((> (nth 0 (syntax-ppss)) 0)
        (up-list (nth 0 (syntax-ppss))))
       ((nth 4 (syntax-ppss))
        (skip-syntax-forward "^>")
        (forward-char 1))
-      ((looking-at "\\s-*(")
+      ((looking-at-p "\\s-*(")
        (skip-syntax-forward "-")
        (forward-char 1))
-      ((looking-at "\\s-*{")
+      ((looking-at-p "\\s-*{")
        (skip-syntax-forward "-")
        (forward-char 1)))
     (skip-syntax-forward "-")
-    (when (looking-at "$")
+    (when (looking-at-p "$")
       (forward-line 1)
       (skip-syntax-forward "-"))))
 
@@ -321,27 +323,28 @@ POS defaults to `point'."
 ;; purpose of pgn-mode-previous-move
 (defun pgn-mode-backward-exit-variations-and-comments ()
   "However deep in nested variations and comments, exit and skip backward."
-  (while (or (> (nth 0 (syntax-ppss)) 0)
-             (nth 4 (syntax-ppss))
-             (looking-back ")\\s-*" 10)
-             (looking-back "}\\s-*" 10))
-    (cond
-      ((> (nth 0 (syntax-ppss)) 0)
-       (up-list (- (nth 0 (syntax-ppss)))))
-      ((nth 4 (syntax-ppss))
-       (skip-syntax-backward "^<")
-       (backward-char 1))
-      ((looking-back ")\\s-*" 10)
-       (skip-syntax-backward "-")
-       (backward-char 1))
-      ((looking-back "}\\s-*" 10)
-       (skip-syntax-backward "-")
-       (backward-char 1)))
-    (skip-syntax-backward "-")
-    (when (looking-at "^")
-      (forward-line -1)
-      (goto-char (line-end-position))
-      (skip-syntax-backward "-"))))
+  (save-match-data
+    (while (or (> (nth 0 (syntax-ppss)) 0)
+               (nth 4 (syntax-ppss))
+               (looking-back ")\\s-*" 10)
+               (looking-back "}\\s-*" 10))
+      (cond
+        ((> (nth 0 (syntax-ppss)) 0)
+         (up-list (- (nth 0 (syntax-ppss)))))
+        ((nth 4 (syntax-ppss))
+         (skip-syntax-backward "^<")
+         (backward-char 1))
+        ((looking-back ")\\s-*" 10)
+         (skip-syntax-backward "-")
+         (backward-char 1))
+        ((looking-back "}\\s-*" 10)
+         (skip-syntax-backward "-")
+         (backward-char 1)))
+      (skip-syntax-backward "-")
+      (when (looking-at-p "^")
+        (forward-line -1)
+        (goto-char (line-end-position))
+        (skip-syntax-backward "-")))))
 
 ;;; font-lock
 
@@ -443,12 +446,13 @@ POS defaults to `point'."
 With numeric prefix ARG, advance ARG games."
   (interactive "p")
   (cl-callf or arg 1)
-  (when (looking-at "\\[Event ")
-    (goto-char (line-end-position)))
-  (if (re-search-forward "^\\[Event " nil t arg)
-      (goto-char (line-beginning-position))
-    ;; else
-    (error "No next game."))
+  (save-match-data
+    (when (looking-at-p "\\[Event ")
+      (goto-char (line-end-position)))
+    (if (re-search-forward "^\\[Event " nil t arg)
+        (goto-char (line-beginning-position))
+      ;; else
+      (error "No next game.")))
   (when (fboundp 'nav-flash-show)
     (nav-flash-show)))
 
@@ -458,12 +462,13 @@ With numeric prefix ARG, advance ARG games."
 With numeric prefix ARG, move back ARG games."
   (interactive "p")
   (cl-callf or arg 1)
-  (unless (looking-at "\\[Event ")
-    (re-search-backward "^\\[Event " nil t))
-  (if (re-search-backward "^\\[Event " nil t arg)
-      (goto-char (line-beginning-position))
-    ;; else
-    (error "No previous game."))
+  (save-match-data
+    (unless (looking-at-p "\\[Event ")
+      (re-search-backward "^\\[Event " nil t))
+    (if (re-search-backward "^\\[Event " nil t arg)
+        (goto-char (line-beginning-position))
+      ;; else
+      (error "No previous game.")))
   (when (fboundp 'nav-flash-show)
     (nav-flash-show)))
 
@@ -478,33 +483,34 @@ With numeric prefix ARG, advance ARG moves forward."
   (interactive "p")
   (cl-callf or arg 1)
   (save-restriction
-    (narrow-to-region (pgn-mode-game-start-position)
-                      (pgn-mode-game-end-position))
-    (let ((last-point -1)
-          (start (point))
-          (thumb (point)))
-      (when (or (looking-at "[^\n]*\\]")
-                (and (looking-at "\\s-*$") (looking-back "\\]\\s-*" 10)))
-        (re-search-forward "\n\n" nil t))
-      (dotimes (counter arg)
-        (when (pgn-mode-looking-at-legal-move)
-          (setq thumb (point))
-          (skip-chars-forward "0-9.…\s-")
-          (forward-char 1))
-        (while (and (not (= (point) last-point))
-                    (or (not (pgn-mode-looking-at-legal-move))
-                        (pgn-mode-inside-variation-or-comment-p)))
-          (setq last-point (point))
-          (cond
-            ((pgn-mode-inside-variation-or-comment-p)
-             (pgn-mode-forward-exit-variations-and-comments))
-            (t
-             (forward-sexp 1)))))
-      (skip-chars-forward "0-9.…\s-")
-      (unless (pgn-mode-looking-at-legal-move)
-        (goto-char thumb)
-        (when (eq thumb start)
-          (error "No more moves."))))))
+    (save-match-data
+      (narrow-to-region (pgn-mode-game-start-position)
+                        (pgn-mode-game-end-position))
+      (let ((last-point -1)
+            (start (point))
+            (thumb (point)))
+        (when (or (looking-at-p "[^\n]*\\]")
+                  (and (looking-at-p "\\s-*$") (looking-back "\\]\\s-*" 10)))
+          (re-search-forward "\n\n" nil t))
+        (dotimes (counter arg)
+          (when (pgn-mode-looking-at-legal-move)
+            (setq thumb (point))
+            (skip-chars-forward "0-9.…\s-")
+            (forward-char 1))
+          (while (and (not (= (point) last-point))
+                      (or (not (pgn-mode-looking-at-legal-move))
+                          (pgn-mode-inside-variation-or-comment-p)))
+            (setq last-point (point))
+            (cond
+              ((pgn-mode-inside-variation-or-comment-p)
+               (pgn-mode-forward-exit-variations-and-comments))
+              (t
+               (forward-sexp 1)))))
+        (skip-chars-forward "0-9.…\s-")
+        (unless (pgn-mode-looking-at-legal-move)
+          (goto-char thumb)
+          (when (eq thumb start)
+            (error "No more moves.")))))))
 
 (defun pgn-mode-previous-move (arg)
   "Move back to the previous move in a PGN game.
@@ -517,33 +523,34 @@ With numeric prefix ARG, move ARG moves backward."
   (interactive "p")
   (cl-callf or arg 1)
   (save-restriction
-    (narrow-to-region (pgn-mode-game-start-position)
-                      (pgn-mode-game-end-position))
-    (let ((last-point -1)
-          (start (point))
-          (thumb (point)))
-      (when (or (looking-at "[^\n]*\\]")
-                (and (looking-at "\\s-*$") (looking-back "\\]\\s-*" 10)))
-        (error "No more moves."))
-      (dotimes (counter arg)
-        (when (pgn-mode-looking-at-legal-move)
-          (setq thumb (point))
-          (skip-chars-backward "0-9.…\s-")
-          (backward-char 1))
-        (while (and (not (= (point) last-point))
-                    (or (not (pgn-mode-looking-at-legal-move))
-                        (pgn-mode-inside-variation-or-comment-p)))
-          (setq last-point (point))
-          (cond
-            ((pgn-mode-inside-variation-or-comment-p)
-             (pgn-mode-backward-exit-variations-and-comments))
-            (t
-             (skip-chars-backward "0-9.…\s-")
-             (forward-sexp -1)))))
-      (unless (pgn-mode-looking-at-legal-move)
-        (goto-char thumb)
-        (when (eq thumb start)
-          (error "No more moves."))))))
+    (save-match-data
+      (narrow-to-region (pgn-mode-game-start-position)
+                        (pgn-mode-game-end-position))
+      (let ((last-point -1)
+            (start (point))
+            (thumb (point)))
+        (when (or (looking-at-p "[^\n]*\\]")
+                  (and (looking-at-p "\\s-*$") (looking-back "\\]\\s-*" 10)))
+          (error "No more moves."))
+        (dotimes (counter arg)
+          (when (pgn-mode-looking-at-legal-move)
+            (setq thumb (point))
+            (skip-chars-backward "0-9.…\s-")
+            (backward-char 1))
+          (while (and (not (= (point) last-point))
+                      (or (not (pgn-mode-looking-at-legal-move))
+                          (pgn-mode-inside-variation-or-comment-p)))
+            (setq last-point (point))
+            (cond
+              ((pgn-mode-inside-variation-or-comment-p)
+               (pgn-mode-backward-exit-variations-and-comments))
+              (t
+               (skip-chars-backward "0-9.…\s-")
+               (forward-sexp -1)))))
+        (unless (pgn-mode-looking-at-legal-move)
+          (goto-char thumb)
+          (when (eq thumb start)
+            (error "No more moves.")))))))
 
 (defun pgn-mode-select-game ()
   "Select current game in a multi-game PGN buffer."
