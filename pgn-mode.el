@@ -99,23 +99,25 @@
 ;;; Code:
 ;;
 
-;;; imports
+(defconst pgn-mode--version "0.0.4")
+
+;;; Imports
 
 (require 'cl-lib)
 (require 'nav-flash nil t)
 
-;;; declarations
+;;; Declarations
 
 (eval-when-compile
   (defvar font-lock-beg)
   (defvar font-lock-end))
 
-;;; customizable variables
+;;; Customizable variables
 
 ;;;###autoload
 (defgroup pgn-mode nil
   "Simple syntax highlighting for chess PGN files."
-  :version "0.0.4"
+  :version pgn-mode--version
   :prefix "pgn-mode-"
   :group 'data
   :group 'games)
@@ -150,9 +152,9 @@
   "pgn-mode face for tagpair square brackets."
   :group 'pgn-mode-faces)
 
-;;; variables
+;;; Variables
 
-;;; syntax table
+;;; Syntax table
 
 (defvar pgn-mode-syntax-table
   (let ((st (make-syntax-table text-mode-syntax-table)))
@@ -194,7 +196,7 @@
     st)
   "Syntax table used while in `pgn-mode'.")
 
-;;; keymaps
+;;; Keymaps
 
 (defvar pgn-mode-map
   (let ((map (make-sparse-keymap)))
@@ -239,7 +241,7 @@
     map)
   "Keymap for `pgn-mode'.")
 
-;;; utility functions
+;;; Utility functions
 
 (defun pgn-mode-inside-comment-p ()
   "Whether the point is inside a PGN comment."
@@ -422,7 +424,7 @@ Intended to be used as a `syntax-propertize-function'."
    ;; variation text. append or keep is very important here.
    ("([^()]*?)" 0 'pgn-mode-variation-face append)))
 
-;;; major-mode definition
+;;; Major-mode definition
 
 ;;;###autoload
 (define-derived-mode pgn-mode fundamental-mode "PGN"
@@ -454,7 +456,7 @@ Intended to be used as a `syntax-propertize-function'."
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.[pP][gG][nN]\\'" . pgn-mode))
 
-;;; interactive commands
+;;; Interactive commands
 
 (defun pgn-mode-next-game (arg)
   "Advance to the next game in a multi-game PGN buffer.
