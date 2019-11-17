@@ -525,7 +525,7 @@ With numeric prefix ARG, advance ARG moves forward."
         (skip-chars-forward "0-9.…\s-")
         (unless (pgn-mode-looking-at-legal-move)
           (goto-char thumb)
-          (when (eq thumb start)
+          (when (= thumb start)
             (error "No more moves.")))))))
 
 (defun pgn-mode-previous-move (arg)
@@ -565,7 +565,7 @@ With numeric prefix ARG, move ARG moves backward."
                (forward-sexp -1)))))
         (unless (pgn-mode-looking-at-legal-move)
           (goto-char thumb)
-          (when (eq thumb start)
+          (when (= thumb start)
             (error "No more moves.")))))))
 
 (defun pgn-mode-select-game ()
