@@ -300,6 +300,7 @@
                       :noquery t
                       :command (list pgn-mode-python-path
                                      (concat pgn-mode-script-directory "pgn_to_fen.py") "-"))))
+
 (defun pgn-mode--kill-process ()
   "Stop the currently running `pgn-mode--python-process' if it is running."
   (when (pgn-mode--process-running-p) (delete-process pgn-mode--python-process)))
@@ -312,6 +313,7 @@
         (process-send-string pgn-mode--python-process (concat message (string 10) (string 4))))
     (error "Need running Python process to send pgn-mode message")))
 
+;; TODO: divert error using :stderr on make-process, instead of taking only the first line of output
 (defun pgn-mode--receive-process (seconds &optional max-time)
   "Wrap `accept-process-output' with SECONDS for `pgn-mode--python-process' for MAX-TIME."
   (when (not (pgn-mode--process-running-p))
@@ -329,6 +331,13 @@
         (cl-incf tries))
       (goto-char (point-min))
       (buffer-substring-no-properties (point-min) (line-end-position)))))
+
+(defun pgn-mode--query-process (message seconds &optional max-time force)
+  "Send MESSAGE to active `pgn-mode--python-process' every SECONDS for MAX-TIME and return response, optionally FORCE a new python process."
+  (when (not (pgn-mode--process-running-p))
+    (pgn-mode--make-process force))
+  (pgn-mode--send-process message)
+  (pgn-mode--receive-process seconds (or max-time 0.25)))
 
 (defun pgn-mode--inside-comment-p ()
   "Whether the point is inside a PGN comment."
@@ -441,71 +450,6 @@ POS defaults to `point'."
         (setq pgn-mode-python-chess-succeeded t)
       (error "The Python interpreter at `pgn-mode-python-path' must have the python-chess library available."))))
 
-(defun pgn-mode-fen-at-pos (pos)
-  "Return the FEN corresponding to POS."
-  (pgn-mode-python-chess-guard)
-  (save-excursion
-    (goto-char pos)
-    (let ((tries 0)
-          (pgn nil)
-          (proc nil))
-      (setq pgn (buffer-substring-no-properties (pgn-mode-game-start-position) (point)))
-      (with-temp-buffer
-        (setq proc (make-process :name "pgn-mode-fen-at-pos"
-                                 :buffer (current-buffer)
-                                 :noquery t
-                                 :sentinel #'ignore
-                                 :command (list pgn-mode-python-path
-                                                (expand-file-name "pgn_to_fen.py" pgn-mode-script-directory)
-                                                "-")))
-        (when proc
-          (process-send-string proc (concat pgn (string 10)))
-          (process-send-eof proc)
-          (accept-process-output proc .01 nil 1)
-          (while (and (process-live-p proc)
-                      (< tries 50))
-            (accept-process-output proc .01 nil 1)
-            (cl-incf tries))
-          ;; doesn't work when fed bad illegal moves on input -- why?
-          (when (not (zerop (process-exit-status proc)))
-            (error "Exception during python-chess command."))
-          (delete-process proc)
-          (goto-char (point-min))
-          (buffer-substring-no-properties (point-min) (point-max)))))))
-
-(defun pgn-mode-board-at-pos (pos)
-  "Return the SVG board corresponding to POS."
-  (pgn-mode-python-chess-guard)
-  (save-excursion
-    (goto-char pos)
-    (let ((tries 0)
-          (pgn nil)
-          (proc nil))
-      (setq pgn (buffer-substring-no-properties (pgn-mode-game-start-position) (point)))
-      (with-temp-buffer
-        (setq proc (make-process :name "pgn-mode-board-at-pos"
-                                 :buffer (current-buffer)
-                                 :noquery t
-                                 :sentinel #'ignore
-                                 :command (list pgn-mode-python-path
-                                                (expand-file-name "pgn_to_board.py" pgn-mode-script-directory)
-                                                (concat "-pixels=" (number-to-string pgn-mode-board-size))
-                                                "-")))
-        (when proc
-          (process-send-string proc (concat pgn (string 10)))
-          (process-send-eof proc)
-          (accept-process-output proc .01 nil 1)
-          (while (and (process-live-p proc)
-                      (< tries 50))
-            (accept-process-output proc .01 nil 1)
-            (cl-incf tries))
-          ;; doesn't work when fed bad illegal moves on input -- why?
-          (when (not (zerop (process-exit-status proc)))
-            (error "Exception during python-chess command."))
-          (delete-process proc)
-          (goto-char (point-min))
-          (buffer-substring-no-properties (point-min) (point-max)))))))
-
 (defun pgn-mode-pgn-as-if-variation (pos &optional inclusive)
   "PGN string as if a variation had been played until position POS.
 
@@ -541,55 +485,32 @@ Does not work for nested variations."
   (pgn-mode--send-process message)
   (pgn-mode--receive-process seconds (or max-time 0.25)))
 
+(defun pgn-mode--send-board (code &optional pos)
+  "Get PGN string preceding POS and send a `pgn-mode--python-process' request denoted by CODE."
+  (cl-callf or pos (point))
+  (save-excursion
+    (let ((pgn (buffer-substring-no-properties (pgn-mode-game-start-position) pos)))
+      (pgn-mode--query-process (concat (number-to-string code) " -- " pgn) 0.01 0.51))))
+
 ;; todo divert error using :stderr on make-process, instead of taking only the first line of output
 (defun pgn-mode--fen-at-pos (&rest pos)
   "Return the FEN corresponding to POS, which defaults to the point."
   (when (not (pgn-mode--process-running-p))
     (pgn-mode--make-process))
-  (cl-callf or pos (point))
-  (save-excursion
-    (let ((pgn (buffer-substring-no-properties (pgn-mode-game-start-position) (point))))
-      (pgn-mode--query-process pgn 0.01 0.51))))
+  (pgn-mode--send-board 1 pos))
 
 (defun pgn-mode-echo-fen-at-point ()
   "Display the FEN corresponding to the point in the echo area."
   (interactive)
   (message "%s" (pgn-mode--fen-at-pos)))
 
-;; todo divert error using :stderr on make-process, instead of taking only the first line of output
 (defun pgn-mode-board-at-pos (&rest pos)
-  "Return the SVG board corresponding to POS, which defaults to the point."
-  (when (not (= 0 (call-process pgn-mode-python-path nil nil nil "-c" "import chess")))
-    (error "The Python interpreter at `pgn-mode-python-path' must have the python-chess library available."))
-  (cl-callf or pos (point))
-  (save-excursion
-    (goto-char pos)
-    (let ((tries 0)
-          (pgn nil)
-          (proc nil))
-      (setq pgn (buffer-substring-no-properties (pgn-mode-game-start-position) (point)))
-      (with-temp-buffer
-        (setq proc (make-process :name "pgn-mode-board-at-pos"
-                                 :buffer (current-buffer)
-                                 :noquery t
-                                 :command (list pgn-mode-python-path
-                                                (concat pgn-mode-script-directory "pgn_to_board.py")
-                                                (concat "-pixels=" (number-to-string pgn-mode-board-size))
-                                                "-")))
-        (when proc
-          (process-send-string proc (concat pgn (string 10) (string 4)))
-          (accept-process-output proc .01 nil 1)
-          (while (and (process-live-p proc)
-                      (< tries 50))
-            (accept-process-output proc .01 nil 1)
-            (sit-for 0)
-            (cl-incf tries))
-          (delete-process proc)
-          (goto-char (point-min))
-          (buffer-substring-no-properties (point-min) (line-end-position)))))))
+  "Get SVG output for PGN string preceding POS."
+  (when (not (pgn-mode--process-running-p))
+    (pgn-mode--make-process))
+  (pgn-mode--send-board 2 pos))
 
 ;;; font-lock
-
 (defun pgn-mode-after-change-function (beg end old-len)
   "Help refontify multi-line variations during edits."
   (let ((syn (syntax-ppss beg)))

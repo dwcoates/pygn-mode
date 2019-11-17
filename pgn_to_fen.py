@@ -70,6 +70,11 @@ def generate_argparser():
 ### main
 ###
 
+callbacks = {
+    "1": lambda board: print(board.fen()),
+    "2": lambda board: print(chess.svg.board(board=board, size=args.pixels[0])),
+}
+
 if __name__ == '__main__':
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
@@ -87,13 +92,24 @@ if __name__ == '__main__':
     if not sys.stdin.isatty():
         input_files = [sys.stdin, *input_files]
 
-    # should only be a single input file in the array
-    for input_file in input_files:
-        game = chess.pgn.read_game(input_file)
+
+    while True:
+        input_str = sys.stdin.read()
+        p = re.compile("([0-9]+) --")
+        m = p.search(input_str)
+
+        if (not m):
+            print("Bad pgn-mode python process input: {}".format(input_str))
+            continue
+
+        code = m.group(1) # Command code for handling input.
+        pgn = input_str[input_str.index(m.group(0)) + len(m.group(0)):].strip()
+
+        game = chess.pgn.read_game(io.StringIO(pgn))
         board = game.board()
         for move in game.mainline_moves():
             board.push(move)
-        print(board.fen())
+        print(callbacks[code](board))
 
 #
 # Emacs
