@@ -289,7 +289,9 @@
                                      (concat pgn-mode-script-directory "pgn_to_fen.py") "-"))))
 (defun pgn-mode--kill-process ()
   "Stop the currently running `pgn-mode--python-process' if it is running."
-  (when (pgn-mode--process-running-p) (delete-process pgn-mode--python-process)))
+  (when (pgn-mode--process-running-p)
+    (delete-process pgn-mode--python-process)
+    (setq pgn-mode--python-process nil)))
 
 (defun pgn-mode--send-process (message)
   "Send MESSAGE to the running `pgn-mode--python-process'."
@@ -304,7 +306,8 @@
   (when (not (get-buffer pgn-mode--python-buffer))
     (error "Python output buffer does not exist"))
   (with-current-buffer pgn-mode--python-buffer
-    (let ((tries 0))
+    (let ((tries 0)
+          python-process-output)        ;
       (goto-char (point-min))
       (while (and (progn
                     (accept-process-output pgn-mode--python-process seconds nil 1)
@@ -313,7 +316,10 @@
         (sit-for 0)
         (cl-incf tries))
       (goto-char (point-min))
-      (buffer-substring-no-properties (point-min) (line-end-position)))))
+      (setq python-process-output
+            (buffer-substring-no-properties (point-min) (line-end-position)))
+      (erase-buffer)
+      python-process-output)))
 
 (defun pgn-mode--inside-comment-p ()
   "Whether the point is inside a PGN comment."
