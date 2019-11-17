@@ -434,27 +434,25 @@ POS defaults to `point'."
 
 (defun pgn-mode--send-board (code &optional pos)
   "Get PGN string preceding POS and send a `pgn-mode--python-process' request denoted by CODE."
+  (when (not (pgn-mode--process-running-p))
+    (pgn-mode--make-process))
   (cl-callf or pos (point))
   (save-excursion
     (let ((pgn (buffer-substring-no-properties (pgn-mode-game-start-position) pos)))
       (pgn-mode--query-process (concat (number-to-string code) " -- " pgn) 0.01 0.51))))
 
 ;; todo divert error using :stderr on make-process, instead of taking only the first line of output
-(defun pgn-mode--fen-at-pos (&rest pos)
+(defun pgn-mode-fen-at-pos (&rest pos)
   "Return the FEN corresponding to POS, which defaults to the point."
-  (when (not (pgn-mode--process-running-p))
-    (pgn-mode--make-process))
   (pgn-mode--send-board 1 pos))
 
 (defun pgn-mode-echo-fen-at-point ()
   "Display the FEN corresponding to the point in the echo area."
   (interactive)
-  (message "%s" (pgn-mode--fen-at-pos)))
+  (message "%s" (pgn-mode-fen-at-pos)))
 
 (defun pgn-mode-board-at-pos (&rest pos)
   "Get SVG output for PGN string preceding POS."
-  (when (not (pgn-mode--process-running-p))
-    (pgn-mode--make-process))
   (pgn-mode--send-board 2 pos))
 
 ;;; font-lock
@@ -688,7 +686,7 @@ With numeric prefix ARG, move ARG moves backward."
 (defun pgn-mode-display-fen-at-point ()
   "Display the FEN corresponding to the point in a separate buffer."
   (interactive)
-  (let ((fen (pgn-mode--fen-at-pos))
+  (let ((fen (pgn-mode-fen-at-pos))
         (buf (get-buffer-create " *pgn-mode-fen*"))
         (win nil))
     (with-current-buffer buf
