@@ -568,9 +568,8 @@ With numeric prefix ARG, move ARG moves backward."
 (defun pgn-mode-select-game ()
   "Select current game in a multi-game PGN buffer."
   (interactive)
-  (push-mark (pgn-mode-game-start-position) t t)
-  (goto-char (pgn-mode-game-end-position))
-  (exchange-point-and-mark))
+  (push-mark (pgn-mode-game-end-position) t t)
+  (goto-char (pgn-mode-game-start-position)))
 
 (provide 'pgn-mode)
 
