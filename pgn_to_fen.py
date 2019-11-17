@@ -73,6 +73,11 @@ def generate_argparser():
 ### main
 ###
 
+callbacks = {
+    "1": lambda board: print(board.fen()),
+    "2": lambda board: print(chess.svg.board(board=board, size=args.pixels[0])),
+}
+
 if __name__ == '__main__':
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
@@ -97,7 +102,7 @@ if __name__ == '__main__':
             print("Bad pgn-mode python process input: {}".format(input_str))
             continue
 
-        code = m.group(1)
+        code = m.group(1) # Command code for handling input.
         pgn = input_str[input_str.index(m.group(0)) + len(m.group(0)):].strip()
 
         game = chess.pgn.read_game(io.StringIO(pgn))
@@ -106,8 +111,7 @@ if __name__ == '__main__':
         for move in game.mainline_moves():
             board.push(move)
 
-        print(board.fen())
-#
+        print(callbacks[code](board))
 # Emacs
 #
 # Local Variables:
