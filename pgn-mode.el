@@ -440,6 +440,7 @@ Intended to be used as a `syntax-propertize-function'."
    (setq-local font-lock-extend-after-change-region-function 'pgn-mode-after-change-function)
    ;; especially slow
    (add-hook 'font-lock-extend-region-functions 'pgn-mode-font-lock-extend-region t t))
+ (font-lock-ensure)
  (let ((map (make-sparse-keymap)))
    (set-keymap-parent map (default-value 'mode-line-major-mode-keymap))
    (define-key map (kbd "<mode-line> <mouse-4>")    'pgn-mode-previous-move)
