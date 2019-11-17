@@ -99,7 +99,7 @@
 ;;; Code:
 ;;
 
-(defconst pgn-mode--version "0.0.4")
+(defconst pgn-mode-version "0.0.4")
 
 ;;; Imports
 
@@ -117,7 +117,7 @@
 ;;;###autoload
 (defgroup pgn-mode nil
   "Simple syntax highlighting for chess PGN files."
-  :version pgn-mode--version
+  :version pgn-mode-version
   :prefix "pgn-mode-"
   :group 'data
   :group 'games)
