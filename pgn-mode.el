@@ -286,7 +286,7 @@
                       :buffer pgn-mode--python-buffer
                       :noquery t
                       :command (list pgn-mode-python-path
-                                     (concat pgn-mode-script-directory "pgn_to_fen.py") "-"))))
+                                     (concat pgn-mode-script-directory "pgn_handler.py") "-"))))
 
 (defun pgn-mode--kill-process ()
   "Stop the currently running `pgn-mode--python-process' if it is running."
