@@ -3,7 +3,7 @@
 An Emacs major-mode for viewing chess PGN files.
 
  * [Quickstart](#quickstart)
- * [pgn-mode](#pgn-mode)
+ * [pygn-mode](#pygn-mode)
  * [Interactive Commands](#interactive-commands)
  * [Prior Art](#prior-art)
  * [Compatibility and Requirements](#compatibility-and-requirements)
@@ -15,14 +15,14 @@ An Emacs major-mode for viewing chess PGN files.
 ;; (setq font-lock-maximum-decoration t)
 
 ;; maybe
-;; (eval-after-load "pgn-mode"
-;;   (define-key pgn-mode-map (kbd "M-f") 'pgn-mode-next-move)
-;;   (define-key pgn-mode-map (kbd "M-b") 'pgn-mode-previous-move))
+;; (eval-after-load "pygn-mode"
+;;   (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move)
+;;   (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move))
 
-(require 'pgn-mode)
+(require 'pygn-mode)
 ```
 
-## pgn-mode
+## pygn-mode
 
 Provides
 
@@ -34,7 +34,7 @@ Provides
 ## Interactive Commands
 
 No interactive commands are bound by default.  Consider binding keys in an
-`(eval-after-load "pgn-mode" … )` form.
+`(eval-after-load "pygn-mode" … )` form.
 
 ### Game Navigation Commands
 
@@ -44,8 +44,8 @@ depend on the convention of each game starting with an `[Event "?"]` tagpair.
 
 Both commands accept a positive numeric prefix argument.
 
-* `pgn-mode-next-game`
-* `pgn-mode-previous-game`
+* `pygn-mode-next-game`
+* `pygn-mode-previous-game`
 
 ### Move Navigation Commands
 
@@ -60,15 +60,15 @@ Move navigation commands treat move numbers as whitespace.  If the point is
 on the move number for a move, it is considered to be on that move.  Move
 numbers will be skipped over whenever possible by move navigation.
 
- * `pgn-mode-next-move` — suggested binding <kbd>M-f</kbd>
- * `pgn-mode-previous-move` — suggested binding <kbd>M-b</kbd>
+ * `pygn-mode-next-move` — suggested binding <kbd>M-f</kbd>
+ * `pygn-mode-previous-move` — suggested binding <kbd>M-b</kbd>
 
 ### Selection Commands
 
 Like game navigation commands, game selection commands depend on the convention
 of each game starting with an `[Event "?"]` tagpair.
 
- * `pgn-mode-select-game`
+ * `pygn-mode-select-game`
 
 ## Prior Art
 
