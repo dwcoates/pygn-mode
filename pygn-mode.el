@@ -175,6 +175,12 @@
 (defvar pygn-mode-python-chess-succeeded nil
   "Whether a simple python-chess command has succeeded.")
 
+(defvar pygn-mode--python-process nil
+  "Python process that powers pygn-mode.")
+
+(defvar pygn-mode--python-buffer nil
+  "Buffer to which the pygn-mode Python process sends output.")
+
 ;;; Syntax table
 
 (defvar pygn-mode-syntax-table
@@ -263,9 +269,6 @@
     ;; enter/exit a parenthesized variation
     map)
   "Keymap for `pygn-mode'.")
-
-(defvar pygn-mode--python-process nil "Python process that powers pygn-mode.")
-(defvar pygn-mode--python-buffer nil "Buffer to which the pygn-mode Python process sends output.")
 
 ;;; Utility functions
 
