@@ -133,16 +133,6 @@
   :group 'pgn-mode
   :type 'int)
 
-(defcustom pgn-mode-python-path "python"
-  "Path to a Python interpreter with the python-chess library installed."
-  :group 'pgn-mode
-  :type 'string)
-
-(defcustom pgn-mode-board-size 400
-  "Size for graphical board display, expressed as pixels-per-side."
-  :group 'pgn-mode
-  :type 'int)
-
 ;;;###autoload
 (defgroup pgn-mode-faces nil
   "Faces used by pgn-mode."
@@ -279,67 +269,7 @@
 
 ;;; Utility functions
 
-(defun pgn-mode--process-running-p ()
-  "Return non-nil iff `pgn-mode--python-process' is running."
-  (and pgn-mode--python-process (process-live-p pgn-mode--python-process) t))
-
-;; TODO: check for pyhon-chess
-;; TODO: generalize script
-;; TODO: pipes?
-(defun pgn-mode--make-process (&optional force)
-  "Initialize pgn-mode `pgn-mode--python-process', optionally FORCE recreation if already exists."
-  (when (and (not force) (pgn-mode--process-running-p))
-    (error "The pgn-mode Python process already running. Use optional `force' to recreate"))
-  (when (not (= 0 (call-process pgn-mode-python-path nil nil nil "-c" "import chess")))
-    (error "The Python interpreter at `pgn-mode-python-path' must have the python-chess library available"))
-  (message (format "Initializing pgn-mode python process%s." (if force " (forcing)" "")))
-  (setq pgn-mode--python-buffer (get-buffer-create "pgn-mode-data-buffer"))
-  (setq pgn-mode--python-process
-        (make-process :name "pgn-mode-python"
-                      :buffer pgn-mode--python-buffer
-                      :noquery t
-                      :command (list pgn-mode-python-path
-                                     (concat pgn-mode-script-directory "pgn_handler.py") "-"))))
-
-(defun pgn-mode--kill-process ()
-  "Stop the currently running `pgn-mode--python-process' if it is running."
-  (when (pgn-mode--process-running-p) (delete-process pgn-mode--python-process)))
-
-(defun pgn-mode--send-process (message)
-  "Send MESSAGE to the running `pgn-mode--python-process'."
-  (if (pgn-mode--process-running-p)
-      (progn
-        (message "sending to process...\n%s\n=============" message)
-        (process-send-string pgn-mode--python-process (concat message (string 10) (string 4))))
-    (error "Need running Python process to send pgn-mode message")))
-
-;; TODO: divert error using :stderr on make-process, instead of taking only the first line of output
-(defun pgn-mode--receive-process (seconds &optional max-time)
-  "Wrap `accept-process-output' with SECONDS for `pgn-mode--python-process' for MAX-TIME."
-  (when (not (pgn-mode--process-running-p))
-    (error "Cannot fetch pgn-mode output without a running process"))
-  (when (not (get-buffer pgn-mode--python-buffer))
-    (error "Python output buffer does not exist"))
-  (with-current-buffer pgn-mode--python-buffer
-    (let ((tries 0))
-      (goto-char (point-min))
-      (while (and (progn
-                    (accept-process-output pgn-mode--python-process seconds nil 1)
-                    (= (buffer-size) 0))
-                  (< (* tries seconds) max-time))
-        (sit-for 0)
-        (cl-incf tries))
-      (goto-char (point-min))
-      (buffer-substring-no-properties (point-min) (line-end-position)))))
-
-(defun pgn-mode--query-process (message seconds &optional max-time force)
-  "Send MESSAGE to active `pgn-mode--python-process' every SECONDS for MAX-TIME and return response, optionally FORCE a new python process."
-  (when (not (pgn-mode--process-running-p))
-    (pgn-mode--make-process force))
-  (pgn-mode--send-process message)
-  (pgn-mode--receive-process seconds (or max-time 0.25)))
-
-(defun pgn-mode--inside-comment-p ()
+(defun pgn-mode-inside-comment-p ()
   "Whether the point is inside a PGN comment."
   (nth 4 (syntax-ppss)))
 
@@ -350,7 +280,7 @@
 
 (defun pgn-mode-inside-variation-or-comment-p ()
   "Whether the point is inside a PGN comment or a variation."
-  (or (pgn-mode--inside-comment-p)
+  (or (pgn-mode-inside-comment-p)
       (pgn-mode-inside-variation-p)))
 
 (defun pgn-mode-looking-at-legal-move ()
@@ -492,8 +422,7 @@ Does not work for nested variations."
     (let ((pgn (buffer-substring-no-properties (pgn-mode-game-start-position) pos)))
       (pgn-mode--query-process (concat (number-to-string code) " -- " pgn) 0.01 0.51))))
 
-;; todo divert error using :stderr on make-process, instead of taking only the first line of output
-(defun pgn-mode--fen-at-pos (&rest pos)
+(defun pgn-mode-fen-at-pos (&rest pos)
   "Return the FEN corresponding to POS, which defaults to the point."
   (when (not (pgn-mode--process-running-p))
     (pgn-mode--make-process))
@@ -511,6 +440,7 @@ Does not work for nested variations."
   (pgn-mode--send-board 2 pos))
 
 ;;; font-lock
+
 (defun pgn-mode-after-change-function (beg end old-len)
   "Help refontify multi-line variations during edits."
   (let ((syn (syntax-ppss beg)))
