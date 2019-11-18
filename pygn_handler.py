@@ -99,7 +99,13 @@ if __name__ == '__main__':
 
 
     while True:
-        input_str = sys.stdin.read()
+        input_str = sys.stdin.readline()
+        if len(input_str) == 0:
+            # eof
+            break
+        if len(input_str) == 1:
+            # just newline
+            continue
         p = re.compile("([0-9]+) --")
         m = p.search(input_str)
 
@@ -109,6 +115,8 @@ if __name__ == '__main__':
 
         code = m.group(1) # Command code for handling input.
         pgn = input_str[input_str.index(m.group(0)) + len(m.group(0)):].strip()
+        pgn = re.sub(r'\\n', '\n', pgn)
+        pgn = pgn + '\n\n'
 
         game = chess.pgn.read_game(io.StringIO(pgn))
         board = game.board()
