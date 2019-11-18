@@ -273,23 +273,23 @@
   "Return non-nil iff `pgn-mode--python-process' is running."
   (and pgn-mode--python-process (process-live-p pgn-mode--python-process) t))
 
-;; TODO: check for pyhon-chess
 ;; TODO: generalize script
 ;; TODO: pipes?
 (defun pgn-mode--make-process (&optional force)
   "Initialize pgn-mode `pgn-mode--python-process', optionally FORCE recreation if already exists."
+  (pgn-mode-python-chess-guard)
   (when (and (not force) (pgn-mode--process-running-p))
     (error "The pgn-mode Python process already running. Use optional `force' to recreate"))
-  (when (not (= 0 (call-process pgn-mode-python-path nil nil nil "-c" "import chess")))
-    (error "The Python interpreter at `pgn-mode-python-path' must have the python-chess library available"))
   (message (format "Initializing pgn-mode python process%s." (if force " (forcing)" "")))
-  (setq pgn-mode--python-buffer (get-buffer-create "pgn-mode-data-buffer"))
+  (setq pgn-mode--python-buffer (get-buffer-create " *pgn-mode-data-buffer*"))
   (setq pgn-mode--python-process
         (make-process :name "pgn-mode-python"
                       :buffer pgn-mode--python-buffer
                       :noquery t
+                      :sentinel #'ignore
                       :command (list pgn-mode-python-path
-                                     (concat pgn-mode-script-directory "pgn_handler.py") "-"))))
+                                     (expand-file-name "pgn_handler.py" pgn-mode-script-directory)
+                                     "-"))))
 
 (defun pgn-mode--kill-process ()
   "Stop the currently running `pgn-mode--python-process' if it is running."
@@ -303,7 +303,6 @@
       (process-send-string pgn-mode--python-process (concat message (string 10) (string 4)))
     (error "Need running Python process to send pgn-mode message")))
 
-;; TODO: divert error using :stderr on make-process, instead of taking only the first line of output
 (defun pgn-mode--receive-process (seconds &optional max-time)
   "Wrap `accept-process-output' with SECONDS for `pgn-mode--python-process' for MAX-TIME."
   (when (not (pgn-mode--process-running-p))
@@ -312,17 +311,16 @@
     (error "Python output buffer does not exist"))
   (with-current-buffer pgn-mode--python-buffer
     (let ((tries 0)
-          python-process-output)        ;
+          python-process-output)
       (goto-char (point-min))
       (while (and (progn
                     (accept-process-output pgn-mode--python-process seconds nil 1)
                     (= (buffer-size) 0))
                   (< (* tries seconds) max-time))
-        (sit-for 0)
         (cl-incf tries))
       (goto-char (point-min))
       (setq python-process-output
-            (buffer-substring-no-properties (point-min) (line-end-position)))
+            (buffer-substring-no-properties (point-min) (point-max)))
       (erase-buffer)
       python-process-output)))
 
@@ -350,8 +348,10 @@
 (defun pgn-mode-looking-at-legal-move ()
   "Whether the point is looking at a legal SAN chess move.
 
-Leading move numbers are allowed, and ignored."
-  (looking-at-p "[0-9.…\s-]*\\<\\([RNBQK][a-h]?[1-8]?x?[a-h][1-8]\\|[a-h]x?[1-8]=?[RNBQ]?\\|O-O\\|O-O-O\\)\\(\\+\\+?\\|#\\)?"))
+Leading move numbers, punctuation and spaces are allowed, and ignored."
+  (let ((inhibit-changing-match-data t))
+    (and (looking-at-p "[ \t]*[0-9]*[.…\s-]*\\<\\([RNBQK][a-h]?[1-8]?x?[a-h][1-8]\\|[a-h]x?[1-8]=?[RNBQ]?\\|O-O\\|O-O-O\\)\\(\\+\\+?\\|#\\)?")
+         (not (looking-back "[A-Za-z]" 1)))))
 
 (defun pgn-mode-game-start-position (&optional pos)
   "Start position for the PGN game which contains position POS.
@@ -484,18 +484,18 @@ Does not work for nested variations."
     (let ((pgn (buffer-substring-no-properties (pgn-mode-game-start-position) pos)))
       (pgn-mode--query-process (concat (number-to-string code) " -- " pgn) 0.01 0.51))))
 
-(defun pgn-mode-fen-at-pos (&rest pos)
+(defun pgn-mode-fen-at-pos (pos)
   "Return the FEN corresponding to POS, which defaults to the point."
   (when (not (pgn-mode--process-running-p))
     (pgn-mode--make-process))
   (pgn-mode--send-board 1 pos))
 
-(defun pgn-mode-echo-fen-at-point ()
+(defun pgn-mode-echo-fen-at-point (pos)
   "Display the FEN corresponding to the point in the echo area."
-  (interactive)
-  (message "%s" (pgn-mode--fen-at-pos)))
+  (interactive "d")
+  (message "%s" (pgn-mode-fen-at-pos pos)))
 
-(defun pgn-mode-board-at-pos (&rest pos)
+(defun pgn-mode-board-at-pos (pos)
   "Get SVG output for PGN string preceding POS."
   (when (not (pgn-mode--process-running-p))
     (pgn-mode--make-process))
@@ -598,6 +598,7 @@ Intended to be used as a `syntax-propertize-function'."
    (setq-local font-lock-extend-after-change-region-function 'pgn-mode-after-change-function)
    ;; especially slow
    (add-hook 'font-lock-extend-region-functions 'pgn-mode-font-lock-extend-region t t))
+ (font-lock-ensure)
  (let ((map (make-sparse-keymap)))
    (set-keymap-parent map (default-value 'mode-line-major-mode-keymap))
    (define-key map (kbd "<mode-line> <mouse-4>")    'pgn-mode-previous-move)
@@ -680,7 +681,7 @@ With numeric prefix ARG, advance ARG moves forward."
         (skip-chars-forward "0-9.…\s-")
         (unless (pgn-mode-looking-at-legal-move)
           (goto-char thumb)
-          (when (eq thumb start)
+          (when (= thumb start)
             (error "No more moves.")))))))
 
 (defun pgn-mode-previous-move (arg)
@@ -720,7 +721,7 @@ With numeric prefix ARG, move ARG moves backward."
                (forward-sexp -1)))))
         (unless (pgn-mode-looking-at-legal-move)
           (goto-char thumb)
-          (when (eq thumb start)
+          (when (= thumb start)
             (error "No more moves.")))))))
 
 (defun pgn-mode-select-game (pos)
@@ -731,38 +732,6 @@ When called non-interactively, select the game containing POS."
   (goto-char pos)
   (push-mark (pgn-mode-game-end-position) t t)
   (goto-char (pgn-mode-game-start-position)))
-
-(defun pgn-mode-display-fen-at-point ()
-  "Display the FEN corresponding to the point in a separate buffer."
-  (interactive)
-  (let ((fen (pgn-mode-fen-at-pos))
-        (buf (get-buffer-create " *pgn-mode-fen*"))
-        (win nil))
-    (with-current-buffer buf
-      (delete-region (point-min) (point-max))
-      (insert fen)
-      (display-buffer buf '(display-buffer-reuse-window))
-      (setq win (get-buffer-window buf))
-      (resize-temp-buffer-window win)
-      (set-window-dedicated-p win t))))
-
-;; todo ascii board command
-(defun pgn-mode-display-gui-board-at-point ()
-  "Display the board corresponding to the point in a separate buffer."
-  (interactive)
-  (let ((svg (pgn-mode-board-at-pos))
-        (buf (get-buffer-create " *pgn-mode-board*"))
-        (win nil))
-    (with-current-buffer buf
-      (when (eq major-mode 'image-mode)
-        (image-mode-as-text))
-      (delete-region (point-min) (point-max))
-      (insert svg)
-      (image-mode))
-    (display-buffer buf '(display-buffer-reuse-window))
-    (setq win (get-buffer-window buf))
-    (resize-temp-buffer-window win)
-    (set-window-dedicated-p win t)))
 
 (defun pgn-mode-echo-fen-at-point (pos)
   "Display the FEN corresponding to the point in the echo area.
@@ -867,81 +836,6 @@ With numeric prefix ARG, move ARG moves forward."
   (interactive "p")
   (pgn-mode-next-move arg)
   (pgn-mode-display-gui-board-at-point (point)))
-
-;; todo use stdin directly instead of a tempfile, via make-process/process-send-region
-;; todo configurable choice of python interpreter
-;; todo send output to a persistent popup buffer instead of the echo area
-;; todo stop and report error if cannot execute python -c 'import chess'
-(defun pgn-mode-fen-at-point ()
-  "Display the FEN corresponding to the current point."
-  (interactive)
-  (let ((tempfile-pgn (make-temp-file "pgn-mode-"))
-        (fen nil))
-    (write-region (pgn-mode-game-start-position) (point) tempfile-pgn nil 'silent)
-    (setq fen
-          (with-temp-buffer
-            (call-process (concat pgn-mode-script-directory "pgn_to_fen.py") tempfile-pgn t nil)
-            (buffer-substring-no-properties (point-min) (point-max))))
-    (run-at-time 20 nil 'delete-file tempfile-pgn)
-    (message "%s" fen)))
-
-;; todo use stdin directly instead of a tempfile, via make-process/process-send-region
-;; todo configurable choice of python interpreter
-;; todo configurable board size
-;; todo stop and report error if cannot execute python -c 'import chess'
-(defun pgn-mode-board-at-point ()
-  "Display the board corresponding to the current point."
-  (interactive)
-  (let ((tempfile-pgn (make-temp-file "pgn-mode-"))
-        (svg nil)
-        (buf (get-buffer-create " *pgn-mode-board*")))
-    (write-region (pgn-mode-game-start-position) (point) tempfile-pgn nil 'silent)
-    (setq svg
-          (with-temp-buffer
-            (call-process (concat pgn-mode-script-directory "pgn_to_board.py") tempfile-pgn t nil)
-            (buffer-substring-no-properties (point-min) (point-max))))
-    (run-at-time 20 nil 'delete-file tempfile-pgn)
-    (unless buf
-      (generate-new-buffer "pgn-mode-board"))
-    (with-current-buffer buf
-      (when (eq major-mode 'image-mode)
-        (image-mode-as-text))
-      (delete-region (point-min) (point-max))
-      (insert svg)
-      (image-mode))
-    (display-buffer buf '(display-buffer-reuse-window))))
-
-(defun pgn-mode-display-fen-at-point ()
-  "Display the FEN corresponding to the point in a separate buffer."
-  (interactive)
-  (let ((fen (pgn-mode-fen-at-pos))
-        (buf (get-buffer-create " *pgn-mode-fen*"))
-        (win nil))
-    (with-current-buffer buf
-      (delete-region (point-min) (point-max))
-      (insert fen)
-      (display-buffer buf '(display-buffer-reuse-window))
-      (setq win (get-buffer-window buf))
-      (resize-temp-buffer-window win)
-      (set-window-dedicated-p win t))))
-
-;; todo ascii board command
-(defun pgn-mode-display-gui-board-at-point ()
-  "Display the board corresponding to the point in a separate buffer."
-  (interactive)
-  (let ((svg (pgn-mode-board-at-pos))
-        (buf (get-buffer-create " *pgn-mode-board*"))
-        (win nil))
-    (with-current-buffer buf
-      (when (eq major-mode 'image-mode)
-        (image-mode-as-text))
-      (delete-region (point-min) (point-max))
-      (insert svg)
-      (image-mode))
-    (display-buffer buf '(display-buffer-reuse-window))
-    (setq win (get-buffer-window buf))
-    (resize-temp-buffer-window win)
-    (set-window-dedicated-p win t)))
 
 (provide 'pgn-mode)
 

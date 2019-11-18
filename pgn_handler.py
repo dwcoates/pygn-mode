@@ -28,6 +28,7 @@ import argparse
 import textwrap
 import signal
 import chess.pgn
+import chess.svg
 
 ###
 ### file-scoped configurable variables
@@ -70,9 +71,10 @@ def generate_argparser():
 ### main
 ###
 
+# todo: breaks pixel configuration
 callbacks = {
     "1": lambda board: print(board.fen()),
-    "2": lambda board: print(chess.svg.board(board=board, size=args.pixels[0])),
+    "2": lambda board: print(chess.svg.board(board=board)),
 }
 
 if __name__ == '__main__':
