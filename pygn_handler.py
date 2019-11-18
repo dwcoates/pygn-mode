@@ -27,6 +27,9 @@ import sys
 import argparse
 import textwrap
 import signal
+import io
+import re
+
 import chess.pgn
 import chess.svg
 
