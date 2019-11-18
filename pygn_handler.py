@@ -101,7 +101,7 @@ if __name__ == '__main__':
         m = p.search(input_str)
 
         if (not m):
-            print("Bad pgn-mode python process input: {}".format(input_str))
+            print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
             continue
 
         code = m.group(1) # Command code for handling input.
