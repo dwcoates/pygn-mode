@@ -74,29 +74,22 @@ def generate_argparser():
 ### main
 ###
 
+def board_picture(board, args):
+    return chess.svg.board(board=board)
+
+def board_fen(board, args):
+    return board.fen()
+
 # todo: breaks pixel configuration
 callbacks = {
-    "1": lambda board: board.fen(),
-    "2": lambda board: chess.svg.board(board=board),
+    "1": board_fen,
+    "2": board_picture,
 }
 
 if __name__ == '__main__':
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
-    argparser = generate_argparser()
-    if sys.stdin.isatty() and len(sys.argv) == 1:
-        args = argparser.parse_args(['--help'])
-    else:
-        args = argparser.parse_args()
-
-    if args.quiet and args.verbose:
-        print('pgn_to_fen: -quiet and -verbose are incompatible', file=sys.stderr)
-        exit(1)
-
-    input_files = args.file
-    if not sys.stdin.isatty():
-        input_files = [sys.stdin, *input_files]
-
+    #TODO: CLI?
 
     while True:
         input_str = sys.stdin.read()
