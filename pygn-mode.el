@@ -327,13 +327,6 @@
       (erase-buffer)
       python-process-output)))
 
-(defun pygn-mode--query-process (message seconds &optional max-time force)
-  "Send MESSAGE to active `pygn-mode--python-process' every SECONDS for MAX-TIME and return response, optionally FORCE a new python process."
-  (when (not (pygn-mode--process-running-p))
-    (pygn-mode--make-process force))
-  (pygn-mode--send-process message)
-  (pygn-mode--receive-process seconds (or max-time 0.25)))
-
 (defun pygn-mode--inside-comment-p ()
   "Whether the point is inside a PGN comment."
   (nth 4 (syntax-ppss)))
