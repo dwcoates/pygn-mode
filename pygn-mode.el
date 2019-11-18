@@ -493,11 +493,6 @@ Does not work for nested variations."
     (pygn-mode--make-process))
   (pygn-mode--send-board 1 pos))
 
-(defun pygn-mode-echo-fen-at-point (pos)
-  "Display the FEN corresponding to the point in the echo area."
-  (interactive "d")
-  (message "%s" (pygn-mode-fen-at-pos pos)))
-
 (defun pygn-mode-board-at-pos (pos)
   "Get SVG output for PGN string preceding POS."
   (when (not (pygn-mode--process-running-p))
