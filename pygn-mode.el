@@ -271,7 +271,7 @@
 
 (defun pygn-mode--process-running-p ()
   "Return non-nil iff `pygn-mode--python-process' is running."
-  (and pygn-mode--python-process (process-live-p pygn-mode--python-process) t))
+  (and pygn-mode--python-process (process-live-p pygn-mode--python-process)))
 
 ;; TODO: generalize script
 ;; TODO: pipes?
