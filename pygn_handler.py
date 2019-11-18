@@ -73,8 +73,8 @@ def generate_argparser():
 
 # todo: breaks pixel configuration
 callbacks = {
-    "1": lambda board: print(board.fen()),
-    "2": lambda board: print(chess.svg.board(board=board)),
+    "1": lambda board: board.fen(),
+    "2": lambda board: chess.svg.board(board=board),
 }
 
 if __name__ == '__main__':
