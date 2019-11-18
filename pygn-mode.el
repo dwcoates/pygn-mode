@@ -1,10 +1,10 @@
-;;; pgn-mode.el --- Simple syntax highlighting for chess PGN files -*- lexical-binding: t -*-
+;;; pygn-mode.el --- Simple syntax highlighting for chess PGN files -*- lexical-binding: t -*-
 ;;
 ;; Copyright (c) 2019 Dodge Coates and Roland Walker
 ;;
 ;; Author: Dodge Coates and Roland Walker
-;; Homepage: https://github.com/dwcoates/pgn-mode
-;; URL: https://raw.githubusercontent.com/dwcoates/pgn-mode/master/pgn-mode.el
+;; Homepage: https://github.com/dwcoates/pygn-mode
+;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
 ;; Version: 0.0.4
 ;; Last-Updated:  4 Nov 2019
 ;; Package-Requires: ((emacs "25.0") (nav-flash "1.0.0"))
@@ -23,13 +23,13 @@
 ;;
 ;; No keys are bound by default.  Consider
 ;;
-;;     (eval-after-load "pgn-mode"
-;;       (define-key pgn-mode-map (kbd "M-f") 'pgn-mode-next-move)
-;;       (define-key pgn-mode-map (kbd "M-b") 'pgn-mode-previous-move))
+;;     (eval-after-load "pygn-mode"
+;;       (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move)
+;;       (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move))
 ;;
 ;; Customization
 ;;
-;;     M-x customize-group RET pgn-mode RET
+;;     M-x customize-group RET pygn-mode RET
 ;;
 ;; See Also
 ;;
@@ -49,11 +49,11 @@
 ;;
 ;;     which is also slow (see below.)
 ;;
-;;     `pgn-mode-after-change-function' and `pgn-mode-font-lock-extend-region'
-;;     are still too slow.  `pgn-mode-font-lock-extend-region' causes considerable
+;;     `pygn-mode-after-change-function' and `pygn-mode-font-lock-extend-region'
+;;     are still too slow.  `pygn-mode-font-lock-extend-region' causes considerable
 ;;     lag when typing.  Compare to speed of typing after
 ;;
-;;         (remove-hook 'font-lock-extend-region-functions 'pgn-mode-font-lock-extend-region)
+;;         (remove-hook 'font-lock-extend-region-functions 'pygn-mode-font-lock-extend-region)
 ;;
 ;; TODO
 ;;
@@ -97,7 +97,7 @@
 ;;; Code:
 ;;
 
-(defconst pgn-mode-version "0.0.4")
+(defconst pygn-mode-version "0.0.4")
 
 ;;; Imports
 
@@ -116,68 +116,68 @@
 ;;; Customizable variables
 
 ;;;###autoload
-(defgroup pgn-mode nil
+(defgroup pygn-mode nil
   "Simple syntax highlighting for chess PGN files."
-  :version pgn-mode-version
-  :prefix "pgn-mode-"
+  :version pygn-mode-version
+  :prefix "pygn-mode-"
   :group 'data
   :group 'games)
 
-(defcustom pgn-mode-python-path "python"
+(defcustom pygn-mode-python-path "python"
   "Path to a Python interpreter with the python-chess library installed."
-  :group 'pgn-mode
+  :group 'pygn-mode
   :type 'string)
 
-(defcustom pgn-mode-board-size 400
+(defcustom pygn-mode-board-size 400
   "Size for graphical board display, expressed as pixels-per-side."
-  :group 'pgn-mode
+  :group 'pygn-mode
   :type 'int)
 
 ;;;###autoload
-(defgroup pgn-mode-faces nil
-  "Faces used by pgn-mode."
-  :group 'pgn-mode)
+(defgroup pygn-mode-faces nil
+  "Faces used by pygn-mode."
+  :group 'pygn-mode)
 
-(defface pgn-mode-tagpair-key-face
+(defface pygn-mode-tagpair-key-face
    '((t (:inherit font-lock-keyword-face)))
-  "pgn-mode face for tagpair (header) keys."
-  :group 'pgn-mode-faces)
+  "pygn-mode face for tagpair (header) keys."
+  :group 'pygn-mode-faces)
 
-(defface pgn-mode-nag-face
+(defface pygn-mode-nag-face
    '((t (:inherit font-lock-comment-face)))
-  "pgn-mode face for Numeric Annotation Glyphs."
-  :group 'pgn-mode-faces)
+  "pygn-mode face for Numeric Annotation Glyphs."
+  :group 'pygn-mode-faces)
 
-(defface pgn-mode-variation-face
+(defface pygn-mode-variation-face
    '((t (:inherit font-lock-string-face)))
-  "pgn-mode face for variations."
-  :group 'pgn-mode-faces)
+  "pygn-mode face for variations."
+  :group 'pygn-mode-faces)
 
-(defface pgn-mode-result-face
+(defface pygn-mode-result-face
    '((t (:inherit font-lock-builtin-face)))
-  "pgn-mode face for result codes."
-  :group 'pgn-mode-faces)
+  "pygn-mode face for result codes."
+  :group 'pygn-mode-faces)
 
-(defface pgn-mode-tagpair-bracket-face
+(defface pygn-mode-tagpair-bracket-face
    '((t (:foreground "Gray50")))
-  "pgn-mode face for tagpair square brackets."
-  :group 'pgn-mode-faces)
+  "pygn-mode face for tagpair square brackets."
+  :group 'pygn-mode-faces)
 
 ;;; Variables
 
-(defvar pgn-mode-script-directory
+(defvar pygn-mode-script-directory
   (file-name-directory
    (or load-file-name
        (bound-and-true-p byte-compile-current-file)
        (buffer-file-name (current-buffer))))
   "Directory to find Python helper scripts.")
 
-(defvar pgn-mode-python-chess-succeeded nil
+(defvar pygn-mode-python-chess-succeeded nil
   "Whether a simple python-chess command has succeeded.")
 
 ;;; Syntax table
 
-(defvar pgn-mode-syntax-table
+(defvar pygn-mode-syntax-table
   (let ((st (make-syntax-table text-mode-syntax-table)))
     (with-syntax-table st
       (modify-syntax-entry ?{ "<")
@@ -215,106 +215,106 @@
       (modify-syntax-entry ?⩲ "w")
       (modify-syntax-entry ?= "w"))
     st)
-  "Syntax table used while in `pgn-mode'.")
+  "Syntax table used while in `pygn-mode'.")
 
 ;;; Keymaps
 
-(defvar pgn-mode-map
+(defvar pygn-mode-map
   (let ((map (make-sparse-keymap)))
     ;; menu bar and lighter
-    (define-key map [menu-bar PGN]
-      (cons "PGN" (make-sparse-keymap "PGN")))
-    (define-key map [menu-bar PGN pgn-mode-select-game]
-      '(menu-item "Select Game" pgn-mode-select-game
+    (define-key map [menu-bar PyGN]
+      (cons "PyGN" (make-sparse-keymap "PyGN")))
+    (define-key map [menu-bar PyGN pygn-mode-select-game]
+      '(menu-item "Select Game" pygn-mode-select-game
                   :help "Select the current game"))
-    (define-key map [menu-bar PGN pgn-mode-previous-game]
-      '(menu-item "Previous Game" pgn-mode-previous-game
+    (define-key map [menu-bar PyGN pygn-mode-previous-game]
+      '(menu-item "Previous Game" pygn-mode-previous-game
                   :help "Navigate to the previous game"))
-    (define-key map [menu-bar PGN pgn-mode-next-game]
-      '(menu-item "Next Game" pgn-mode-next-game
+    (define-key map [menu-bar PyGN pygn-mode-next-game]
+      '(menu-item "Next Game" pygn-mode-next-game
                   :help "Navigate to the next game"))
-    (define-key map [menu-bar PGN sep] menu-bar-separator)
-    (define-key map [menu-bar PGN pgn-mode-previous-move]
-      '(menu-item "Previous Move" pgn-mode-previous-move
+    (define-key map [menu-bar PyGN sep] menu-bar-separator)
+    (define-key map [menu-bar PyGN pygn-mode-previous-move]
+      '(menu-item "Previous Move" pygn-mode-previous-move
                   :help "Navigate to the previous move"))
-    (define-key map [menu-bar PGN pgn-mode-next-move]
-      '(menu-item "Next Move" pgn-mode-next-move
+    (define-key map [menu-bar PyGN pygn-mode-next-move]
+      '(menu-item "Next Move" pygn-mode-next-move
                   :help "Navigate to the next move"))
-    (define-key map [menu-bar PGN sep-2] menu-bar-separator)
-    (define-key map [menu-bar PGN pgn-mode-display-fen-at-point]
-      '(menu-item "FEN at point" pgn-mode-display-fen-at-point
+    (define-key map [menu-bar PyGN sep-2] menu-bar-separator)
+    (define-key map [menu-bar PyGN pygn-mode-display-fen-at-point]
+      '(menu-item "FEN at point" pygn-mode-display-fen-at-point
                   :help "Display FEN at point in separate window"))
-    (define-key map [menu-bar PGN pgn-mode-display-gui-board-at-point]
-      '(menu-item "Board at point" pgn-mode-display-gui-board-at-point
+    (define-key map [menu-bar PyGN pygn-mode-display-gui-board-at-point]
+      '(menu-item "Board at point" pygn-mode-display-gui-board-at-point
                   :help "Display GUI board at point in separate window"))
 
     ;; mouse
-    (define-key map [mouse-2]        'pgn-mode-mouse-display-gui-board)
-    (define-key map [double-mouse-2] 'pgn-mode-mouse-display-gui-board-inclusive)
+    (define-key map [mouse-2]        'pygn-mode-mouse-display-gui-board)
+    (define-key map [double-mouse-2] 'pygn-mode-mouse-display-gui-board-inclusive)
 
     ;; example keystrokes:
     ;;
-    ;; (define-key map (kbd "C-c C-n") 'pgn-mode-next-game)
-    ;; (define-key map (kbd "C-c C-p") 'pgn-mode-previous-game)
-    ;; (define-key map (kbd "M-f")     'pgn-mode-next-move)
-    ;; (define-key map (kbd "M-b")     'pgn-mode-previous-move)
+    ;; (define-key map (kbd "C-c C-n") 'pygn-mode-next-game)
+    ;; (define-key map (kbd "C-c C-p") 'pygn-mode-previous-game)
+    ;; (define-key map (kbd "M-f")     'pygn-mode-next-move)
+    ;; (define-key map (kbd "M-b")     'pygn-mode-previous-move)
     ;;
     ;; and note that `down-list'/`backward-up-list' already works to
     ;; enter/exit a parenthesized variation
     map)
-  "Keymap for `pgn-mode'.")
+  "Keymap for `pygn-mode'.")
 
-(defvar pgn-mode--python-process nil "Python process that powers pgn-mode.")
-(defvar pgn-mode--python-buffer nil "Buffer to which the pgn-mode Python process sends output.")
+(defvar pygn-mode--python-process nil "Python process that powers pygn-mode.")
+(defvar pygn-mode--python-buffer nil "Buffer to which the pygn-mode Python process sends output.")
 
 ;;; Utility functions
 
-(defun pgn-mode--process-running-p ()
-  "Return non-nil iff `pgn-mode--python-process' is running."
-  (and pgn-mode--python-process (process-live-p pgn-mode--python-process) t))
+(defun pygn-mode--process-running-p ()
+  "Return non-nil iff `pygn-mode--python-process' is running."
+  (and pygn-mode--python-process (process-live-p pygn-mode--python-process) t))
 
 ;; TODO: generalize script
 ;; TODO: pipes?
-(defun pgn-mode--make-process (&optional force)
-  "Initialize pgn-mode `pgn-mode--python-process', optionally FORCE recreation if already exists."
-  (pgn-mode-python-chess-guard)
-  (when (and (not force) (pgn-mode--process-running-p))
-    (error "The pgn-mode Python process already running. Use optional `force' to recreate"))
-  (message (format "Initializing pgn-mode python process%s." (if force " (forcing)" "")))
-  (setq pgn-mode--python-buffer (get-buffer-create " *pgn-mode-data-buffer*"))
-  (setq pgn-mode--python-process
-        (make-process :name "pgn-mode-python"
-                      :buffer pgn-mode--python-buffer
+(defun pygn-mode--make-process (&optional force)
+  "Initialize pygn-mode `pygn-mode--python-process', optionally FORCE recreation if already exists."
+  (pygn-mode-python-chess-guard)
+  (when (and (not force) (pygn-mode--process-running-p))
+    (error "The pygn-mode Python process already running. Use optional `force' to recreate"))
+  (message (format "Initializing pygn-mode python process%s." (if force " (forcing)" "")))
+  (setq pygn-mode--python-buffer (get-buffer-create " *pygn-mode-data-buffer*"))
+  (setq pygn-mode--python-process
+        (make-process :name "pygn-mode-python"
+                      :buffer pygn-mode--python-buffer
                       :noquery t
                       :sentinel #'ignore
-                      :command (list pgn-mode-python-path
-                                     (expand-file-name "pgn_handler.py" pgn-mode-script-directory)
+                      :command (list pygn-mode-python-path
+                                     (expand-file-name "pygn_handler.py" pygn-mode-script-directory)
                                      "-"))))
 
-(defun pgn-mode--kill-process ()
-  "Stop the currently running `pgn-mode--python-process' if it is running."
-  (when (pgn-mode--process-running-p)
-    (delete-process pgn-mode--python-process)
-    (setq pgn-mode--python-process nil)))
+(defun pygn-mode--kill-process ()
+  "Stop the currently running `pygn-mode--python-process' if it is running."
+  (when (pygn-mode--process-running-p)
+    (delete-process pygn-mode--python-process)
+    (setq pygn-mode--python-process nil)))
 
-(defun pgn-mode--send-process (message)
-  "Send MESSAGE to the running `pgn-mode--python-process'."
-  (if (pgn-mode--process-running-p)
-      (process-send-string pgn-mode--python-process (concat message (string 10) (string 4)))
-    (error "Need running Python process to send pgn-mode message")))
+(defun pygn-mode--send-process (message)
+  "Send MESSAGE to the running `pygn-mode--python-process'."
+  (if (pygn-mode--process-running-p)
+      (process-send-string pygn-mode--python-process (concat message (string 10) (string 4)))
+    (error "Need running Python process to send pygn-mode message")))
 
-(defun pgn-mode--receive-process (seconds &optional max-time)
-  "Wrap `accept-process-output' with SECONDS for `pgn-mode--python-process' for MAX-TIME."
-  (when (not (pgn-mode--process-running-p))
-    (error "Cannot fetch pgn-mode output without a running process"))
-  (when (not (get-buffer pgn-mode--python-buffer))
+(defun pygn-mode--receive-process (seconds &optional max-time)
+  "Wrap `accept-process-output' with SECONDS for `pygn-mode--python-process' for MAX-TIME."
+  (when (not (pygn-mode--process-running-p))
+    (error "Cannot fetch pygn-mode output without a running process"))
+  (when (not (get-buffer pygn-mode--python-buffer))
     (error "Python output buffer does not exist"))
-  (with-current-buffer pgn-mode--python-buffer
+  (with-current-buffer pygn-mode--python-buffer
     (let ((tries 0)
           python-process-output)
       (goto-char (point-min))
       (while (and (progn
-                    (accept-process-output pgn-mode--python-process seconds nil 1)
+                    (accept-process-output pygn-mode--python-process seconds nil 1)
                     (= (buffer-size) 0))
                   (< (* tries seconds) max-time))
         (cl-incf tries))
@@ -324,28 +324,28 @@
       (erase-buffer)
       python-process-output)))
 
-(defun pgn-mode--query-process (message seconds &optional max-time force)
-  "Send MESSAGE to active `pgn-mode--python-process' every SECONDS for MAX-TIME and return response, optionally FORCE a new python process."
-  (when (not (pgn-mode--process-running-p))
-    (pgn-mode--make-process force))
-  (pgn-mode--send-process message)
-  (pgn-mode--receive-process seconds (or max-time 0.25)))
+(defun pygn-mode--query-process (message seconds &optional max-time force)
+  "Send MESSAGE to active `pygn-mode--python-process' every SECONDS for MAX-TIME and return response, optionally FORCE a new python process."
+  (when (not (pygn-mode--process-running-p))
+    (pygn-mode--make-process force))
+  (pygn-mode--send-process message)
+  (pygn-mode--receive-process seconds (or max-time 0.25)))
 
-(defun pgn-mode--inside-comment-p ()
+(defun pygn-mode--inside-comment-p ()
   "Whether the point is inside a PGN comment."
   (nth 4 (syntax-ppss)))
 
-(defun pgn-mode-inside-variation-p ()
+(defun pygn-mode-inside-variation-p ()
   "Whether the point is inside a PGN variation."
   (when (> (nth 0 (syntax-ppss)) 0)
     (nth 0 (syntax-ppss))))
 
-(defun pgn-mode-inside-variation-or-comment-p ()
+(defun pygn-mode-inside-variation-or-comment-p ()
   "Whether the point is inside a PGN comment or a variation."
-  (or (pgn-mode--inside-comment-p)
-      (pgn-mode-inside-variation-p)))
+  (or (pygn-mode--inside-comment-p)
+      (pygn-mode-inside-variation-p)))
 
-(defun pgn-mode-looking-at-legal-move ()
+(defun pygn-mode-looking-at-legal-move ()
   "Whether the point is looking at a legal SAN chess move.
 
 Leading move numbers, punctuation and spaces are allowed, and ignored."
@@ -353,7 +353,7 @@ Leading move numbers, punctuation and spaces are allowed, and ignored."
     (and (looking-at-p "[ \t]*[0-9]*[.…\s-]*\\<\\([RNBQK][a-h]?[1-8]?x?[a-h][1-8]\\|[a-h]x?[1-8]=?[RNBQ]?\\|O-O\\|O-O-O\\)\\(\\+\\+?\\|#\\)?")
          (not (looking-back "[A-Za-z]" 1)))))
 
-(defun pgn-mode-game-start-position (&optional pos)
+(defun pygn-mode-game-start-position (&optional pos)
   "Start position for the PGN game which contains position POS.
 
 POS defaults to `point'."
@@ -366,7 +366,7 @@ POS defaults to `point'."
     (forward-line 0)
     (point)))
 
-(defun pgn-mode-game-end-position (&optional pos)
+(defun pygn-mode-game-end-position (&optional pos)
   "End position for the PGN game which contains position POS.
 
 POS defaults to `point'."
@@ -384,8 +384,8 @@ POS defaults to `point'."
       (point))))
 
 ;; todo maybe shouldn't consult looking-at here, but it works well for the
-;; purpose of pgn-mode-next-move
-(defun pgn-mode-forward-exit-variations-and-comments ()
+;; purpose of pygn-mode-next-move
+(defun pygn-mode-forward-exit-variations-and-comments ()
   "However deep in nested variations and comments, exit and skip forward."
   (while (or (> (nth 0 (syntax-ppss)) 0)
              (nth 4 (syntax-ppss))
@@ -409,8 +409,8 @@ POS defaults to `point'."
       (skip-syntax-forward "-"))))
 
 ;; todo maybe shouldn't consult looking-back here, but it works well for the
-;; purpose of pgn-mode-previous-move
-(defun pgn-mode-backward-exit-variations-and-comments ()
+;; purpose of pygn-mode-previous-move
+(defun pygn-mode-backward-exit-variations-and-comments ()
   "However deep in nested variations and comments, exit and skip backward."
   (save-match-data
     (while (or (> (nth 0 (syntax-ppss)) 0)
@@ -435,14 +435,14 @@ POS defaults to `point'."
         (goto-char (line-end-position))
         (skip-syntax-backward "-")))))
 
-(defun pgn-mode-python-chess-guard ()
+(defun pygn-mode-python-chess-guard ()
   "Throw an error unless the python-chess library is available."
-  (unless pgn-mode-python-chess-succeeded
-    (if (zerop (call-process pgn-mode-python-path nil nil nil "-c" "import chess"))
-        (setq pgn-mode-python-chess-succeeded t)
-      (error "The Python interpreter at `pgn-mode-python-path' must have the python-chess library available."))))
+  (unless pygn-mode-python-chess-succeeded
+    (if (zerop (call-process pygn-mode-python-path nil nil nil "-c" "import chess"))
+        (setq pygn-mode-python-chess-succeeded t)
+      (error "The Python interpreter at `pygn-mode-python-path' must have the python-chess library available."))))
 
-(defun pgn-mode-pgn-as-if-variation (pos &optional inclusive)
+(defun pygn-mode-pgn-as-if-variation (pos &optional inclusive)
   "PGN string as if a variation had been played until position POS.
 
 When INCLUSIVE is non-nil, synthesize a PGN inclusive of any move
@@ -457,11 +457,11 @@ Does not work for nested variations."
           (skip-syntax-forward "^-"))
       (skip-syntax-backward "^-"))
     (let ((pgn (buffer-substring-no-properties
-                (pgn-mode-game-start-position)
+                (pygn-mode-game-start-position)
                 (point))))
     (with-temp-buffer
       (insert pgn)
-      (when (pgn-mode-inside-variation-p)
+      (when (pygn-mode-inside-variation-p)
         (up-list -1)
         (delete-char 1)
         (delete-region
@@ -470,40 +470,40 @@ Does not work for nested variations."
         (goto-char (point-max))
         (buffer-substring-no-properties (point-min) (point-max))))))
 
-(defun pgn-mode--query-process (message seconds &optional max-time force)
-  "Send MESSAGE to active `pgn-mode--python-process' every SECONDS for MAX-TIME and return response, optionally FORCE a new python process."
-  (when (not (pgn-mode--process-running-p))
-    (pgn-mode--make-process force))
-  (pgn-mode--send-process message)
-  (pgn-mode--receive-process seconds (or max-time 0.25)))
+(defun pygn-mode--query-process (message seconds &optional max-time force)
+  "Send MESSAGE to active `pygn-mode--python-process' every SECONDS for MAX-TIME and return response, optionally FORCE a new python process."
+  (when (not (pygn-mode--process-running-p))
+    (pygn-mode--make-process force))
+  (pygn-mode--send-process message)
+  (pygn-mode--receive-process seconds (or max-time 0.25)))
 
-(defun pgn-mode--send-board (code &optional pos)
-  "Get PGN string preceding POS and send a `pgn-mode--python-process' request denoted by CODE."
+(defun pygn-mode--send-board (code &optional pos)
+  "Get PGN string preceding POS and send a `pygn-mode--python-process' request denoted by CODE."
   (cl-callf or pos (point))
   (save-excursion
-    (let ((pgn (buffer-substring-no-properties (pgn-mode-game-start-position) pos)))
-      (pgn-mode--query-process (concat (number-to-string code) " -- " pgn) 0.01 0.51))))
+    (let ((pgn (buffer-substring-no-properties (pygn-mode-game-start-position) pos)))
+      (pygn-mode--query-process (concat (number-to-string code) " -- " pgn) 0.01 0.51))))
 
-(defun pgn-mode-fen-at-pos (pos)
+(defun pygn-mode-fen-at-pos (pos)
   "Return the FEN corresponding to POS, which defaults to the point."
-  (when (not (pgn-mode--process-running-p))
-    (pgn-mode--make-process))
-  (pgn-mode--send-board 1 pos))
+  (when (not (pygn-mode--process-running-p))
+    (pygn-mode--make-process))
+  (pygn-mode--send-board 1 pos))
 
-(defun pgn-mode-echo-fen-at-point (pos)
+(defun pygn-mode-echo-fen-at-point (pos)
   "Display the FEN corresponding to the point in the echo area."
   (interactive "d")
-  (message "%s" (pgn-mode-fen-at-pos pos)))
+  (message "%s" (pygn-mode-fen-at-pos pos)))
 
-(defun pgn-mode-board-at-pos (pos)
+(defun pygn-mode-board-at-pos (pos)
   "Get SVG output for PGN string preceding POS."
-  (when (not (pgn-mode--process-running-p))
-    (pgn-mode--make-process))
-  (pgn-mode--send-board 2 pos))
+  (when (not (pygn-mode--process-running-p))
+    (pygn-mode--make-process))
+  (pygn-mode--send-board 2 pos))
 
 ;;; font-lock
 
-(defun pgn-mode-after-change-function (beg end old-len)
+(defun pygn-mode-after-change-function (beg end old-len)
   "Help refontify multi-line variations during edits."
   (let ((syn (syntax-ppss beg)))
     (if (> 0 (nth 0 syn))
@@ -524,7 +524,7 @@ Does not work for nested variations."
                   (point))))
     (cons beg end)))
 
-(defun pgn-mode-font-lock-extend-region ()
+(defun pygn-mode-font-lock-extend-region ()
   "Extend the search region to help fontify multi-line variations."
   (let ((syn (syntax-ppss font-lock-beg)))
     (if (> 0 (nth 0 syn))
@@ -543,7 +543,7 @@ Does not work for nested variations."
           (when (re-search-forward "\n\n" nil t)
             (setq font-lock-end (point))))))))
 
-(defun pgn-mode-propertize-line-comments (start end)
+(defun pygn-mode-propertize-line-comments (start end)
   "Put text properties on beginnings and ends of line comments.
 
 Intended to be used as a `syntax-propertize-function'."
@@ -557,62 +557,62 @@ Intended to be used as a `syntax-propertize-function'."
                            'syntax-table (string-to-syntax "!"))))))
 
 (font-lock-add-keywords
- 'pgn-mode
+ 'pygn-mode
  '(
    ;; tagpair keys. values are handled by the syntax table
-   ("^\\[\\(\\S-+\\)\\s-+\".*\"\\]" 1 'pgn-mode-tagpair-key-face)
+   ("^\\[\\(\\S-+\\)\\s-+\".*\"\\]" 1 'pygn-mode-tagpair-key-face)
    ;; tagpair open-brackets
-   ("^\\[" . 'pgn-mode-tagpair-bracket-face)
+   ("^\\[" . 'pygn-mode-tagpair-bracket-face)
    ;; tagpair close-brackets
-   ("\\]\\s-*$" . 'pgn-mode-tagpair-bracket-face)
+   ("\\]\\s-*$" . 'pygn-mode-tagpair-bracket-face)
    ;; numeric NAGs
-   ("\\<$[0-9]+" . 'pgn-mode-nag-face)
+   ("\\<$[0-9]+" . 'pygn-mode-nag-face)
    ;; unicode NAGs and annotations
-   ("±\\|–\\|‼\\|⁇\\|⁈\\|⁉\\|↑\\|→\\|⇆\\|⇔\\|⇗\\|∆\\|−\\|∓\\|∞\\|⊥\\|⌓\\|□\\|✕\\|⟪\\|⟫\\|⟳\\|⨀\\|⩱\\|⩲" . 'pgn-mode-nag-face)
+   ("±\\|–\\|‼\\|⁇\\|⁈\\|⁉\\|↑\\|→\\|⇆\\|⇔\\|⇗\\|∆\\|−\\|∓\\|∞\\|⊥\\|⌓\\|□\\|✕\\|⟪\\|⟫\\|⟳\\|⨀\\|⩱\\|⩲" . 'pygn-mode-nag-face)
    ;; NAGs preceded by space
-   ("\\s-\\(\\+-?\\|-\\|=\\)" 1 'pgn-mode-nag-face)
+   ("\\s-\\(\\+-?\\|-\\|=\\)" 1 'pygn-mode-nag-face)
    ;; annotations not preceded by space
-   ("\\?\\|!" . 'pgn-mode-nag-face)
+   ("\\?\\|!" . 'pygn-mode-nag-face)
    ;; result codes
-   ("\\(1\\s-*-\\s-*0\\|0\\s-*-\\s-*1\\|1/2\\s-*-\\s-*1/2\\|\\*\\)\\s-*$" 1 'pgn-mode-result-face)
+   ("\\(1\\s-*-\\s-*0\\|0\\s-*-\\s-*1\\|1/2\\s-*-\\s-*1/2\\|\\*\\)\\s-*$" 1 'pygn-mode-result-face)
    ;; variation text. append or keep is very important here.
-   ("([^()]*?)" 0 'pgn-mode-variation-face append)))
+   ("([^()]*?)" 0 'pygn-mode-variation-face append)))
 
 ;;; Major-mode definition
 
 ;;;###autoload
-(define-derived-mode pgn-mode fundamental-mode "PGN"
+(define-derived-mode pygn-mode fundamental-mode "PyGN"
  "Simple syntax highlighting for chess PGN files."
- :syntax-table pgn-mode-syntax-table
- :group 'pgn-mode
+ :syntax-table pygn-mode-syntax-table
+ :group 'pygn-mode
  (setq-local comment-start "{")
  (setq-local comment-end "}")
  (setq-local comment-continue " ")
  (setq-local comment-multi-line t)
  (setq-local comment-style 'plain)
- (setq-local syntax-propertize-function 'pgn-mode-propertize-line-comments)
+ (setq-local syntax-propertize-function 'pygn-mode-propertize-line-comments)
  (setq-local parse-sexp-lookup-properties t)
  (setq-local parse-sexp-ignore-comments t)
  (when font-lock-maximum-decoration
    (setq-local font-lock-multiline t)
-   (setq-local font-lock-extend-after-change-region-function 'pgn-mode-after-change-function)
+   (setq-local font-lock-extend-after-change-region-function 'pygn-mode-after-change-function)
    ;; especially slow
-   (add-hook 'font-lock-extend-region-functions 'pgn-mode-font-lock-extend-region t t))
+   (add-hook 'font-lock-extend-region-functions 'pygn-mode-font-lock-extend-region t t))
  (font-lock-ensure)
  (let ((map (make-sparse-keymap)))
    (set-keymap-parent map (default-value 'mode-line-major-mode-keymap))
-   (define-key map (kbd "<mode-line> <mouse-4>")    'pgn-mode-previous-move)
-   (define-key map (kbd "<mode-line> <mouse-5>")    'pgn-mode-next-move)
-   (define-key map (kbd "<mode-line> <wheel-up>")   'pgn-mode-previous-move)
-   (define-key map (kbd "<mode-line> <wheel-down>") 'pgn-mode-next-move)
+   (define-key map (kbd "<mode-line> <mouse-4>")    'pygn-mode-previous-move)
+   (define-key map (kbd "<mode-line> <mouse-5>")    'pygn-mode-next-move)
+   (define-key map (kbd "<mode-line> <wheel-up>")   'pygn-mode-previous-move)
+   (define-key map (kbd "<mode-line> <wheel-down>") 'pygn-mode-next-move)
    (setq-local mode-line-major-mode-keymap map)))
 
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.[pP][gG][nN]\\'" . pgn-mode))
+(add-to-list 'auto-mode-alist '("\\.[pP][gG][nN]\\'" . pygn-mode))
 
 ;;; Interactive commands
 
-(defun pgn-mode-next-game (arg)
+(defun pygn-mode-next-game (arg)
   "Advance to the next game in a multi-game PGN buffer.
 
 With numeric prefix ARG, advance ARG games."
@@ -628,7 +628,7 @@ With numeric prefix ARG, advance ARG games."
   (when (fboundp 'nav-flash-show)
     (nav-flash-show)))
 
-(defun pgn-mode-previous-game (arg)
+(defun pygn-mode-previous-game (arg)
   "Move back to the previous game in a multi-game PGN buffer.
 
 With numeric prefix ARG, move back ARG games."
@@ -644,7 +644,7 @@ With numeric prefix ARG, move back ARG games."
   (when (fboundp 'nav-flash-show)
     (nav-flash-show)))
 
-(defun pgn-mode-next-move (arg)
+(defun pygn-mode-next-move (arg)
   "Advance to the next move in a PGN game.
 
 Treats move numbers purely as punctuation.  If the point is on a move
@@ -656,8 +656,8 @@ With numeric prefix ARG, advance ARG moves forward."
   (cl-callf or arg 1)
   (save-restriction
     (save-match-data
-      (narrow-to-region (pgn-mode-game-start-position)
-                        (pgn-mode-game-end-position))
+      (narrow-to-region (pygn-mode-game-start-position)
+                        (pygn-mode-game-end-position))
       (let ((last-point -1)
             (start (point))
             (thumb (point)))
@@ -665,26 +665,26 @@ With numeric prefix ARG, advance ARG moves forward."
                   (and (looking-at-p "\\s-*$") (looking-back "\\]\\s-*" 10)))
           (re-search-forward "\n\n" nil t))
         (dotimes (counter arg)
-          (when (pgn-mode-looking-at-legal-move)
+          (when (pygn-mode-looking-at-legal-move)
             (setq thumb (point))
             (skip-chars-forward "0-9.…\s-")
             (forward-char 1))
           (while (and (not (= (point) last-point))
-                      (or (not (pgn-mode-looking-at-legal-move))
-                          (pgn-mode-inside-variation-or-comment-p)))
+                      (or (not (pygn-mode-looking-at-legal-move))
+                          (pygn-mode-inside-variation-or-comment-p)))
             (setq last-point (point))
             (cond
-              ((pgn-mode-inside-variation-or-comment-p)
-               (pgn-mode-forward-exit-variations-and-comments))
+              ((pygn-mode-inside-variation-or-comment-p)
+               (pygn-mode-forward-exit-variations-and-comments))
               (t
                (forward-sexp 1)))))
         (skip-chars-forward "0-9.…\s-")
-        (unless (pgn-mode-looking-at-legal-move)
+        (unless (pygn-mode-looking-at-legal-move)
           (goto-char thumb)
           (when (= thumb start)
             (error "No more moves.")))))))
 
-(defun pgn-mode-previous-move (arg)
+(defun pygn-mode-previous-move (arg)
   "Move back to the previous move in a PGN game.
 
 Treats move numbers purely as punctuation.  If the point is on a move
@@ -696,8 +696,8 @@ With numeric prefix ARG, move ARG moves backward."
   (cl-callf or arg 1)
   (save-restriction
     (save-match-data
-      (narrow-to-region (pgn-mode-game-start-position)
-                        (pgn-mode-game-end-position))
+      (narrow-to-region (pygn-mode-game-start-position)
+                        (pygn-mode-game-end-position))
       (let ((last-point -1)
             (start (point))
             (thumb (point)))
@@ -705,48 +705,48 @@ With numeric prefix ARG, move ARG moves backward."
                   (and (looking-at-p "\\s-*$") (looking-back "\\]\\s-*" 10)))
           (error "No more moves."))
         (dotimes (counter arg)
-          (when (pgn-mode-looking-at-legal-move)
+          (when (pygn-mode-looking-at-legal-move)
             (setq thumb (point))
             (skip-chars-backward "0-9.…\s-")
             (backward-char 1))
           (while (and (not (= (point) last-point))
-                      (or (not (pgn-mode-looking-at-legal-move))
-                          (pgn-mode-inside-variation-or-comment-p)))
+                      (or (not (pygn-mode-looking-at-legal-move))
+                          (pygn-mode-inside-variation-or-comment-p)))
             (setq last-point (point))
             (cond
-              ((pgn-mode-inside-variation-or-comment-p)
-               (pgn-mode-backward-exit-variations-and-comments))
+              ((pygn-mode-inside-variation-or-comment-p)
+               (pygn-mode-backward-exit-variations-and-comments))
               (t
                (skip-chars-backward "0-9.…\s-")
                (forward-sexp -1)))))
-        (unless (pgn-mode-looking-at-legal-move)
+        (unless (pygn-mode-looking-at-legal-move)
           (goto-char thumb)
           (when (= thumb start)
             (error "No more moves.")))))))
 
-(defun pgn-mode-select-game (pos)
+(defun pygn-mode-select-game (pos)
   "Select current game in a multi-game PGN buffer.
 
 When called non-interactively, select the game containing POS."
   (interactive "d")
   (goto-char pos)
-  (push-mark (pgn-mode-game-end-position) t t)
-  (goto-char (pgn-mode-game-start-position)))
+  (push-mark (pygn-mode-game-end-position) t t)
+  (goto-char (pygn-mode-game-start-position)))
 
-(defun pgn-mode-echo-fen-at-point (pos)
+(defun pygn-mode-echo-fen-at-point (pos)
   "Display the FEN corresponding to the point in the echo area.
 
 When called non-interactively, display the FEN corresponding to POS."
   (interactive "d")
-  (message "%s" (pgn-mode-fen-at-pos pos)))
+  (message "%s" (pygn-mode-fen-at-pos pos)))
 
-(defun pgn-mode-display-fen-at-point (pos)
+(defun pygn-mode-display-fen-at-point (pos)
   "Display the FEN corresponding to the point in a separate buffer.
 
 When called non-interactively, display the FEN corresponding to POS."
   (interactive "d")
-  (let* ((fen (pgn-mode-fen-at-pos pos))
-         (buf (get-buffer-create " *pgn-mode-fen*"))
+  (let* ((fen (pygn-mode-fen-at-pos pos))
+         (buf (get-buffer-create " *pygn-mode-fen*"))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
       (delete-region (point-min) (point-max))
@@ -758,24 +758,24 @@ When called non-interactively, display the FEN corresponding to POS."
         (set-window-dedicated-p win t)
         (resize-temp-buffer-window win)))))
 
-(defun pgn-mode-display-variation-fen-at-point (pos)
+(defun pygn-mode-display-variation-fen-at-point (pos)
   "Respecting variations, display the FEN corresponding to the point.
 
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
-  (let ((pgn (pgn-mode-pgn-as-if-variation pos)))
+  (let ((pgn (pygn-mode-pgn-as-if-variation pos)))
     (with-temp-buffer
       (insert pgn)
-      (pgn-mode-display-fen-at-point (point-max)))))
+      (pygn-mode-display-fen-at-point (point-max)))))
 
 ;; todo ascii board command
-(defun pgn-mode-display-gui-board-at-point (pos)
+(defun pygn-mode-display-gui-board-at-point (pos)
   "Display the board corresponding to the point in a separate buffer.
 
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
-  (let* ((svg (pgn-mode-board-at-pos pos))
-         (buf (get-buffer-create " *pgn-mode-board*"))
+  (let* ((svg (pygn-mode-board-at-pos pos))
+         (buf (get-buffer-create " *pygn-mode-board*"))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
       (when (eq major-mode 'image-mode)
@@ -790,16 +790,16 @@ When called non-interactively, display the board corresponding to POS."
       (set-window-dedicated-p win t)
       (resize-temp-buffer-window win))))
 
-(defun pgn-mode-mouse-display-gui-board (event)
+(defun pygn-mode-mouse-display-gui-board (event)
   "Display the board corresponding to the mouse click in a separate buffer."
   (interactive "e")
   (set-buffer (window-buffer (posn-window (event-start event))))
   (goto-char (posn-point (event-start event)))
   (save-excursion
     (skip-syntax-backward "^\\s-")
-    (pgn-mode-display-gui-board-at-point (point))))
+    (pygn-mode-display-gui-board-at-point (point))))
 
-(defun pgn-mode-mouse-display-gui-board-inclusive (event)
+(defun pygn-mode-mouse-display-gui-board-inclusive (event)
   "Display inclusive board corresponding to the mouse click in a separate buffer.
 
 \"Inclusive\" here means that the board includes any move which contains the
@@ -809,35 +809,35 @@ click position."
   (goto-char (posn-point (event-start event)))
   (save-excursion
     (skip-syntax-forward "^\\s-")
-    (pgn-mode-display-gui-board-at-point (point))))
+    (pygn-mode-display-gui-board-at-point (point))))
 
-(defun pgn-mode-display-variation-gui-board-at-point (pos)
+(defun pygn-mode-display-variation-gui-board-at-point (pos)
   "Respecting variations, display the board corresponding to the point.
 
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
-  (let ((pgn (pgn-mode-pgn-as-if-variation pos)))
+  (let ((pgn (pygn-mode-pgn-as-if-variation pos)))
     (with-temp-buffer
       (insert pgn)
-      (pgn-mode-display-gui-board-at-point (point-max)))))
+      (pygn-mode-display-gui-board-at-point (point-max)))))
 
-(defun pgn-mode-previous-move-follow-gui-board (arg)
+(defun pygn-mode-previous-move-follow-gui-board (arg)
   "Move back to the previous move and display the updated board.
 
 With numeric prefix ARG, move ARG moves backward."
   (interactive "p")
-  (pgn-mode-previous-move arg)
-  (pgn-mode-display-gui-board-at-point (point)))
+  (pygn-mode-previous-move arg)
+  (pygn-mode-display-gui-board-at-point (point)))
 
-(defun pgn-mode-next-move-follow-gui-board (arg)
+(defun pygn-mode-next-move-follow-gui-board (arg)
   "Advance to the next move and display the updated board.
 
 With numeric prefix ARG, move ARG moves forward."
   (interactive "p")
-  (pgn-mode-next-move arg)
-  (pgn-mode-display-gui-board-at-point (point)))
+  (pygn-mode-next-move arg)
+  (pygn-mode-display-gui-board-at-point (point)))
 
-(provide 'pgn-mode)
+(provide 'pygn-mode)
 
 ;;
 ;; Emacs
@@ -850,4 +850,4 @@ With numeric prefix ARG, move ARG moves forward."
 ;; LocalWords: ARGS alist
 ;;
 
-;;; pgn-mode.el ends here
+;;; pygn-mode.el ends here
