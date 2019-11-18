@@ -298,7 +298,8 @@
   "Stop the currently running `pygn-mode--python-process' if it is running."
   (when (pygn-mode--process-running-p)
     (delete-process pygn-mode--python-process)
-    (setq pygn-mode--python-process nil)))
+    (setq pygn-mode--python-process nil)
+    (message "pygn-mode Python service killed.")))
 
 (defun pygn-mode--send-process (message)
   "Send MESSAGE to the running `pygn-mode--python-process'."
