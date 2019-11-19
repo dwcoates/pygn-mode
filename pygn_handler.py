@@ -73,7 +73,7 @@ def listen():
         # Grab command code for handling input.
         code = m.group(1)
         if code not in CALLBACKS:
-            print("Bad request code (unknown): {}".format(code), file=sys.stderr))
+            print("Bad request code (unknown): {}".format(code), file=sys.stderr)
             continue
 
         # Build game board.
