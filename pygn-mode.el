@@ -59,6 +59,24 @@
 ;;
 ;;     Performance.
 ;;
+;;     Flash current move on selection
+;;
+;;     pygn-display-mode: minor mode that makes navigation commands
+;;     automatically update gui
+;;
+;;     Copy fen to clipboard?
+;;
+;; IDEA
+;;
+;;     pygn-ivy:
+;;        Select games with ivy (via header contents)
+;;        Select fens with ivy
+;;
+;;     UCI moves to pgn: UCI position command arguments to pgn and/or graphical display
+;;
+;;     uci-mode: use comint to make a uci mode and integrate this with pygn?
+;;
+;;
 ;;; License
 ;;
 ;; Simplified BSD License:
