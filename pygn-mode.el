@@ -130,9 +130,6 @@
 (require 'nav-flash nil t)
 (require 'svg)
 
-(autoload 'image-toggle-display-text  "image-mode" "Show the image file as text."      nil)
-(autoload 'image-toggle-display-image "image-mode" "Show the image of the image file." nil)
-
 ;;; Declarations
 
 (eval-when-compile
@@ -793,8 +790,6 @@ When called non-interactively, display the board corresponding to POS."
          (buf (get-buffer-create " *pygn-mode-board*"))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
-      (when (eq major-mode 'image-mode)
-        (image-toggle-display-text))
       (delete-region (point-min) (point-max))
       (insert-image (create-image svg-data 'svg t)))
     (display-buffer buf '(display-buffer-reuse-window))
