@@ -128,7 +128,6 @@
 
 (require 'cl-lib)
 (require 'nav-flash nil t)
-(require 'svg)
 
 (autoload 'image-toggle-display-text  "image-mode" "Show the image file as text."      nil)
 (autoload 'image-toggle-display-image "image-mode" "Show the image of the image file." nil)
