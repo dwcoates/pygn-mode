@@ -789,6 +789,7 @@ When called non-interactively, display the board corresponding to POS."
          (buf (get-buffer-create " *pygn-mode-board*"))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
+      (setq cursor-type nil)
       (delete-region (point-min) (point-max))
       (insert-image (create-image svg-data 'svg t)))
     (display-buffer buf '(display-buffer-reuse-window))
