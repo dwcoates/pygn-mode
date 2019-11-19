@@ -41,6 +41,13 @@
 ;;
 ;; Notes
 ;;
+;; Compatibility and Requirements
+;;
+;;     Python and python-chess are needed for numerous features such as SVG
+;;     board images:
+;;
+;;         https://pypi.org/project/python-chess/
+;;
 ;; Bugs
 ;;
 ;;     Fontification of multi-line variations is unreliable without
