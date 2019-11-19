@@ -128,7 +128,6 @@
 
 (require 'cl-lib)
 (require 'nav-flash nil t)
-(require 'svg)
 
 ;;; Declarations
 
