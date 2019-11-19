@@ -298,6 +298,7 @@
                       :noquery t
                       :sentinel #'ignore
                       :command (list pygn-mode-python-path
+                                     "-u"
                                      (expand-file-name "pygn_handler.py" pygn-mode-script-directory)
                                      "-"))))
 
