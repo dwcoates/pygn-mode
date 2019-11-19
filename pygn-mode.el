@@ -753,9 +753,14 @@ When called non-interactively, select the game containing POS."
 (defun pygn-mode-echo-fen-at-point (pos)
   "Display the FEN corresponding to the point in the echo area.
 
-When called non-interactively, display the FEN corresponding to POS."
+When called non-interactively, display the FEN corresponding to POS.
+
+With \"prefix-arg\", copy the FEN."
   (interactive "d")
-  (message "%s" (pygn-mode-fen-at-pos pos)))
+  (let ((fen (pygn-mode-fen-at-pos pos))
+        (do-copy (not (equal current-prefix-arg 0))))
+    (kill-new fen)
+    (message "%s%s" fen (if do-copy "(copied)" ""))))
 
 (defun pygn-mode-display-fen-at-point (pos)
   "Display the FEN corresponding to the point in a separate buffer.
