@@ -77,4 +77,6 @@ emacs-chess
 
 ## Compatibility and Requirements
 
+Needed for board images and FENs: [python-chess](https://pypi.org/project/python-chess/)
+
 Uses if present: [nav-flash.el](http://github.com/rolandwalker/nav-flash)

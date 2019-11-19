@@ -41,6 +41,13 @@
 ;;
 ;; Notes
 ;;
+;; Compatibility and Requirements
+;;
+;;     Python and python-chess are needed for numerous features such as SVG
+;;     board images:
+;;
+;;         https://pypi.org/project/python-chess/
+;;
 ;; Bugs
 ;;
 ;;     Fontification of multi-line variations is unreliable without
@@ -309,6 +316,7 @@
                       :noquery t
                       :sentinel #'ignore
                       :command (list pygn-mode-python-path
+                                     "-u"
                                      (expand-file-name "pygn_handler.py" pygn-mode-script-directory)
                                      "-"))))
 
@@ -316,7 +324,8 @@
   "Stop the currently running `pygn-mode--python-process' if it is running."
   (when (pygn-mode--process-running-p)
     (delete-process pygn-mode--python-process)
-    (setq pygn-mode--python-process nil)))
+    (setq pygn-mode--python-process nil)
+    (message "pygn-mode Python service killed.")))
 
 (defun pygn-mode--send-process (message)
   "Send MESSAGE to the running `pygn-mode--python-process'."
