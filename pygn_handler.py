@@ -39,8 +39,8 @@ import chess.svg
 
 # TODO: breaks pixel configuration
 CALLBACKS = {
-    "1": lambda board: board.fen(),
-    "2": lambda board: chess.svg.board(board=board),
+    ":fen": lambda board: board.fen(),
+    ":board": lambda board: chess.svg.board(board=board),
 }
 
 ###
@@ -65,7 +65,7 @@ def listen():
             continue
 
         # Parse request.
-        m = re.compile("([0-9]+) --").search(input_str)
+        m = re.compile("(:\S+) --").search(input_str)
         if (not m):
             print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
             continue
