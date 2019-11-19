@@ -788,8 +788,8 @@ When called non-interactively, display the board corresponding to POS."
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
   (let* ((svg-data (pygn-mode-board-at-pos pos))
-         (buf (get-buffer-create " *pygn-mode-board*"))
          (win (get-buffer-window buf)))
+         (buf (get-buffer-create "*pygn-mode-board*"))
     (with-current-buffer buf
       (setq cursor-type nil)
       (delete-region (point-min) (point-max))
