@@ -37,9 +37,56 @@ import chess.svg
 ### file-scoped configurable variables
 ###
 
+# TODO: breaks pixel configuration
+CALLBACKS = {
+    "1": lambda board: board.fen(),
+    "2": lambda board: chess.svg.board(board=board),
+}
+
 ###
 ### subroutines
 ###
+
+def listen():
+    """
+    Listen for messages on stdin and send response data on stdout.
+    """
+
+    while True:
+        input_str = sys.stdin.readline()
+
+        # Handle terminating characters and garbage.
+        # TODO: make more safe.
+        if len(input_str) == 0:
+            # eof
+            break
+        if len(input_str) == 1:
+            # just newline
+            continue
+
+        # Parse request.
+        m = re.compile("([0-9]+) --").search(input_str)
+        if (not m):
+            print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
+            continue
+
+        # Grab command code for handling input.
+        code = m.group(1)
+        if code not in CALLBACKS:
+            print("Bad request code (unknown): {}".format(code), file=sys.stderr)
+            continue
+
+        # Build game board.
+        pgn = input_str[input_str.index(m.group(0)) + len(m.group(0)):].strip()
+        pgn = re.sub(r'\\n', '\n', pgn)
+        pgn = pgn + '\n\n'
+        game = chess.pgn.read_game(io.StringIO(pgn))
+        board = game.board()
+        for move in game.mainline_moves():
+            board.push(move)
+
+        # Send response to client.
+        print(CALLBACKS[code](board))
 
 ###
 ### argument processing
@@ -74,20 +121,15 @@ def generate_argparser():
 ### main
 ###
 
-# todo: breaks pixel configuration
-callbacks = {
-    "1": lambda board: board.fen(),
-    "2": lambda board: chess.svg.board(board=board),
-}
 
 if __name__ == '__main__':
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
-    argparser = generate_argparser()
+    ARGPARSER = generate_argparser()
     if sys.stdin.isatty() and len(sys.argv) == 1:
-        args = argparser.parse_args(['--help'])
+        args = ARGPARSER.parse_args(['--help'])
     else:
-        args = argparser.parse_args()
+        args = ARGPARSER.parse_args()
 
     if args.quiet and args.verbose:
         print('pgn_to_fen: -quiet and -verbose are incompatible', file=sys.stderr)
@@ -98,31 +140,7 @@ if __name__ == '__main__':
         input_files = [sys.stdin, *input_files]
 
 
-    while True:
-        input_str = sys.stdin.readline()
-        if len(input_str) == 0:
-            # eof
-            break
-        if len(input_str) == 1:
-            # just newline
-            continue
-        p = re.compile("([0-9]+) --")
-        m = p.search(input_str)
-
-        if (not m):
-            print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
-            continue
-
-        code = m.group(1) # Command code for handling input.
-        pgn = input_str[input_str.index(m.group(0)) + len(m.group(0)):].strip()
-        pgn = re.sub(r'\\n', '\n', pgn)
-        pgn = pgn + '\n\n'
-
-        game = chess.pgn.read_game(io.StringIO(pgn))
-        board = game.board()
-        for move in game.mainline_moves():
-            board.push(move)
-        print(callbacks[code](board))
+    listen()
 
 #
 # Emacs
