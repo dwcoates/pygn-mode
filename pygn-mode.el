@@ -494,25 +494,25 @@ Does not work for nested variations."
   (pygn-mode--send-process message)
   (pygn-mode--receive-process seconds (or max-time 0.25)))
 
-(defun pygn-mode--send-board (code &optional pos)
-  "Get PGN string preceding POS and send a `pygn-mode--python-process' request denoted by CODE."
+(defun pygn-mode--send-board (command &optional pos)
+  "Get PGN string preceding POS and send a `pygn-mode--python-process' request denoted by COMMAND."
   (cl-callf or pos (point))
   (save-excursion
     (let ((pgn (buffer-substring-no-properties (pygn-mode-game-start-position) pos)))
       (setq pgn (replace-regexp-in-string "\n" "\\\\n" pgn))
-      (pygn-mode--query-process (concat (number-to-string code) " -- " pgn) 0.01 0.51))))
+      (pygn-mode--query-process (concat (symbol-name command) " -- " pgn) 0.01 0.51))))
 
 (defun pygn-mode-fen-at-pos (pos)
   "Return the FEN corresponding to POS, which defaults to the point."
   (when (not (pygn-mode--process-running-p))
     (pygn-mode--make-process))
-  (pygn-mode--send-board 1 pos))
+  (pygn-mode--send-board :fen pos))
 
 (defun pygn-mode-board-at-pos (pos)
   "Get SVG output for PGN string preceding POS."
   (when (not (pygn-mode--process-running-p))
     (pygn-mode--make-process))
-  (pygn-mode--send-board 2 pos))
+  (pygn-mode--send-board :board pos))
 
 ;;; font-lock
 
