@@ -128,6 +128,7 @@
 
 (require 'cl-lib)
 (require 'nav-flash nil t)
+(require 'svg)
 
 (autoload 'image-toggle-display-text  "image-mode" "Show the image file as text."      nil)
 (autoload 'image-toggle-display-image "image-mode" "Show the image of the image file." nil)
@@ -330,7 +331,7 @@
 (defun pygn-mode--send-process (message)
   "Send MESSAGE to the running `pygn-mode--python-process'."
   (if (pygn-mode--process-running-p)
-      (process-send-string pygn-mode--python-process (concat message (string 10) (string 4)))
+      (process-send-string pygn-mode--python-process (concat message (string 10)))
     (error "Need running Python process to send pygn-mode message")))
 
 (defun pygn-mode--receive-process (seconds &optional max-time)
@@ -340,19 +341,14 @@
   (when (not (get-buffer pygn-mode--python-buffer))
     (error "Python output buffer does not exist"))
   (with-current-buffer pygn-mode--python-buffer
-    (let ((tries 0)
-          python-process-output)
+    (erase-buffer)
+    (let ((tries 0))
       (goto-char (point-min))
-      (while (and (progn
-                    (accept-process-output pygn-mode--python-process seconds nil 1)
-                    (= (buffer-size) 0))
+      (while (and (not (eq ?\n (char-before (point-max))))
                   (< (* tries seconds) max-time))
+        (accept-process-output pygn-mode--python-process seconds nil 1)
         (cl-incf tries))
-      (goto-char (point-min))
-      (setq python-process-output
-            (buffer-substring-no-properties (point-min) (point-max)))
-      (erase-buffer)
-      python-process-output)))
+      (buffer-substring-no-properties (point-min) (point-max)))))
 
 (defun pygn-mode--inside-comment-p ()
   "Whether the point is inside a PGN comment."
@@ -505,6 +501,7 @@ Does not work for nested variations."
   (cl-callf or pos (point))
   (save-excursion
     (let ((pgn (buffer-substring-no-properties (pygn-mode-game-start-position) pos)))
+      (setq pgn (replace-regexp-in-string "\n" "\\\\n" pgn))
       (pygn-mode--query-process (concat (number-to-string code) " -- " pgn) 0.01 0.51))))
 
 (defun pygn-mode-fen-at-pos (pos)
@@ -792,16 +789,14 @@ When called non-interactively, display the board corresponding to POS."
 
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
-  (let* ((svg (pygn-mode-board-at-pos pos))
+  (let* ((svg-data (pygn-mode-board-at-pos pos))
          (buf (get-buffer-create " *pygn-mode-board*"))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
       (when (eq major-mode 'image-mode)
         (image-toggle-display-text))
       (delete-region (point-min) (point-max))
-      (insert svg)
-      (setq major-mode 'image-mode)
-      (image-toggle-display-image))
+      (insert-image (create-image svg-data 'svg t)))
     (display-buffer buf '(display-buffer-reuse-window))
     (unless win
       (setq win (get-buffer-window buf))
