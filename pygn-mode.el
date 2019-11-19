@@ -43,6 +43,8 @@
 ;;
 ;; Compatibility and Requirements
 ;;
+;;     Emacs 25
+;;
 ;;     Python and python-chess are needed for numerous features such as SVG
 ;;     board images:
 ;;
