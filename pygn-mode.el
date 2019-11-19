@@ -83,8 +83,12 @@
 ;;
 ;;     UCI moves to pgn: UCI position command arguments to pgn and/or graphical display
 ;;
-;;     uci-mode: use comint to make a uci mode and integrate this with pygn?
+;;     uci-mode:
+;;        use comint to make a uci mode and integrate this with pygn?
 ;;
+;;     count games in current file? Display in modeline?
+;;
+;;     evil text objects?
 ;;
 ;;; License
 ;;
