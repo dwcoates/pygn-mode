@@ -641,6 +641,7 @@ With numeric prefix ARG, advance ARG games."
     (if (re-search-forward "^\\[Event " nil t arg)
         (goto-char (line-beginning-position))
       ;; else
+      (recenter)
       (error "No next game.")))
   (when (fboundp 'nav-flash-show)
     (nav-flash-show)))
