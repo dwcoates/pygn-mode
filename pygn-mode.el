@@ -198,16 +198,22 @@
    (or load-file-name
        (bound-and-true-p byte-compile-current-file)
        (buffer-file-name (current-buffer))))
-  "Directory to find Python helper scripts.")
+  "Directory to find Python server script \"pygn_server.py\".")
 
 (defvar pygn-mode-python-chess-succeeded nil
-  "Whether a simple python-chess command has succeeded.")
+  "Whether a simple external command using the python-chess library has succeeded.")
 
-(defvar pygn-mode--python-process nil
-  "Python process that powers pygn-mode.")
+(defvar pygn-mode--server-process nil
+  "Python-based server which powers many `pygn-mode' features.")
 
-(defvar pygn-mode--python-buffer nil
-  "Buffer to which the pygn-mode Python process sends output.")
+(defvar pygn-mode--server-buffer nil
+  "Buffer to which the `pygn-mode' server process is associated.")
+
+(defvar pygn-mode--server-receive-every-seconds 0.01
+  "How often `pygn-mode--server-receive' should check the server for output when polling.")
+
+(defvar pygn-mode--server-receive-max-seconds 0.5
+  "The maximum amount of time `pygn-mode--server-receive' should check the server for output when polling.")
 
 ;;; Syntax table
 
@@ -300,60 +306,81 @@
 
 ;;; Utility functions
 
-(defun pygn-mode--process-running-p ()
-  "Return non-nil iff `pygn-mode--python-process' is running."
-  (and pygn-mode--python-process (process-live-p pygn-mode--python-process)))
+(defun pygn-mode--server-running-p ()
+  "Return non-nil iff `pygn-mode--server-process' is running."
+  (and pygn-mode--server-process (process-live-p pygn-mode--server-process)))
 
-;; TODO: generalize script
+(defun pygn-mode--python-chess-guard ()
+  "Throw an error unless the python-chess library is available."
+  (unless pygn-mode-python-chess-succeeded
+    (if (zerop (call-process pygn-mode-python-path nil nil nil "-c" "import chess"))
+        (setq pygn-mode-python-chess-succeeded t)
+      (error "The Python interpreter at `pygn-mode-python-path' must have the python-chess library available."))))
+
 ;; TODO: pipes?
-(defun pygn-mode--make-process (&optional force)
-  "Initialize pygn-mode `pygn-mode--python-process', optionally FORCE recreation if already exists."
-  (pygn-mode-python-chess-guard)
-  (when (and (not force) (pygn-mode--process-running-p))
-    (error "The pygn-mode Python process is already running. Use optional `force' to recreate"))
-  (message (format "Initializing pygn-mode python process%s." (if force " (forcing)" "")))
-  (setq pygn-mode--python-buffer (get-buffer-create " *pygn-mode-data-buffer*"))
-  (setq pygn-mode--python-process
-        (make-process :name "pygn-mode-python"
-                      :buffer pygn-mode--python-buffer
+(defun pygn-mode--server-start (&optional force)
+  "Initialize the `pygn-mode' `pygn-mode--server-process'.
+
+Optionally FORCE recreation if the server already exists."
+  (pygn-mode--python-chess-guard)
+  (when (and (not force) (pygn-mode--server-running-p))
+    (error "The pygn-mode server process is already running. Use optional `force' to recreate"))
+  (message (format "Initializing pygn-mode server process%s." (if force " (forcing)" "")))
+  (setq pygn-mode--server-buffer (get-buffer-create " *pygn-mode-server*"))
+  (setq pygn-mode--server-process
+        (make-process :name "pygn-mode-server"
+                      :buffer pygn-mode--server-buffer
                       :noquery t
                       :sentinel #'ignore
                       :command (list pygn-mode-python-path
                                      "-u"
-                                     (expand-file-name "pygn_handler.py" pygn-mode-script-directory)
+                                     (expand-file-name "pygn_server.py" pygn-mode-script-directory)
                                      "-"))))
 
-(defun pygn-mode--kill-process ()
-  "Stop the currently running `pygn-mode--python-process' if it is running."
-  (when (pygn-mode--process-running-p)
-    (process-send-eof pygn-mode--python-process)
-    (delete-process pygn-mode--python-process)
-    (setq pygn-mode--python-process nil)
-    (message "pygn-mode Python service killed.")))
+(defun pygn-mode--server-kill ()
+  "Stop the currently running `pygn-mode--server-process'."
+  (when (pygn-mode--server-running-p)
+    (process-send-eof pygn-mode--server-process)
+    (delete-process pygn-mode--server-process)
+    (setq pygn-mode--server-process nil)
+    (message "pygn-mode server process killed.")))
 
-(defun pygn-mode--send-process (message)
-  "Send MESSAGE to the running `pygn-mode--python-process'."
-  (if (pygn-mode--process-running-p)
-      (process-send-string
-       pygn-mode--python-process
-       (replace-regexp-in-string "[\n\r]*$" "\n" message))
-    (error "Need running Python process to send pygn-mode message")))
+(defun pygn-mode--server-send (message)
+  "Send MESSAGE to the running `pygn-mode--server-process'."
+  (unless (pygn-mode--server-running-p)
+    (error "The pygn-mode server is not running -- cannot send a message"))
+  (process-send-string
+   pygn-mode--server-process
+   (replace-regexp-in-string "[\n\r]*$" "\n" message)))
 
-(defun pygn-mode--receive-process (seconds &optional max-time)
-  "Wrap `accept-process-output' with SECONDS for `pygn-mode--python-process' for MAX-TIME."
-  (when (not (pygn-mode--process-running-p))
-    (error "Cannot fetch pygn-mode output without a running process"))
-  (when (not (get-buffer pygn-mode--python-buffer))
-    (error "Python output buffer does not exist"))
-  (with-current-buffer pygn-mode--python-buffer
+(defun pygn-mode--server-receive ()
+  "Receive a response after `pygn-mode--server-send'.
+
+Respects the variables `pygn-mode--server-receive-every-seconds' and
+`pygn-mode--server-receive-max-seconds'."
+  (unless (pygn-mode--server-running-p)
+    (error "The pygn-mode server is not running -- cannot receive a response"))
+  (unless (get-buffer pygn-mode--server-buffer)
+    (error "The pygn-mode server output buffer does not exist -- cannot receive a response"))
+  (with-current-buffer pygn-mode--server-buffer
     (erase-buffer)
     (let ((tries 0))
       (goto-char (point-min))
       (while (and (not (eq ?\n (char-before (point-max))))
-                  (< (* tries seconds) max-time))
-        (accept-process-output pygn-mode--python-process seconds nil 1)
+                  (< (* tries pygn-mode--server-receive-every-seconds) pygn-mode--server-receive-max-seconds))
+        (accept-process-output pygn-mode--server-process pygn-mode--server-receive-every-seconds nil 1)
         (cl-incf tries))
       (buffer-substring-no-properties (point-min) (point-max)))))
+
+(defun pygn-mode--server-query (message &optional force)
+  "Send MESSAGE to `pygn-mode--server-process', await, and return response.
+
+SECONDS and MAX-TIME are as arguments to `pygn-mode--server-receive'.  FORCE
+forces a new server process to be created."
+  (unless (pygn-mode--server-running-p)
+    (pygn-mode--server-start force))
+  (pygn-mode--server-send message)
+  (pygn-mode--server-receive))
 
 (defun pygn-mode--inside-comment-p ()
   "Whether the point is inside a PGN comment."
@@ -459,13 +486,6 @@ POS defaults to `point'."
         (goto-char (line-end-position))
         (skip-syntax-backward "-")))))
 
-(defun pygn-mode-python-chess-guard ()
-  "Throw an error unless the python-chess library is available."
-  (unless pygn-mode-python-chess-succeeded
-    (if (zerop (call-process pygn-mode-python-path nil nil nil "-c" "import chess"))
-        (setq pygn-mode-python-chess-succeeded t)
-      (error "The Python interpreter at `pygn-mode-python-path' must have the python-chess library available."))))
-
 (defun pygn-mode-pgn-as-if-variation (pos &optional inclusive)
   "PGN string as if a variation had been played until position POS.
 
@@ -494,33 +514,22 @@ Does not work for nested variations."
         (goto-char (point-max))
         (buffer-substring-no-properties (point-min) (point-max))))))
 
-(defun pygn-mode--query-process (message seconds &optional max-time force)
-  "Send MESSAGE to active `pygn-mode--python-process' every SECONDS for MAX-TIME and return response, optionally FORCE a new python process."
-  (when (not (pygn-mode--process-running-p))
-    (pygn-mode--make-process force))
-  (pygn-mode--send-process message)
-  (pygn-mode--receive-process seconds (or max-time 0.25)))
-
 (defun pygn-mode--send-board-and-fetch (command &optional pos)
-  "Get PGN string preceding POS and send a `pygn-mode--python-process' request denoted by COMMAND and return the response."
+  "Get PGN string preceding POS, send a `pygn-mode--server-process' request denoted by COMMAND, and return the response."
   (cl-callf or pos (point))
   (save-excursion
     (let ((pgn (buffer-substring-no-properties (pygn-mode-game-start-position) pos)))
       (setq pgn (replace-regexp-in-string "\n" "\\\\n" pgn))
-      (pygn-mode--query-process (concat (symbol-name command) " -- " pgn) 0.01 0.51))))
+      (pygn-mode--server-query (concat (symbol-name command) " -- " pgn)))))
 
 (defun pygn-mode-fen-at-pos (pos)
   "Return the FEN corresponding to POS, which defaults to the point."
-  (when (not (pygn-mode--process-running-p))
-    (pygn-mode--make-process))
   (replace-regexp-in-string
    "\n+\\'" ""
    (pygn-mode--send-board-and-fetch :fen pos)))
 
 (defun pygn-mode-board-at-pos (pos)
   "Get SVG output for PGN string preceding POS."
-  (when (not (pygn-mode--process-running-p))
-    (pygn-mode--make-process))
   (pygn-mode--send-board-and-fetch :board pos))
 
 ;;; font-lock
