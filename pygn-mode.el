@@ -310,7 +310,7 @@
   "Initialize pygn-mode `pygn-mode--python-process', optionally FORCE recreation if already exists."
   (pygn-mode-python-chess-guard)
   (when (and (not force) (pygn-mode--process-running-p))
-    (error "The pygn-mode Python process already running. Use optional `force' to recreate"))
+    (error "The pygn-mode Python process is already running. Use optional `force' to recreate"))
   (message (format "Initializing pygn-mode python process%s." (if force " (forcing)" "")))
   (setq pygn-mode--python-buffer (get-buffer-create " *pygn-mode-data-buffer*"))
   (setq pygn-mode--python-process
