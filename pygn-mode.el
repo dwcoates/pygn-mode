@@ -797,16 +797,20 @@ When called non-interactively, display the board corresponding to POS."
   (interactive "d")
   (let* ((svg-data (pygn-mode-board-at-pos pos))
          (buf (get-buffer-create " *pygn-mode-board*"))
-         (win (get-buffer-window buf)))
+         (win (display-buffer buf '(display-buffer-reuse-window)))
+         (image-size 200))
+    (set-window-dedicated-p win t)
     (with-current-buffer buf
       (setq cursor-type nil)
       (delete-region (point-min) (point-max))
-      (insert-image (create-image svg-data 'svg t)))
-    (display-buffer buf '(display-buffer-reuse-window))
-    (unless win
-      (setq win (get-buffer-window buf))
-      (set-window-dedicated-p win t)
-      (resize-temp-buffer-window win))))
+      (insert-sliced-image (create-image
+                            svg-data
+                            'svg
+                            t
+                            :relief 2
+                            :margin (cons 0 (- (/ (window-body-height nil t) 2) image-size)))))
+    (let ((fit-window-to-buffer-horizontally t))
+      (fit-window-to-buffer win))))
 
 (defun pygn-mode-mouse-display-gui-board (event)
   "Display the board corresponding to the mouse click in a separate buffer."
