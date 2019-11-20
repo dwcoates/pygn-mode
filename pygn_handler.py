@@ -55,13 +55,12 @@ def listen():
     while True:
         input_str = sys.stdin.readline()
 
+        # TODO: test readline and empty-line handling on Windows
         # Handle terminating characters and garbage.
-        # TODO: make more safe.
         if len(input_str) == 0:
             # eof
             break
-        if len(input_str) == 1:
-            # just newline
+        if input_str == '\n':
             continue
 
         # Parse request.

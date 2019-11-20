@@ -326,6 +326,7 @@
 (defun pygn-mode--kill-process ()
   "Stop the currently running `pygn-mode--python-process' if it is running."
   (when (pygn-mode--process-running-p)
+    (process-send-eof pygn-mode--python-process)
     (delete-process pygn-mode--python-process)
     (setq pygn-mode--python-process nil)
     (message "pygn-mode Python service killed.")))
@@ -333,7 +334,9 @@
 (defun pygn-mode--send-process (message)
   "Send MESSAGE to the running `pygn-mode--python-process'."
   (if (pygn-mode--process-running-p)
-      (process-send-string pygn-mode--python-process (concat message (string 10)))
+      (process-send-string
+       pygn-mode--python-process
+       (replace-regexp-in-string "[\n\r]*$" "\n" message))
     (error "Need running Python process to send pygn-mode message")))
 
 (defun pygn-mode--receive-process (seconds &optional max-time)
