@@ -498,8 +498,8 @@ Does not work for nested variations."
   (pygn-mode--send-process message)
   (pygn-mode--receive-process seconds (or max-time 0.25)))
 
-(defun pygn-mode--send-board (command &optional pos)
-  "Get PGN string preceding POS and send a `pygn-mode--python-process' request denoted by COMMAND."
+(defun pygn-mode--send-board-and-fetch (command &optional pos)
+  "Get PGN string preceding POS and send a `pygn-mode--python-process' request denoted by COMMAND and return the response."
   (cl-callf or pos (point))
   (save-excursion
     (let ((pgn (buffer-substring-no-properties (pygn-mode-game-start-position) pos)))
@@ -510,13 +510,13 @@ Does not work for nested variations."
   "Return the FEN corresponding to POS, which defaults to the point."
   (when (not (pygn-mode--process-running-p))
     (pygn-mode--make-process))
-  (pygn-mode--send-board :fen pos))
+  (pygn-mode--send-board-and-fetch :fen pos))
 
 (defun pygn-mode-board-at-pos (pos)
   "Get SVG output for PGN string preceding POS."
   (when (not (pygn-mode--process-running-p))
     (pygn-mode--make-process))
-  (pygn-mode--send-board :board pos))
+  (pygn-mode--send-board-and-fetch :board pos))
 
 ;;; font-lock
 
@@ -750,12 +750,16 @@ When called non-interactively, select the game containing POS."
   (push-mark (pygn-mode-game-end-position) t t)
   (goto-char (pygn-mode-game-start-position)))
 
-(defun pygn-mode-echo-fen-at-point (pos)
+(defun pygn-mode-echo-fen-at-point (pos &optional do-copy)
   "Display the FEN corresponding to the point in the echo area.
 
-When called non-interactively, display the FEN corresponding to POS."
-  (interactive "d")
-  (message "%s" (pygn-mode-fen-at-pos pos)))
+When called non-interactively, display the FEN corresponding to POS.
+
+With \"prefix-arg\", copy the FEN."
+  (interactive "d\nP")
+  (let ((fen (string-trim (pygn-mode-fen-at-pos pos))))
+    (kill-new fen)
+    (message "%s%s" fen (if do-copy (propertize "\t(copied)" 'face '(:foreground "grey33"))))))
 
 (defun pygn-mode-display-fen-at-point (pos)
   "Display the FEN corresponding to the point in a separate buffer.
