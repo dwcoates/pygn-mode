@@ -1,12 +1,16 @@
 # Overview
 
-An Emacs major-mode for viewing chess PGN files.
+An Emacs major-mode for viewing chess PGN files, powered by Python.
 
  * [Quickstart](#quickstart)
  * [pygn-mode](#pygn-mode)
  * [Interactive Commands](#interactive-commands)
  * [Prior Art](#prior-art)
  * [Compatibility and Requirements](#compatibility-and-requirements)
+
+<a href="/doc/pygn-mode-follow.gif">
+<img src="/doc/pygn-mode-board.png" width=500 />
+</a>
 
 ## Quickstart
 
@@ -30,6 +34,8 @@ Provides
    `{comments}` and parenthesized `(variations)`.
  * customizable faces
  * navigation and selection commands
+ * computation of FEN at point (requires [python-chess](https://pypi.org/project/python-chess/) library)
+ * computation and display of board at point (requires [python-chess](https://pypi.org/project/python-chess/))
 
 ## Interactive Commands
 

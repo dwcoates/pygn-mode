@@ -45,8 +45,8 @@
 ;;
 ;;     Emacs 25
 ;;
-;;     Python and python-chess are needed for numerous features such as SVG
-;;     board images:
+;;     Python and the python-chess library are needed for numerous features
+;;     such as SVG board images:
 ;;
 ;;         https://pypi.org/project/python-chess/
 ;;
