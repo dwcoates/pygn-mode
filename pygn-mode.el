@@ -151,8 +151,13 @@
   :group 'data
   :group 'games)
 
-(defcustom pygn-mode-python-path "python"
-  "Path to a Python interpreter with the python-chess library installed."
+(defcustom pygn-mode-python-executable "python"
+  "Path to a Python interpreter."
+  :group 'pygn-mode
+  :type 'string)
+
+(defcustom pygn-mode-pythonpath nil
+  "A colon-delimited path to override the $PYTHONPATH environment variable."
   :group 'pygn-mode
   :type 'string)
 
@@ -313,9 +318,12 @@
 (defun pygn-mode--python-chess-guard ()
   "Throw an error unless the python-chess library is available."
   (unless pygn-mode-python-chess-succeeded
-    (if (zerop (call-process pygn-mode-python-path nil nil nil "-c" "import chess"))
-        (setq pygn-mode-python-chess-succeeded t)
-      (error "The Python interpreter at `pygn-mode-python-path' must have the python-chess library available."))))
+    (let ((process-environment (copy-list process-environment)))
+      (when pygn-mode-pythonpath
+        (setenv "PYTHONPATH" pygn-mode-pythonpath))
+      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
+          (setq pygn-mode-python-chess-succeeded t)
+        (error "The Python interpreter at `pygn-mode-python-path' must have the python-chess library available.")))))
 
 ;; TODO: pipes?
 (defun pygn-mode--server-start (&optional force)
@@ -328,16 +336,19 @@ Optionally FORCE recreation if the server already exists."
     (when (pygn-mode--server-running-p)
       (error "The pygn-mode server process is already running. Use optional `force' to recreate")))
   (message (format "Initializing pygn-mode server process%s." (if force " (forcing)" "")))
-  (setq pygn-mode--server-buffer (get-buffer-create " *pygn-mode-server*"))
-  (setq pygn-mode--server-process
-        (make-process :name "pygn-mode-server"
-                      :buffer pygn-mode--server-buffer
-                      :noquery t
-                      :sentinel #'ignore
-                      :command (list pygn-mode-python-path
-                                     "-u"
-                                     (expand-file-name "pygn_server.py" pygn-mode-script-directory)
-                                     "-"))))
+  (let ((process-environment (copy-list process-environment)))
+    (when pygn-mode-pythonpath
+      (setenv "PYTHONPATH" pygn-mode-pythonpath))
+    (setq pygn-mode--server-buffer (get-buffer-create " *pygn-mode-server*"))
+    (setq pygn-mode--server-process
+          (make-process :name "pygn-mode-server"
+                        :buffer pygn-mode--server-buffer
+                        :noquery t
+                        :sentinel #'ignore
+                        :command (list pygn-mode-python-executable
+                                       "-u"
+                                       (expand-file-name "pygn_server.py" pygn-mode-script-directory)
+                                       "-")))))
 
 (defun pygn-mode--server-kill ()
   "Stop the currently running `pygn-mode--server-process'."
