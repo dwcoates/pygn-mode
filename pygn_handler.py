@@ -25,7 +25,6 @@ __version__ = '1.00'
 
 import sys
 import argparse
-import textwrap
 import signal
 import io
 import re
@@ -37,10 +36,11 @@ import chess.svg
 ### file-scoped configurable variables
 ###
 
-# TODO: breaks pixel configuration
 CALLBACKS = {
-    ":fen": lambda board: board.fen(),
-    ":board": lambda board: chess.svg.board(board=board),
+    ":fen": lambda board,args: board.fen(),
+    ":board": lambda board,args: chess.svg.board(
+        board=board,
+        size=args.pixels[0])
 }
 
 ###
@@ -51,6 +51,8 @@ def listen():
     """
     Listen for messages on stdin and send response data on stdout.
     """
+
+    argparser = generate_argparser()
 
     while True:
         input_str = sys.stdin.readline()
@@ -65,10 +67,11 @@ def listen():
             continue
 
         # Parse request.
-        m = re.compile("(:\S+) --").search(input_str)
+        m = re.compile("(:\S+)(.*?) --").search(input_str)
         if (not m):
             print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
             continue
+        args = argparser.parse_args(m.group(2).split())
 
         # Grab command code for handling input.
         code = m.group(1)
@@ -86,59 +89,32 @@ def listen():
             board.push(move)
 
         # Send response to client.
-        print(CALLBACKS[code](board))
+        print(CALLBACKS[code](board,args))
 
 ###
 ### argument processing
 ###
 
 def generate_argparser():
-    argparser = argparse.ArgumentParser(description=textwrap.dedent(
-                                        '''
-                                        Return the FEN after the last move in a PGN <file>.
-                                        '''),
-                                        formatter_class=argparse.RawDescriptionHelpFormatter)
-    argparser.add_argument('file',
-                           metavar='<file>',
-                           nargs='*',
-                           type=argparse.FileType('r'),
-                           help='File to analyze.  Input on the standard input is also accepted.')
-    argparser.add_argument('-quiet', '--quiet',
-                           action='store_true',
-                           help='Emit less diagnostic output.')
-    argparser.add_argument('-verbose', '--verbose',
-                           action='store_true',
-                           help='Emit more diagnostic output.')
-    argparser.add_argument('-help',
-                           action='help',
-                           help=argparse.SUPPRESS)
-    argparser.add_argument('-version', '--version',
-                           action='version',
-                           version=__version__)
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('-pixels', '--pixels',
+                           metavar='PIXELS',
+                           nargs=1,
+                           type=int,
+                           default=[400],
+                           help='set pixel-per-side for the SVG board output. Default is 400.')
     return argparser
 
 ###
 ### main
 ###
 
-
 if __name__ == '__main__':
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
-    ARGPARSER = generate_argparser()
-    if sys.stdin.isatty() and len(sys.argv) == 1:
-        args = ARGPARSER.parse_args(['--help'])
-    else:
-        args = ARGPARSER.parse_args()
-
-    if args.quiet and args.verbose:
-        print('pgn_to_fen: -quiet and -verbose are incompatible', file=sys.stderr)
-        exit(1)
-
-    input_files = args.file
-    if not sys.stdin.isatty():
-        input_files = [sys.stdin, *input_files]
-
+    if sys.argv[1] == '-version' or sys.argv[1] == '--version':
+        print(__version__)
+        exit(0)
 
     listen()
 
