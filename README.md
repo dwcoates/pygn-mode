@@ -14,6 +14,10 @@ An Emacs major-mode for viewing chess PGN files, powered by Python.
 
 ## Quickstart
 
+```bash
+$ pip install python-chess
+```
+
 ```elisp
 ;; maybe
 ;; (setq font-lock-maximum-decoration t)
