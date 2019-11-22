@@ -111,7 +111,7 @@ def generate_argparser():
 if __name__ == '__main__':
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
-    if sys.argv[1] == '-version' or sys.argv[1] == '--version':
+    if len(sys.argv) > 1 and (sys.argv[1] == '-version' or sys.argv[1] == '--version'):
         print(__version__)
         exit(0)
 
