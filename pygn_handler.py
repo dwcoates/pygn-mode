@@ -28,24 +28,46 @@ import argparse
 import signal
 import io
 import re
+import atexit
 
 import chess.pgn
 import chess.svg
+import chess.engine
 
 ###
-### file-scoped configurable variables
+### file-scoped variables
 ###
 
-CALLBACKS = {
-    ":fen": lambda board,args: board.fen(),
-    ":board": lambda board,args: chess.svg.board(
-        board=board,
-        size=args.pixels[0])
-}
+ENGINES = {}
 
 ###
 ### subroutines
 ###
+
+def instantiate_engine(engine_path):
+    if not engine_path in ENGINES:
+        ENGINES[engine_path] = chess.engine.SimpleEngine.popen_uci(engine_path)
+    return ENGINES[engine_path]
+
+def cleanup():
+    for e in ENGINES.values():
+        try:
+            e.quit()
+        except:
+            pass
+
+def board_callback(board,args):
+    return chess.svg.board(
+        board=board,
+        size=args.pixels[0])
+
+def fen_callback(board,args):
+    return board.fen()
+
+def score_callback(board,args):
+    engine = instantiate_engine(args.engine[0])
+    uci_info = engine.analyse(board, chess.engine.Limit(depth=args.depth[0]))
+    return uci_info["score"]
 
 def listen():
     """
@@ -61,6 +83,7 @@ def listen():
         # Handle terminating characters and garbage.
         if len(input_str) == 0:
             # eof
+            cleanup()
             break
         if input_str == '\n':
             continue
@@ -102,6 +125,16 @@ def generate_argparser():
                            type=int,
                            default=[400],
                            help='set pixel-per-side for the SVG board output. Default is 400.')
+    argparser.add_argument('-engine', '--engine',
+                           nargs=1,
+                           type=str,
+                           default=["stockfish"],
+                           help='set path to UCI engine for analysis. Default is "stockfish".')
+    argparser.add_argument('-depth', '--depth',
+                           nargs=1,
+                           type=int,
+                           default=[10],
+                           help='set depth for depth-limited to UCI evaluations. Default is 10.')
     return argparser
 
 ###
@@ -114,6 +147,14 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and (sys.argv[1] == '-version' or sys.argv[1] == '--version'):
         print(__version__)
         exit(0)
+
+    CALLBACKS = {
+        ":fen": fen_callback,
+        ":board": board_callback,
+        ":score": score_callback,
+    }
+
+    atexit.register(cleanup)
 
     listen()
 
