@@ -513,7 +513,9 @@ Does not work for nested variations."
   "Return the FEN corresponding to POS, which defaults to the point."
   (when (not (pygn-mode--process-running-p))
     (pygn-mode--make-process))
-  (pygn-mode--send-board-and-fetch :fen pos))
+  (replace-regexp-in-string
+   "\n+\\'" ""
+   (pygn-mode--send-board-and-fetch :fen pos)))
 
 (defun pygn-mode-board-at-pos (pos)
   "Get SVG output for PGN string preceding POS."
@@ -760,7 +762,7 @@ When called non-interactively, display the FEN corresponding to POS.
 
 With \"prefix-arg\", copy the FEN."
   (interactive "d\nP")
-  (let ((fen (string-trim (pygn-mode-fen-at-pos pos))))
+  (let ((fen (pygn-mode-fen-at-pos pos)))
     (kill-new fen)
     (message "%s%s" fen (if do-copy (propertize "\t(copied)" 'face '(:foreground "grey33"))))))
 
