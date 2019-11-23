@@ -641,6 +641,18 @@ Intended to be used as a `syntax-propertize-function'."
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.[pP][gG][nN]\\'" . pygn-mode))
 
+(defun pygn-mode--next-game (arg)
+  "Move point to next game, moving ARG games forward (backwards if negative).
+
+Recenters buffer afterwards."
+  (let ((next-game (and (re-search-forward "^\\[Event " nil t arg)
+                        (goto-char (line-beginning-position)))))
+    (recenter-window-group)
+    (when (not next-game)
+      (error "No next game")))
+  (when (fboundp 'nav-flash-show)
+    (nav-flash-show)))
+
 ;;; Interactive commands
 
 (defun pygn-mode-next-game (arg)
@@ -652,12 +664,7 @@ With numeric prefix ARG, advance ARG games."
   (save-match-data
     (when (looking-at-p "\\[Event ")
       (goto-char (line-end-position)))
-    (if (re-search-forward "^\\[Event " nil t arg)
-        (goto-char (line-beginning-position))
-      ;; else
-      (error "No next game.")))
-  (when (fboundp 'nav-flash-show)
-    (nav-flash-show)))
+    (pygn-mode--next-game arg)))
 
 (defun pygn-mode-previous-game (arg)
   "Move back to the previous game in a multi-game PGN buffer.
@@ -668,12 +675,7 @@ With numeric prefix ARG, move back ARG games."
   (save-match-data
     (unless (looking-at-p "\\[Event ")
       (re-search-backward "^\\[Event " nil t))
-    (if (re-search-backward "^\\[Event " nil t arg)
-        (goto-char (line-beginning-position))
-      ;; else
-      (error "No previous game.")))
-  (when (fboundp 'nav-flash-show)
-    (nav-flash-show)))
+    (pygn-mode--next-game (* arg -1))))
 
 (defun pygn-mode-next-move (arg)
   "Advance to the next move in a PGN game.
@@ -705,10 +707,10 @@ With numeric prefix ARG, advance ARG moves forward."
                           (pygn-mode-inside-variation-or-comment-p)))
             (setq last-point (point))
             (cond
-              ((pygn-mode-inside-variation-or-comment-p)
-               (pygn-mode-forward-exit-variations-and-comments))
-              (t
-               (forward-sexp 1)))))
+             ((pygn-mode-inside-variation-or-comment-p)
+              (pygn-mode-forward-exit-variations-and-comments))
+             (t
+              (forward-sexp 1)))))
         (skip-chars-forward "0-9.…\s-")
         (unless (pygn-mode-looking-at-legal-move)
           (goto-char thumb)
