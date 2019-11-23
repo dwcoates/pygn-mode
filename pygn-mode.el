@@ -323,8 +323,10 @@
 
 Optionally FORCE recreation if the server already exists."
   (pygn-mode--python-chess-guard)
-  (when (and (not force) (pygn-mode--server-running-p))
-    (error "The pygn-mode server process is already running. Use optional `force' to recreate"))
+  (if force
+      (pygn-mode--server-kill)
+    (when (pygn-mode--server-running-p)
+      (error "The pygn-mode server process is already running. Use optional `force' to recreate")))
   (message (format "Initializing pygn-mode server process%s." (if force " (forcing)" "")))
   (setq pygn-mode--server-buffer (get-buffer-create " *pygn-mode-server*"))
   (setq pygn-mode--server-process
