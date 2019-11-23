@@ -1,12 +1,27 @@
 #!/usr/bin/env python
 #
-# pgn_to_fen
+# pygn_server
 #
-# return the FEN after the last move in a PGN input file
+# driver for Emacs mode pygn-mode.el
 #
 # notes
 #
 #     requires python-chess
+#
+#     server request format
+#
+#         <command> <options> -- <data>
+#
+#     where
+#
+#         * <command> begins with ":"
+#         * <options> are CLI-like, as accepted by argparse
+#         * double-dash is mandatory
+#         * <data> is usually a PGN with newlines escaped to "\n"
+#
+#     server example request
+#
+#         :board -pixels=200 -- [Event "?"]\n[Site ...
 #
 # bugs
 #
