@@ -638,11 +638,11 @@ With numeric prefix ARG, advance ARG games."
   (save-match-data
     (when (looking-at-p "\\[Event ")
       (goto-char (line-end-position)))
-    (if (re-search-forward "^\\[Event " nil t arg)
-        (goto-char (line-beginning-position))
-      ;; else
-      (recenter)
-      (error "No next game.")))
+    (let ((next-game (and (re-search-forward "^\\[Event " nil t arg)
+                          (goto-char (line-beginning-position)))))
+      (recenter-window-group)
+      (when (not next-game)
+        (error "No next game"))))
   (when (fboundp 'nav-flash-show)
     (nav-flash-show)))
 
@@ -655,10 +655,11 @@ With numeric prefix ARG, move back ARG games."
   (save-match-data
     (unless (looking-at-p "\\[Event ")
       (re-search-backward "^\\[Event " nil t))
-    (if (re-search-backward "^\\[Event " nil t arg)
-        (goto-char (line-beginning-position))
-      ;; else
-      (error "No previous game.")))
+    (let ((prev-game (and (re-search-backward "^\\[Event " nil t arg)
+                          (goto-char (line-beginning-position)))))
+      (recenter-window-group)
+      (when (not prev-game)
+        (error "No previous game"))))
   (when (fboundp 'nav-flash-show)
     (nav-flash-show)))
 
@@ -692,10 +693,10 @@ With numeric prefix ARG, advance ARG moves forward."
                           (pygn-mode-inside-variation-or-comment-p)))
             (setq last-point (point))
             (cond
-              ((pygn-mode-inside-variation-or-comment-p)
-               (pygn-mode-forward-exit-variations-and-comments))
-              (t
-               (forward-sexp 1)))))
+             ((pygn-mode-inside-variation-or-comment-p)
+              (pygn-mode-forward-exit-variations-and-comments))
+             (t
+              (forward-sexp 1)))))
         (skip-chars-forward "0-9.…\s-")
         (unless (pygn-mode-looking-at-legal-move)
           (goto-char thumb)
