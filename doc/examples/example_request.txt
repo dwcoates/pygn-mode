@@ -1,0 +1,1 @@
+:pgn-to-fen -- :pgn [Event "?"]\n[Site "?"]\n[Date "????.??.??"]\n[Round "?"]\n[White "?"]\n[Black "?"]\n[Result "*"]\n[SetUp "1"]\n[FEN "r1bR2Q1/ppp3pp/4p1k1/2b1P1n1/1np1q3/5N2/PPP3PP/5R1K w - - 2 18"]\n\n18. Qe8+ Kh6 19. Nxg5 Kxg5\n\n

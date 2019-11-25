@@ -8,20 +8,7 @@
 #
 #     requires python-chess
 #
-#     server request format
-#
-#         <command> <options> -- <data>
-#
-#     where
-#
-#         * <command> begins with ":"
-#         * <options> are CLI-like, as accepted by argparse
-#         * double-dash is mandatory
-#         * <data> is usually a PGN with newlines escaped to "\n"
-#
-#     server example request
-#
-#         :board -pixels=200 -- [Event "?"]\n[Site ...
+#     documentation of the server request format is at doc/server.md
 #
 # bugs
 #
@@ -44,6 +31,7 @@ import signal
 import io
 import re
 import atexit
+import shlex
 
 import chess.pgn
 import chess.svg
@@ -71,18 +59,18 @@ def cleanup():
         except:
             pass
 
-def board_callback(board,args):
-    return chess.svg.board(
+def pgn_to_board_callback(board,args):
+    return ':board-svg ' + chess.svg.board(
         board=board,
         size=args.pixels[0])
 
-def fen_callback(board,args):
-    return board.fen()
+def pgn_to_fen_callback(board,args):
+    return ':fen ' + board.fen()
 
-def score_callback(board,args):
+def pgn_to_score_callback(board,args):
     engine = instantiate_engine(args.engine[0])
     uci_info = engine.analyse(board, chess.engine.Limit(depth=args.depth[0]))
-    return uci_info["score"]
+    return ':score ' + str(uci_info["score"])
 
 def listen():
     """
@@ -104,20 +92,32 @@ def listen():
             continue
 
         # Parse request.
-        m = re.compile("(:\S+)(.*?) --").search(input_str)
+        m = re.compile("(:\S+)(.*?)\s+--\s+(:\S+)\s+(\S.*)\n").search(input_str)
         if (not m):
             print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
             continue
-        args = argparser.parse_args(m.group(2).split())
 
-        # Grab command code for handling input.
-        code = m.group(1)
-        if code not in CALLBACKS:
-            print("Bad request code (unknown): {}".format(code), file=sys.stderr)
+        # Command code for handling input.
+        command = m.group(1)
+        if command not in CALLBACKS:
+            print("Bad request command (unknown): {}".format(command), file=sys.stderr)
+            continue
+
+        # Options to modify operation of the command.
+        try:
+            args = argparser.parse_args(shlex.split(m.group(2)))
+        except:
+            print("Bad request options: {}".format(m.group(2)), file=sys.stderr)
+            continue
+
+        # Payload_type is for future extensibility, currently always :pgn
+        payload_type = m.group(3)
+        if not payload_type == ":pgn":
+            print("Bad request :payload-type (unknown): {}".format(payload_type), file=sys.stderr)
             continue
 
         # Build game board.
-        pgn = input_str[input_str.index(m.group(0)) + len(m.group(0)):].strip()
+        pgn = m.group(4)
         pgn = re.sub(r'\\n', '\n', pgn)
         pgn = pgn + '\n\n'
         game = chess.pgn.read_game(io.StringIO(pgn))
@@ -126,7 +126,7 @@ def listen():
             board.push(move)
 
         # Send response to client.
-        print(CALLBACKS[code](board,args))
+        print(CALLBACKS[command](board,args))
 
 ###
 ### argument processing
@@ -164,9 +164,9 @@ if __name__ == '__main__':
         exit(0)
 
     CALLBACKS = {
-        ":fen": fen_callback,
-        ":board": board_callback,
-        ":score": score_callback,
+        ":pgn-to-fen": pgn_to_fen_callback,
+        ":pgn-to-board": pgn_to_board_callback,
+        ":pgn-to-score": pgn_to_score_callback,
     }
 
     atexit.register(cleanup)
