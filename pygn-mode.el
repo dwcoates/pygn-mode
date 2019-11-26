@@ -5,8 +5,8 @@
 ;; Author: Dodge Coates and Roland Walker
 ;; Homepage: https://github.com/dwcoates/pygn-mode
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
-;; Version: 0.0.4
-;; Last-Updated:  4 Nov 2019
+;; Version: 0.5.0
+;; Last-Updated: 26 Nov 2019
 ;; Package-Requires: ((emacs "25.0") (nav-flash "1.0.0"))
 ;; Keywords: data, games, chess
 ;;
@@ -128,7 +128,7 @@
 ;;; Code:
 ;;
 
-(defconst pygn-mode-version "0.0.4")
+(defconst pygn-mode-version "0.5.0")
 
 ;;; Imports
 

@@ -32,7 +32,7 @@
 ### version
 ###
 
-__version__ = '1.00'
+__version__ = '0.50'
 
 ###
 ### imports
