@@ -8,8 +8,8 @@ An Emacs major-mode for viewing chess PGN files, powered by Python.
  * [Prior Art](#prior-art)
  * [Compatibility and Requirements](#compatibility-and-requirements)
 
-<a href="/doc/pygn-mode-follow.gif">
-<img src="/doc/pygn-mode-board.png" width=500 />
+<a href="/doc/images/pygn-mode-follow.gif">
+<img src="/doc/images/pygn-mode-board.png" width=500 />
 </a>
 
 ## Quickstart
