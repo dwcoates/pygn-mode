@@ -787,7 +787,8 @@ When called non-interactively, display the FEN corresponding to POS.
 With \"prefix-arg\", copy the FEN."
   (interactive "d\nP")
   (let ((fen (pygn-mode-fen-at-pos pos)))
-    (kill-new fen)
+    (when do-copy
+      (kill-new fen))
     (message "%s%s" fen (if do-copy (propertize "\t(copied)" 'face '(:foreground "grey33"))))))
 
 (defun pygn-mode-display-fen-at-point (pos)
