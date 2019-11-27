@@ -20,9 +20,6 @@ $ pip install python-chess
 
 ```elisp
 ;; maybe
-;; (setq font-lock-maximum-decoration t)
-
-;; maybe
 ;; (eval-after-load "pygn-mode"
 ;;   (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move)
 ;;   (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move))
