@@ -318,7 +318,7 @@
 (defun pygn-mode--python-chess-guard ()
   "Throw an error unless the python-chess library is available."
   (unless pygn-mode-python-chess-succeeded
-    (let ((process-environment (copy-list process-environment)))
+    (let ((process-environment (cl-copy-list process-environment)))
       (when pygn-mode-pythonpath
         (setenv "PYTHONPATH" pygn-mode-pythonpath))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
@@ -336,7 +336,7 @@ Optionally FORCE recreation if the server already exists."
     (when (pygn-mode--server-running-p)
       (error "The pygn-mode server process is already running. Use optional `force' to recreate")))
   (message (format "Initializing pygn-mode server process%s." (if force " (forcing)" "")))
-  (let ((process-environment (copy-list process-environment)))
+  (let ((process-environment (cl-copy-list process-environment)))
     (when pygn-mode-pythonpath
       (setenv "PYTHONPATH" pygn-mode-pythonpath))
     (setq pygn-mode--server-buffer (get-buffer-create " *pygn-mode-server*"))
