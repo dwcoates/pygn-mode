@@ -1,3 +1,7 @@
+<a href="/doc/images/pygn-mode-follow.gif">
+<img src="/doc/images/pygn-mode-board.png" width=300 align="right"/>
+</a>
+
 # Overview
 
 An Emacs major-mode for viewing chess PGN files, powered by Python.
@@ -7,10 +11,6 @@ An Emacs major-mode for viewing chess PGN files, powered by Python.
  * [Interactive Commands](#interactive-commands)
  * [Prior Art](#prior-art)
  * [Compatibility and Requirements](#compatibility-and-requirements)
-
-<a href="/doc/images/pygn-mode-follow.gif">
-<img src="/doc/images/pygn-mode-board.png" width=500 />
-</a>
 
 ## Quickstart
 
