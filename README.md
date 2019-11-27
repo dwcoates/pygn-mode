@@ -84,6 +84,7 @@ of each game starting with an `[Event "?"]` tagpair.
 
 emacs-chess  
 <https://github.com/jwiegley/emacs-chess>  
+[Comparison to emacs-chess](doc/comparison_to_emacs_chess.md)  
 
 ## Compatibility and Requirements
 
