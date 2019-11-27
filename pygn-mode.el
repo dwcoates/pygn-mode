@@ -294,8 +294,8 @@
                   :help "Display GUI board at point in separate window"))
 
     ;; mouse
-    (define-key map [mouse-2]        'pygn-mode-mouse-display-gui-board)
-    (define-key map [double-mouse-2] 'pygn-mode-mouse-display-gui-board-inclusive)
+    (define-key map [mouse-2]        'pygn-mode-mouse-display-variation-gui-board)
+    (define-key map [double-mouse-2] 'pygn-mode-mouse-display-variation-gui-board-inclusive)
 
     ;; example keystrokes:
     ;;
@@ -837,26 +837,37 @@ When called non-interactively, display the board corresponding to POS."
       (set-window-dedicated-p win t)
       (resize-temp-buffer-window win))))
 
-(defun pygn-mode-mouse-display-gui-board (event)
-  "Display the board corresponding to the mouse click in a separate buffer."
+(defun pygn-mode-mouse-display-variation-gui-board (event)
+  "Display the board corresponding to the mouse click in a separate buffer.
+
+The board display respects variations."
   (interactive "e")
   (set-buffer (window-buffer (posn-window (event-start event))))
   (goto-char (posn-point (event-start event)))
   (save-excursion
     (skip-syntax-backward "^\\s-")
-    (pygn-mode-display-gui-board-at-point (point))))
+    (let ((pgn (pygn-mode-pgn-as-if-variation (point))))
+      (with-temp-buffer
+        (insert pgn)
+        (pygn-mode-display-gui-board-at-point (point))))))
 
-(defun pygn-mode-mouse-display-gui-board-inclusive (event)
+(defun pygn-mode-mouse-display-variation-gui-board-inclusive (event)
   "Display inclusive board corresponding to the mouse click in a separate buffer.
 
 \"Inclusive\" here means that the board includes any move which contains the
-click position."
+click position.
+
+The board display respects variations."
   (interactive "e")
   (set-buffer (window-buffer (posn-window (event-start event))))
   (goto-char (posn-point (event-start event)))
   (save-excursion
     (skip-syntax-forward "^\\s-")
-    (pygn-mode-display-gui-board-at-point (point))))
+    (skip-syntax-forward "\\s-")
+    (let ((pgn (pygn-mode-pgn-as-if-variation (point))))
+      (with-temp-buffer
+        (insert pgn)
+        (pygn-mode-display-gui-board-at-point (point))))))
 
 (defun pygn-mode-display-variation-gui-board-at-point (pos)
   "Respecting variations, display the board corresponding to the point.
