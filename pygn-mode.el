@@ -152,7 +152,7 @@
   :group 'games)
 
 (defcustom pygn-mode-python-executable "python"
-  "Path to a Python interpreter."
+  "Path to a Python 3.5+ interpreter."
   :group 'pygn-mode
   :type 'string)
 
