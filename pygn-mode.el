@@ -644,6 +644,52 @@ Recenters buffer afterwards."
 
 ;;; Interactive commands
 
+;;;###autoload
+(cl-defun pygn-mode-dependency-check ()
+  "Open a buffer describing `pygn-mode' dependencies."
+  (interactive)
+  (let ((buf (get-buffer-create " *pygn-mode-dependency-check*"))
+        (process-environment (cl-copy-list process-environment)))
+    (with-current-buffer buf
+      (erase-buffer)
+      (display-buffer buf '(display-buffer-reuse-window))
+      (when pygn-mode-pythonpath
+        (setenv "PYTHONPATH" pygn-mode-pythonpath))
+      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "pass"))
+          (insert (format "[x] Good. We can execute the pygn-mode-python-executable at '%s'\n\n" pygn-mode-python-executable))
+        ;; else
+        (insert
+         (format
+          "[ ] Bad. We cannot execute the interpreter '%s'.  Try installing Python 3.5+ and/or customizing the value of pygn-mode-python-executable.\n\n"
+          pygn-mode-python-executable))
+        (cl-return-from pygn-mode-dependency-check))
+      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3000000 else 1)"))
+          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is a Python 3 interpreter.\n\n" pygn-mode-python-executable))
+        ;; else
+        (insert
+         (format
+          "[ ] Bad. The executable '%s' is not a Python 3 interpreter.  Try installing Python 3.5+ and/or customizing the value of pygn-mode-python-executable.\n\n"
+          pygn-mode-python-executable))
+        (cl-return-from pygn-mode-dependency-check))
+      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3050000 else 1)"))
+          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is better than or equal to Python version 3.5.\n\n" pygn-mode-python-executable))
+        ;; else
+        (insert
+         (format
+          "[ ] Bad. The executable '%s' is not at least Python version 3.5.  Try installing Python 3.5+ and/or customizing the value of pygn-mode-python-executable.\n\n"
+          pygn-mode-python-executable))
+        (cl-return-from pygn-mode-dependency-check))
+      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
+          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' can import the python-chess library.\n\n" pygn-mode-python-executable))
+        ;; else
+        (insert
+         (format
+          "[ ] Bad. The executable '%s' cannot import the python-chess library.  Try installing python-chess, and/or customizing the value of pygn-mode-pythonpath.\n\n"
+          pygn-mode-python-executable))
+        (cl-return-from pygn-mode-dependency-check))
+      (insert (format "------------------------------------\n\n"))
+      (insert (format "All pygn-mode dependencies verified.\n")))))
+
 (defun pygn-mode-next-game (arg)
   "Advance to the next game in a multi-game PGN buffer.
 

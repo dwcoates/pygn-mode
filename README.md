@@ -27,6 +27,8 @@ $ pip install python-chess
 (require 'pygn-mode)
 ```
 
+<kbd>M-x</kbd> `pygn-mode-dependency-check`
+
 ## pygn-mode
 
 Provides
