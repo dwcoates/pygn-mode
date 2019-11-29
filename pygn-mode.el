@@ -630,7 +630,7 @@ Intended to be used as a `syntax-propertize-function'."
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.[pP][gG][nN]\\'" . pygn-mode))
 
-(defun pygn-mode--next-game (arg)
+(defun pygn-mode--next-game-driver (arg)
   "Move point to next game, moving ARG games forward (backwards if negative).
 
 Recenters buffer afterwards."
@@ -699,7 +699,7 @@ With numeric prefix ARG, advance ARG games."
   (save-match-data
     (when (looking-at-p "\\[Event ")
       (goto-char (line-end-position)))
-    (pygn-mode--next-game arg)))
+    (pygn-mode--next-game-driver arg)))
 
 (defun pygn-mode-previous-game (arg)
   "Move back to the previous game in a multi-game PGN buffer.
@@ -710,7 +710,7 @@ With numeric prefix ARG, move back ARG games."
   (save-match-data
     (unless (looking-at-p "\\[Event ")
       (re-search-backward "^\\[Event " nil t))
-    (pygn-mode--next-game (* arg -1))))
+    (pygn-mode--next-game-driver (* arg -1))))
 
 (defun pygn-mode-next-move (arg)
   "Advance to the next move in a PGN game.
