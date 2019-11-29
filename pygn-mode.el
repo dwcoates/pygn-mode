@@ -582,7 +582,7 @@ Intended to be used as a `syntax-propertize-function'."
  'pygn-mode
  '(
    ;; tagpair keys. values are handled by the syntax table
-   ("^\\[\\(\\S-+\\)\\s-+\".*\"\\]" 1 'pygn-mode-tagpair-key-face)
+   ("^\\[\\(\\S-+\\)\\s-+\"[^\n]*\"\\]" 1 'pygn-mode-tagpair-key-face)
    ;; tagpair open-brackets
    ("^\\[" . 'pygn-mode-tagpair-bracket-face)
    ;; tagpair close-brackets
