@@ -14,13 +14,6 @@
 ;;
 ;;; Commentary:
 ;;
-;; To turn on fontification of line-wrapped parenthesized variations, set
-;;
-;;     (setq font-lock-maximum-decoration t)
-;;
-;; before loading the mode.  This feature is hidden behind a variable because
-;; the speed cost when inserting text is enormous.
-;;
 ;; No keys are bound by default.  Consider
 ;;
 ;;     (eval-after-load "pygn-mode"
@@ -52,21 +45,11 @@
 ;;
 ;; Bugs
 ;;
-;;     Fontification of multi-line variations is unreliable without
+;;     `pygn-mode-after-change-function' should be made faster
 ;;
-;;         (setq font-lock-maximum-decoration t)
-;;
-;;     which is also slow (see below.)
-;;
-;;     `pygn-mode-after-change-function' and `pygn-mode-font-lock-extend-region'
-;;     are still too slow.  `pygn-mode-font-lock-extend-region' causes considerable
-;;     lag when typing.  Compare to speed of typing after
-;;
-;;         (remove-hook 'font-lock-extend-region-functions 'pygn-mode-font-lock-extend-region)
+;;     bracketed {comments} inside variations can't contain close-parenthesis
 ;;
 ;; TODO
-;;
-;;     Performance.
 ;;
 ;;     Flash current move on selection
 ;;
@@ -570,22 +553,17 @@ Does not work for nested variations."
 
 (defun pygn-mode-font-lock-extend-region ()
   "Extend the search region to help fontify multi-line variations."
-  (let ((syn (syntax-ppss font-lock-beg)))
-    (if (> 0 (nth 0 syn))
-        (save-excursion
-          (goto-char (nth 1 syn))
-          (setq font-lock-beg (point))
-          (forward-list 1)
-          (setq font-lock-end (point)))
-      ;; else by block, which may be inefficient
+  (let ((syn (syntax-ppss font-lock-beg))
+        (initial-beg font-lock-beg)
+        (initial-end font-lock-end))
+    (when (> 0 (nth 0 syn))
       (save-excursion
-        (save-match-data
-          (goto-char font-lock-beg)
-          (when (re-search-backward "\n\n" nil t)
-            (setq font-lock-beg (point)))
-          (goto-char font-lock-end)
-          (when (re-search-forward "\n\n" nil t)
-            (setq font-lock-end (point))))))))
+        (goto-char (nth 1 syn))
+        (setq font-lock-beg (point))
+        (forward-list 1)
+        (setq font-lock-end (point)))
+      (or (/= initial-beg font-lock-beg)
+          (/= initial-end font-lock-end)))))
 
 (defun pygn-mode-propertize-line-comments (start end)
   "Put text properties on beginnings and ends of line comments.
@@ -637,11 +615,9 @@ Intended to be used as a `syntax-propertize-function'."
  (setq-local syntax-propertize-function 'pygn-mode-propertize-line-comments)
  (setq-local parse-sexp-lookup-properties t)
  (setq-local parse-sexp-ignore-comments t)
- (when font-lock-maximum-decoration
-   (setq-local font-lock-multiline t)
-   (setq-local font-lock-extend-after-change-region-function 'pygn-mode-after-change-function)
-   ;; especially slow
-   (add-hook 'font-lock-extend-region-functions 'pygn-mode-font-lock-extend-region t t))
+ (setq-local font-lock-multiline t)
+ (setq-local font-lock-extend-after-change-region-function 'pygn-mode-after-change-function)
+ (add-hook 'font-lock-extend-region-functions 'pygn-mode-font-lock-extend-region t t)
  (font-lock-ensure)
  (let ((map (make-sparse-keymap)))
    (set-keymap-parent map (default-value 'mode-line-major-mode-keymap))
