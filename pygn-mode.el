@@ -165,7 +165,7 @@
   :group 'pygn-mode-faces)
 
 (defface pygn-mode-variation-face
-   '((t (:inherit font-lock-string-face)))
+   '((t (:foreground "Gray50")))
   "pygn-mode face for variations."
   :group 'pygn-mode-faces)
 
