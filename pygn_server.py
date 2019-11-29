@@ -102,7 +102,11 @@ ENGINES = {}
 
 def instantiate_engine(engine_path):
     if not engine_path in ENGINES:
-        ENGINES[engine_path] = chess.engine.SimpleEngine.popen_uci(engine_path)
+        ENGINES[engine_path] = chess.engine.SimpleEngine.popen_uci(engine_path, timeout=None)
+    try:
+        ENGINES[engine_path].ping()
+    except Exception:
+        ENGINES[engine_path] = chess.engine.SimpleEngine.popen_uci(engine_path, timeout=None)
     return ENGINES[engine_path]
 
 def cleanup():
@@ -141,7 +145,7 @@ def pgn_to_fen_callback(_game,board,_last_move,_last_fen,_args):
 
 def pgn_to_score_callback(_game,board,_last_move,_last_fen,args):
     engine = instantiate_engine(args.engine[0])
-    uci_info = engine.analyse(board, chess.engine.Limit(depth=args.depth[0]))
+    uci_info = engine.analyse(board, chess.engine.Limit(depth=args.depth))
     return f':score {uci_info["score"]}'
 
 def pgn_to_mainline_callback(game,_board,_last_move,_last_fen,_args):
@@ -275,10 +279,9 @@ def generate_argparser():
                            default=['stockfish'],
                            help='set path to UCI engine for analysis. Default is "stockfish".')
     argparser.add_argument('-depth', '--depth',
-                           nargs=1,
                            type=int,
-                           default=[10],
-                           help='set depth for depth-limited to UCI evaluations. Default is 10.')
+                           default=20,
+                           help='set depth for depth-limited to UCI evaluations. Default is 20.')
     argparser.add_argument('-flipped', '--flipped',
                            action='store_true',
                            help='display board flipped (Black perspective).')
