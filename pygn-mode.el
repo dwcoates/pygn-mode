@@ -306,7 +306,7 @@
         (setenv "PYTHONPATH" pygn-mode-pythonpath))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
           (setq pygn-mode-python-chess-succeeded t)
-        (error "The Python interpreter at `pygn-mode-python-path' must have the python-chess library available.")))))
+        (error "The Python interpreter at `pygn-mode-python-path' must have the python-chess library available")))))
 
 ;; TODO: pipes?
 (defun pygn-mode--server-start (&optional force)
@@ -750,7 +750,7 @@ With numeric prefix ARG, advance ARG moves forward."
         (unless (pygn-mode-looking-at-legal-move)
           (goto-char thumb)
           (when (= thumb start)
-            (error "No more moves.")))))))
+            (error "No more moves")))))))
 
 (defun pygn-mode-previous-move (arg)
   "Move back to the previous move in a PGN game.
@@ -771,7 +771,7 @@ With numeric prefix ARG, move ARG moves backward."
             (thumb (point)))
         (when (or (looking-at-p "[^\n]*\\]")
                   (and (looking-at-p "\\s-*$") (looking-back "\\]\\s-*" 10)))
-          (error "No more moves."))
+          (error "No more moves"))
         (dotimes (counter arg)
           (when (pygn-mode-looking-at-legal-move)
             (setq thumb (point))
@@ -790,7 +790,7 @@ With numeric prefix ARG, move ARG moves backward."
         (unless (pygn-mode-looking-at-legal-move)
           (goto-char thumb)
           (when (= thumb start)
-            (error "No more moves.")))))))
+            (error "No more moves")))))))
 
 (defun pygn-mode-select-game (pos)
   "Select current game in a multi-game PGN buffer.
