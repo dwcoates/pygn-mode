@@ -938,24 +938,40 @@ When called non-interactively, display the board corresponding to POS."
       (insert pgn)
       (pygn-mode-display-fen-at-point (point-max)))))
 
+;; interactive helper
+(defun pygn-mode--save-gui-board-at-point (pos)
+  "Save the board image corresponding to POS to a file."
+  (let* ((pygn-mode-board-size (completing-read "Pixels per side: " nil nil nil nil nil pygn-mode-board-size))
+         (filename (read-file-name "SVG filename: "))
+         (svg-data (pygn-mode-board-at-pos pos)))
+      (with-temp-buffer
+        (insert svg-data)
+        (write-file filename))))
+
 ;; todo ascii board command
-(defun pygn-mode-display-gui-board-at-point (pos)
+(defun pygn-mode-display-gui-board-at-point (pos &optional arg)
   "Display the board corresponding to the point in a separate buffer.
 
-When called non-interactively, display the board corresponding to POS."
-  (interactive "d")
-  (let* ((svg-data (pygn-mode-board-at-pos pos))
-         (buf (get-buffer-create " *pygn-mode-board*"))
-         (win (get-buffer-window buf)))
-    (with-current-buffer buf
-      (setq cursor-type nil)
-      (erase-buffer)
-      (insert-image (create-image svg-data 'svg t)))
-    (display-buffer buf '(display-buffer-reuse-window))
-    (unless win
-      (setq win (get-buffer-window buf))
-      (set-window-dedicated-p win t)
-      (resize-temp-buffer-window win))))
+When called non-interactively, display the board corresponding to POS.
+
+With optional universal prefix ARG, write the image to a file, prompting
+for image size."
+  (interactive "d\nP")
+  (if arg
+      (pygn-mode--save-gui-board-at-point pos)
+    ;; else
+    (let* ((svg-data (pygn-mode-board-at-pos pos))
+           (buf (get-buffer-create " *pygn-mode-board*"))
+           (win (get-buffer-window buf)))
+      (with-current-buffer buf
+        (setq cursor-type nil)
+        (erase-buffer)
+        (insert-image (create-image svg-data 'svg t)))
+      (display-buffer buf '(display-buffer-reuse-window))
+      (unless win
+        (setq win (get-buffer-window buf))
+        (set-window-dedicated-p win t)
+        (resize-temp-buffer-window win)))))
 
 (defun pygn-mode-mouse-display-variation-gui-board (event)
   "Display the board corresponding to the mouse click in a separate buffer.
