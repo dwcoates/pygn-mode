@@ -24,6 +24,11 @@ $ pip install python-chess
 ;;   (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move)
 ;;   (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move))
 
+;; or maybe
+;; (eval-after-load "pygn-mode"
+;;   (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move-follow-gui-board)
+;;   (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move-follow-gui-board))
+
 (require 'pygn-mode)
 ```
 
@@ -42,8 +47,21 @@ Provides
 
 ## Interactive Commands
 
-No interactive commands are bound by default.  Consider binding keys in an
-`(eval-after-load "pygn-mode" … )` form.
+No keys are bound by default.  Consider binding keys in an `eval-after-load`
+form.
+
+Default mouse bindings are provided:
+
+ * mouse-2 — `pygn-mode-mouse-display-variation-gui-board`
+ * double-mouse-2 — `pygn-mode-mouse-display-variation-gui-board-inclusive`
+
+In English, clicking the middle mouse button on a move in a GUI Emacs displays
+a board image computed before that move was made.  Double-clicking the mouse
+button on a move displays a board after that move was made.
+
+In addition, the mouse wheel (buttons 4/5) is bound to `pygn-mode-next-move`
+and `pygn-mode-previous-move` when hovering over the `PyGN` lighter in the
+modeline.
 
 ### Game Navigation Commands
 
@@ -53,8 +71,8 @@ depend on the convention of each game starting with an `[Event "?"]` tagpair.
 
 Both commands accept a positive numeric prefix argument.
 
-* `pygn-mode-next-game`
-* `pygn-mode-previous-game`
+ * `pygn-mode-next-game`
+ * `pygn-mode-previous-game`
 
 ### Move Navigation Commands
 
@@ -78,6 +96,23 @@ Like game navigation commands, game selection commands depend on the convention
 of each game starting with an `[Event "?"]` tagpair.
 
  * `pygn-mode-select-game`
+
+### FEN Commands
+
+ * `pygn-mode-echo-fen-at-point` — echo FEN, optionally copying to clipboard
+ * `pygn-mode-display-fen-at-point` — display FEN in another buffer
+ * `pygn-mode-display-variation-fen-at-point` — display FEN, respecting variations
+
+### Board Commands
+
+ * `pygn-mode-display-gui-board-at-point` — display board image in another buffer
+ * `pygn-mode-display-variation-gui-board-at-point` — display board image, respecting variations
+ * `pygn-mode-previous-move-follow-gui-board` — advance to next move and display board image
+ * `pygn-mode-next-move-follow-gui-board` — move point to previous move and display board image
+
+### Diagnostic Commands
+
+ * `pygn-mode-dependency-check` — check Python and python-chess dependencies
 
 ## Prior Art
 
