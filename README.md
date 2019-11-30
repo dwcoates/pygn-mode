@@ -4,7 +4,7 @@
 
 # Overview
 
-An Emacs major-mode for viewing chess PGN files, powered by Python.
+An Emacs major-mode for chess PGN files, powered by Python.
 
  * [Quickstart](#quickstart)
  * [pygn-mode](#pygn-mode)
