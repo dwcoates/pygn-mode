@@ -70,10 +70,12 @@ A PGN file may contain multiple concatenated games.  Navigation commands
 depend on the convention of each game starting with an `[Event "?"]` tagpair.
 (The value is ignored).
 
-Both commands accept a positive numeric prefix argument.
+Next-game and previous-game commands accept a positive numeric prefix argument.
 
  * `pygn-mode-next-game`
  * `pygn-mode-previous-game`
+ * `pygn-mode-ivy-jump-to-game-by-any-header`
+ * `pygn-mode-ivy-jump-to-game-by-fen`
 
 ### Move Navigation Commands
 
@@ -133,5 +135,7 @@ emacs-chess
 GNU Emacs 25
 
 Needed for board images and FENs: [python-chess](https://pypi.org/project/python-chess/)
+
+Needed for jump commands: [ivy-mode.el](https://github.com/abo-abo/swiper)
 
 Uses if present: [nav-flash.el](http://github.com/rolandwalker/nav-flash)
