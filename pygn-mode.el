@@ -53,9 +53,6 @@
 ;;
 ;;     Flash current move on selection
 ;;
-;;     pygn-display-mode: minor mode that makes navigation commands
-;;     automatically update gui
-;;
 ;; IDEA
 ;;
 ;;     pygn-ivy:
@@ -722,6 +719,38 @@ Intended to be used as a `syntax-propertize-function'."
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.[pP][gG][nN]\\'" . pygn-mode))
+
+;;; Minor-mode definition
+
+;; todo: support inclusive mode
+;; todo: support TUI mode
+(define-minor-mode pygn-mode-follow-minor-mode
+  "Minor mode for pygn-mode.
+
+With a prefix argument ARG, enable mode if ARG is positive, and
+disable it otherwise.  If called from Lisp, enable mode if ARG is
+omitted or nil.
+
+When turned on, cursor motion in a PyGN buffer causes automatic
+display of a GUI board corresponding to the point.  The displayed
+board will respect variations."
+  :group 'pygn-mode
+  :init-value nil
+  :lighter " fol"
+  (if pygn-mode-follow-minor-mode
+      (progn
+        (pygn-mode-follow-mode-post-command-hook)
+        (add-hook 'post-command-hook #'pygn-mode-follow-mode-post-command-hook nil t))
+    (remove-hook 'post-command-hook #'pygn-mode-follow-mode-post-command-hook t)
+    (let ((win (get-buffer-window (get-buffer " *pygn-mode-board*"))))
+      (when (window-live-p win)
+        (delete-window win)))))
+
+(defun pygn-mode-follow-mode-post-command-hook ()
+  "Driver for `pygn-mode-follow-minor-mode'.
+
+Intended for use in `post-command-hook'."
+  (pygn-mode-display-variation-gui-board-at-point (point)))
 
 (defun pygn-mode--next-game-driver (arg)
   "Move point to next game, moving ARG games forward (backwards if negative).
