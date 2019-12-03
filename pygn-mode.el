@@ -701,6 +701,7 @@ Intended to be used as a `syntax-propertize-function'."
  (setq-local comment-continue " ")
  (setq-local comment-multi-line t)
  (setq-local comment-style 'plain)
+ (setq-local comment-use-syntax t)
  (setq-local syntax-propertize-function 'pygn-mode-propertize-line-comments)
  (setq-local parse-sexp-lookup-properties t)
  (setq-local parse-sexp-ignore-comments t)
