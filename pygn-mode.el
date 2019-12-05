@@ -723,13 +723,14 @@ Intended to be used as a `syntax-propertize-function'."
   "Move point to next game, moving ARG games forward (backwards if negative).
 
 Recenters buffer afterwards."
-  (let ((next-game (and (re-search-forward "^\\[Event " nil t arg)
-                        (goto-char (line-beginning-position)))))
-    (recenter-window-group)
-    (when (not next-game)
-      (error "No next game")))
-  (when (fboundp 'nav-flash-show)
-    (nav-flash-show)))
+  (save-match-data
+    (let ((next-game (and (re-search-forward "^\\[Event " nil t arg)
+                          (goto-char (line-beginning-position)))))
+      (recenter-window-group)
+      (when (not next-game)
+        (error "No next game")))
+    (when (fboundp 'nav-flash-show)
+      (nav-flash-show))))
 
 ;;; Interactive commands
 
@@ -785,10 +786,9 @@ Recenters buffer afterwards."
 With numeric prefix ARG, advance ARG games."
   (interactive "p")
   (cl-callf or arg 1)
-  (save-match-data
-    (when (looking-at-p "\\[Event ")
-      (goto-char (line-end-position)))
-    (pygn-mode--next-game-driver arg)))
+  (when (looking-at-p "\\[Event ")
+    (goto-char (line-end-position)))
+  (pygn-mode--next-game-driver arg))
 
 (defun pygn-mode-previous-game (arg)
   "Move back to the previous game in a multi-game PGN buffer.
