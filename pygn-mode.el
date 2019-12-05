@@ -56,8 +56,6 @@
 ;;     pygn-display-mode: minor mode that makes navigation commands
 ;;     automatically update gui
 ;;
-;;     Copy fen to clipboard?
-;;
 ;; IDEA
 ;;
 ;;     pygn-ivy:
@@ -895,12 +893,16 @@ When called non-interactively, select the game containing POS."
 
 When called non-interactively, display the FEN corresponding to POS.
 
-With \"prefix-arg\", copy the FEN."
+With prefix-arg DO-COPY, copy the FEN to the kill ring, and to the
+system clipboard when running a GUI Emacs."
   (interactive "d\nP")
   (let ((fen (pygn-mode-fen-at-pos pos)))
     (when do-copy
-      (kill-new fen))
-    (message "%s%s" fen (if do-copy (propertize "\t(copied)" 'face '(:foreground "grey33"))))))
+      (kill-new fen)
+      (when (and (fboundp 'gui-set-selection)
+                 (display-graphic-p))
+        (gui-set-selection 'CLIPBOARD fen)))
+    (message "%s%s" fen (if do-copy (propertize "\t(copied)" 'face '(:foreground "grey33")) ""))))
 
 (defun pygn-mode-display-fen-at-point (pos)
   "Display the FEN corresponding to the point in a separate buffer.
