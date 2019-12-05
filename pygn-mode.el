@@ -1,4 +1,4 @@
-;;; pygn-mode.el --- Simple syntax highlighting for chess PGN files -*- lexical-binding: t -*-
+;;; pygn-mode.el --- Major-mode for chess PGN files, powered by Python -*- lexical-binding: t -*-
 ;;
 ;; Copyright (c) 2019 Dodge Coates and Roland Walker
 ;;
@@ -126,7 +126,7 @@
 
 ;;;###autoload
 (defgroup pygn-mode nil
-  "Simple syntax highlighting for chess PGN files."
+  "A major-mode for chess PGN files, powered by Python."
   :version pygn-mode-version
   :prefix "pygn-mode-"
   :group 'data
@@ -691,7 +691,7 @@ Intended to be used as a `syntax-propertize-function'."
 
 ;;;###autoload
 (define-derived-mode pygn-mode fundamental-mode "PyGN"
- "Simple syntax highlighting for chess PGN files."
+ "A major-mode for chess PGN files, powered by Python."
  :syntax-table pygn-mode-syntax-table
  :group 'pygn-mode
  (setq-local comment-start "{")
