@@ -344,12 +344,14 @@ Optionally FORCE recreation if the server already exists."
   (let ((process-environment (cl-copy-list process-environment)))
     (when pygn-mode-pythonpath
       (setenv "PYTHONPATH" pygn-mode-pythonpath))
+    (setenv "PYTHONIOENCODING" "UTF-8")
     (setq pygn-mode--server-buffer (get-buffer-create " *pygn-mode-server*"))
     (setq pygn-mode--server-process
           (make-process :name "pygn-mode-server"
                         :buffer pygn-mode--server-buffer
                         :noquery t
                         :sentinel #'ignore
+                        :coding 'utf-8
                         :command (list pygn-mode-python-executable
                                        "-u"
                                        (expand-file-name "pygn_server.py" pygn-mode-script-directory)
