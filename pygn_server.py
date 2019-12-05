@@ -59,16 +59,16 @@ def cleanup():
         except:
             pass
 
-def board_callback(board,last_move,args):
+def pgn_to_board_callback(board,last_move,args):
     return ':board-svg ' + chess.svg.board(
         board=board,
         lastmove=last_move,
         size=args.pixels[0])
 
-def fen_callback(board,last_move,args):
+def pgn_to_fen_callback(board,last_move,args):
     return ':fen ' + board.fen()
 
-def score_callback(board,last_move,args):
+def pgn_to_score_callback(board,last_move,args):
     engine = instantiate_engine(args.engine[0])
     uci_info = engine.analyse(board, chess.engine.Limit(depth=args.depth[0]))
     return ':score ' + str(uci_info["score"])
