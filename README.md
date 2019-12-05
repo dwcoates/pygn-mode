@@ -27,8 +27,8 @@ $ pip install python-chess
 
 ;; or maybe
 ;; (eval-after-load "pygn-mode"
-;;   (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move-follow-gui-board)
-;;   (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move-follow-gui-board))
+;;   (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move-follow-board)
+;;   (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move-follow-board))
 
 (require 'pygn-mode)
 ```
@@ -53,11 +53,11 @@ form.
 
 Default mouse bindings are provided:
 
- * mouse-2 — `pygn-mode-mouse-display-variation-gui-board`
- * double-mouse-2 — `pygn-mode-mouse-display-variation-gui-board-inclusive`
+ * mouse-2 — `pygn-mode-mouse-display-variation-board`
+ * double-mouse-2 — `pygn-mode-mouse-display-variation-board-inclusive`
 
-In English, clicking the middle mouse button on a move in a GUI Emacs displays
-a board image computed before that move was made.  Double-clicking the mouse
+In English, clicking the middle mouse button on a move in Emacs displays a
+board image computed before that move was made.  Double-clicking the mouse
 button on a move displays a board after that move was made.
 
 In addition, the mouse wheel (buttons 4/5) is bound to `pygn-mode-next-move`
@@ -106,10 +106,12 @@ of each game starting with an `[Event "?"]` tagpair.
 
 ### Board Commands
 
- * `pygn-mode-display-gui-board-at-point` — display board image in another buffer
- * `pygn-mode-display-variation-gui-board-at-point` — display board image, respecting variations
- * `pygn-mode-previous-move-follow-gui-board` — advance to next move and display board image
- * `pygn-mode-next-move-follow-gui-board` — move point to previous move and display board image
+ * `pygn-mode-display-board-at-point` — display board image in another buffer (format automatic)
+ * `pygn-mode-display-gui-board-at-point` — display graphical board image in another buffer
+ * `pygn-mode-display-text-board-at-point` — display text board image in another buffer
+ * `pygn-mode-display-variation-board-at-point` — display board image, respecting variations
+ * `pygn-mode-previous-move-follow-board` — advance to next move and display board image
+ * `pygn-mode-next-move-follow-board` — move point to previous move and display board image
 
 ### Diagnostic Commands
 
