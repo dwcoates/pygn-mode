@@ -294,6 +294,30 @@
 
 ;;; Utility functions
 
+(defun pygn-mode--opts-to-argparse (opt-plist)
+  "Convert OPT-PLIST into an options string consumable by Python's argparse.
+
+To produce a flag which takes no options, give a plist value of `t'."
+  (let ((key-string nil)
+        (val-string nil)
+        (argparse-string ""))
+    (cl-loop for (key value) on opt-plist by (function cddr)
+             do (progn
+                  (setq key-string
+                        (replace-regexp-in-string
+                         "^:" "-" (symbol-name key)))
+                  (if (eq value t)
+                      (setq argparse-string (concat
+                                             argparse-string
+                                             " " key-string))
+                    ;; else
+                    (setq val-string (shell-quote-argument
+                                      (format "%s" value)))
+                    (setq argparse-string (concat
+                                           argparse-string
+                                           (format " %s=%s" key-string val-string))))))
+    argparse-string))
+
 (defun pygn-mode--server-running-p ()
   "Return non-nil iff `pygn-mode--server-process' is running."
   (and pygn-mode--server-process (process-live-p pygn-mode--server-process)))
@@ -341,13 +365,35 @@ Optionally FORCE recreation if the server already exists."
     (setq pygn-mode--server-process nil)
     (message "pygn-mode server process killed.")))
 
-(defun pygn-mode--server-send (message)
-  "Send MESSAGE to the running `pygn-mode--server-process'."
+(cl-defun pygn-mode--server-send (&key
+                                  command
+                                  options
+                                  payload-type
+                                  payload)
+  "Send a message to the running `pygn-mode--server-process'.
+
+The server request format is documented more completely at doc/server.md
+in the source distribution for `pygn-mode'.
+
+COMMAND should be a symbol such as :pgn-to-fen, which is a command
+known by the server.  OPTIONS should be a plist such as (:pixels 400)
+in which the keys correspond to argparse arguments known by the server.
+PAYLOAD-ID should be a symbol such as :pgn, identifying the type of the
+data payload, and PAYLOAD may contain arbitrary data."
   (unless (pygn-mode--server-running-p)
     (error "The pygn-mode server is not running -- cannot send a message"))
+  (setq payload (replace-regexp-in-string "\n" "\\\\n" payload))
+  (setq payload (replace-regexp-in-string "[\n\r]*$" "\n" payload))
   (process-send-string
    pygn-mode--server-process
-   (replace-regexp-in-string "[\n\r]*$" "\n" message)))
+   (mapconcat 'identity
+              (list
+               (symbol-name command)
+               (pygn-mode--opts-to-argparse options)
+               "--"
+               (symbol-name payload-type)
+               payload)
+              " ")))
 
 (defun pygn-mode--server-receive ()
   "Receive a response after `pygn-mode--server-send'.
@@ -368,15 +414,41 @@ Respects the variables `pygn-mode--server-receive-every-seconds' and
         (cl-incf tries))
       (buffer-substring-no-properties (point-min) (point-max)))))
 
-(defun pygn-mode--server-query (message &optional force)
-  "Send MESSAGE to `pygn-mode--server-process', await, and return response.
+(cl-defun pygn-mode--server-query (&key
+                                   command
+                                   options
+                                   payload-type
+                                   payload
+                                   force)
+  "Send a request to `pygn-mode--server-process', await, and return the response.
 
-SECONDS and MAX-TIME are as arguments to `pygn-mode--server-receive'.  FORCE
-forces a new server process to be created."
+COMMAND, OPTIONS, PAYLOAD-TYPE, and PAYLOAD are as documented at
+`pygn-mode--server-send'.
+
+FORCE forces a new server process to be created."
   (unless (pygn-mode--server-running-p)
     (pygn-mode--server-start force))
-  (pygn-mode--server-send message)
+  (pygn-mode--server-send
+   :command      command
+   :options      options
+   :payload-type payload-type
+   :payload      payload)
   (pygn-mode--server-receive))
+
+(defun pygn-mode--parse-response (response)
+  "Parse RESPONSE string into a list of payload-id and payload."
+  (save-match-data
+    (setq response
+          (replace-regexp-in-string
+           "\n+\\'" ""
+           response))
+    (unless (string-match
+             "\\`\\(:\\S-+\\)\\(.*\\)" response)
+      (error "Bad response from `pygn-mode' server"))
+    (list
+     (intern (match-string 1 response))
+     (replace-regexp-in-string
+      "\\`\s-*" "" (match-string 2 response)))))
 
 (defun pygn-mode--inside-comment-p ()
   "Whether the point is inside a PGN comment."
@@ -510,23 +582,40 @@ Does not work for nested variations."
         (goto-char (point-max))
         (buffer-substring-no-properties (point-min) (point-max))))))
 
-(defun pygn-mode--send-board-and-fetch (command &optional pos)
+(cl-defun pygn-mode--send-pgn-and-fetch (&key
+                                         command
+                                         options
+                                         pos)
   "Get PGN string preceding POS, send a `pygn-mode--server-process' request denoted by COMMAND, and return the response."
   (cl-callf or pos (point))
   (save-excursion
     (let ((pgn (buffer-substring-no-properties (pygn-mode-game-start-position) pos)))
-      (setq pgn (replace-regexp-in-string "\n" "\\\\n" pgn))
-      (pygn-mode--server-query (concat (symbol-name command) " -- " pgn)))))
+      (pygn-mode--server-query
+       :command       command
+       :options       options
+       :payload-type :pgn
+       :payload       pgn))))
 
 (defun pygn-mode-fen-at-pos (pos)
   "Return the FEN corresponding to POS, which defaults to the point."
-  (replace-regexp-in-string
-   "\n+\\'" ""
-   (pygn-mode--send-board-and-fetch :fen pos)))
+  (let ((response (pygn-mode--send-pgn-and-fetch
+                   :command :pgn-to-fen
+                   :pos     pos)))
+    (cl-callf pygn-mode--parse-response response)
+    (unless (eq :fen (car response))
+      (error "Bad response from `pygn-mode' server"))
+    (cadr response)))
 
 (defun pygn-mode-board-at-pos (pos)
   "Get SVG output for PGN string preceding POS."
-  (pygn-mode--send-board-and-fetch :board pos))
+  (let ((response (pygn-mode--send-pgn-and-fetch
+                   :command :pgn-to-board
+                   :options `(:pixels ,pygn-mode-board-size)
+                   :pos     pos)))
+    (cl-callf pygn-mode--parse-response response)
+    (unless (eq :board-svg (car response))
+      (error "Bad response from `pygn-mode' server"))
+    (cadr response)))
 
 ;;; font-lock
 
