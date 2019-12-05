@@ -268,10 +268,10 @@
                   :help "Navigate to the next move"))
     (define-key map [menu-bar PyGN sep-2] menu-bar-separator)
     (define-key map [menu-bar PyGN pygn-mode-display-fen-at-point]
-      '(menu-item "FEN at point" pygn-mode-display-fen-at-point
+      '(menu-item "FEN at Point" pygn-mode-display-fen-at-point
                   :help "Display FEN at point in separate window"))
     (define-key map [menu-bar PyGN pygn-mode-display-gui-board-at-point]
-      '(menu-item "Board at point" pygn-mode-display-gui-board-at-point
+      '(menu-item "Board at Point" pygn-mode-display-gui-board-at-point
                   :help "Display GUI board at point in separate window"))
 
     ;; mouse
@@ -620,7 +620,7 @@ Does not work for nested variations."
       (error "Bad response from `pygn-mode' server"))
     (cadr response)))
 
-;;; font-lock
+;;; Font-lock
 
 (defun pygn-mode-after-change-function (beg end old-len)
   "Help refontify multi-line variations during edits."
