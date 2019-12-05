@@ -957,7 +957,7 @@ When called non-interactively, display the board corresponding to POS."
   "Display the board corresponding to the mouse click in a separate buffer.
 
 The board display respects variations."
-  (interactive "e")
+  (interactive "@e")
   (set-buffer (window-buffer (posn-window (event-start event))))
   (goto-char (posn-point (event-start event)))
   (save-excursion
@@ -974,7 +974,7 @@ The board display respects variations."
 click position.
 
 The board display respects variations."
-  (interactive "e")
+  (interactive "@e")
   (set-buffer (window-buffer (posn-window (event-start event))))
   (goto-char (posn-point (event-start event)))
   (save-excursion
