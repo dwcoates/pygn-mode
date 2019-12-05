@@ -122,7 +122,7 @@ emacs-chess
 
 ## Compatibility and Requirements
 
-Emacs 25
+GNU Emacs 25
 
 Needed for board images and FENs: [python-chess](https://pypi.org/project/python-chess/)
 
