@@ -59,15 +59,16 @@ def cleanup():
         except:
             pass
 
-def pgn_to_board_callback(board,args):
+def board_callback(board,last_move,args):
     return ':board-svg ' + chess.svg.board(
         board=board,
+        lastmove=last_move,
         size=args.pixels[0])
 
-def pgn_to_fen_callback(board,args):
+def fen_callback(board,last_move,args):
     return ':fen ' + board.fen()
 
-def pgn_to_score_callback(board,args):
+def score_callback(board,last_move,args):
     engine = instantiate_engine(args.engine[0])
     uci_info = engine.analyse(board, chess.engine.Limit(depth=args.depth[0]))
     return ':score ' + str(uci_info["score"])
@@ -122,11 +123,13 @@ def listen():
         pgn = pgn + '\n\n'
         game = chess.pgn.read_game(io.StringIO(pgn))
         board = game.board()
+        last_move = False
         for move in game.mainline_moves():
+            last_move = move
             board.push(move)
 
         # Send response to client.
-        print(CALLBACKS[command](board,args))
+        print(CALLBACKS[command](board,last_move,args))
 
 ###
 ### argument processing
