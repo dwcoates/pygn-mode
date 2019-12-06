@@ -577,6 +577,9 @@ Does not work for nested variations."
         (up-list -1)
         (delete-char 1)
         (delete-region
+         (save-excursion (pygn-mode-backward-exit-variations-and-comments) (point))
+         (point))
+        (delete-region
          (save-excursion (forward-word-strictly -1) (point))
          (point)))
         (goto-char (point-max))
