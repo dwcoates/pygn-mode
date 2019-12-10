@@ -144,6 +144,11 @@
   :group 'pygn-mode
   :type 'int)
 
+(defcustom pygn-mode-flash-full-game nil
+  "If non-nil, flash the entire PGN on game selection actions."
+  :group 'pygn-mode
+  :type 'boolean)
+
 ;;;###autoload
 (defgroup pygn-mode-faces nil
   "Faces used by pygn-mode."
@@ -617,6 +622,18 @@ Does not work for nested variations."
       (error "Bad response from `pygn-mode' server"))
     (cadr response)))
 
+(defun pygn-mode-flash-game-at-point ()
+  "Use nav-flash to highlight the current game at point."
+  (when (fboundp 'nav-flash-show)
+    (let ((nav-flash-delay 0.2)
+          (beg (if pygn-mode-flash-full-game
+                   (pygn-mode-game-start-position)
+                 nil))
+          (end (if pygn-mode-flash-full-game
+                   (pygn-mode-game-end-position)
+                 nil)))
+      (nav-flash-show beg end))))
+
 ;;; Font-lock
 
 (defun pygn-mode-after-change-function (beg end old-len)
@@ -762,8 +779,7 @@ Recenters buffer afterwards."
       (recenter-window-group)
       (when (not next-game)
         (error "No next game")))
-    (when (fboundp 'nav-flash-show)
-      (nav-flash-show))))
+    (pygn-mode-flash-game-at-point)))
 
 ;;; Interactive commands
 
