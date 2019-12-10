@@ -60,10 +60,25 @@ def cleanup():
             pass
 
 def pgn_to_board_callback(board,last_move,args):
-    return ':board-svg ' + chess.svg.board(
-        board=board,
-        lastmove=last_move,
-        size=args.pixels[0])
+    if args.board_format[0] == 'svg':
+        return ':board-svg ' + chess.svg.board(
+            board=board,
+            lastmove=last_move,
+            size=args.pixels[0])
+    elif args.board_format[0] == 'text':
+        text = board.unicode(borders=True)
+        text = re.sub(r'·', ' ', text)
+        text = re.sub(r'-----------------', '├───┼───┼───┼───┼───┼───┼───┼───┤', text)
+        text = re.sub(r'\A  ├───┼───┼───┼───┼───┼───┼───┼───┤', '  ┌───┬───┬───┬───┬───┬───┬───┬───┐', text)
+        text = re.sub(r'├───┼───┼───┼───┼───┼───┼───┼───┤\n   a', '└───┴───┴───┴───┴───┴───┴───┴───┘\n   a', text)
+        text = re.sub( r'a b c d e f g h',   ' a   b   c   d   e   f   g   h',   text)
+        text = re.sub(r'\|', ' │ ', text)
+        text = re.sub(r'^(\d) ', '\\1', text, flags=re.MULTILINE)
+        text = text.translate(str.maketrans('♜♞♝♛♚♟♖♘♗♕♔♙','RNBQKPrnbqkp'))
+        text = re.sub(r'\n', '\\\\n', text)
+        return ':board-text ' + text
+    else:
+        print("Bad pgn-mode -board_format value: {}".format(args.board_format[0]), file=sys.stderr)
 
 def pgn_to_fen_callback(board,last_move,args):
     return ':fen ' + board.fen()
@@ -143,6 +158,11 @@ def generate_argparser():
                            type=int,
                            default=[400],
                            help='set pixel-per-side for the SVG board output. Default is 400.')
+    argparser.add_argument('-board_format', '--board_format',
+                           nargs=1,
+                           type=str,
+                           default=["svg"],
+                           help='format for board output.  Default is "svg".')
     argparser.add_argument('-engine', '--engine',
                            nargs=1,
                            type=str,
