@@ -36,7 +36,7 @@
 ;;
 ;; Compatibility and Requirements
 ;;
-;;     Emacs 25
+;;     GNU Emacs 25
 ;;
 ;;     Python and the python-chess library are needed for numerous features
 ;;     such as SVG board images:
