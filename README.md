@@ -9,6 +9,7 @@ An Emacs major-mode for chess PGN files, powered by Python.
  * [Quickstart](#quickstart)
  * [pygn-mode](#pygn-mode)
  * [Interactive Commands](#interactive-commands)
+ * [Minor Mode](#minor-mode)
  * [Prior Art](#prior-art)
  * [Compatibility and Requirements](#compatibility-and-requirements)
 
@@ -113,6 +114,11 @@ of each game starting with an `[Event "?"]` tagpair.
 ### Diagnostic Commands
 
  * `pygn-mode-dependency-check` — check Python and python-chess dependencies
+
+## Minor Mode
+
+Enabling `pygn-mode-follow-minor-mode` causes a GUI board to be displayed and
+updated after any changes to the cursor position.
 
 ## Prior Art
 
