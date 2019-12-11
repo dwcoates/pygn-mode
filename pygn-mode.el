@@ -787,7 +787,7 @@ Recenters buffer afterwards."
 (cl-defun pygn-mode-dependency-check ()
   "Open a buffer describing `pygn-mode' dependencies."
   (interactive)
-  (let ((buf (get-buffer-create " *pygn-mode-dependency-check*"))
+  (let ((buf (get-buffer-create "*pygn-mode-dependency-check*"))
         (process-environment (cl-copy-list process-environment)))
     (with-current-buffer buf
       (erase-buffer)
@@ -961,7 +961,7 @@ system clipboard when running a GUI Emacs."
 When called non-interactively, display the FEN corresponding to POS."
   (interactive "d")
   (let* ((fen (pygn-mode-fen-at-pos pos))
-         (buf (get-buffer-create " *pygn-mode-fen*"))
+         (buf (get-buffer-create "*pygn-mode-fen*"))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
       (erase-buffer)
@@ -1006,7 +1006,7 @@ for image size."
       (pygn-mode--save-gui-board-at-point pos)
     ;; else
     (let* ((svg-data (pygn-mode-board-at-pos pos))
-           (buf (get-buffer-create " *pygn-mode-board*"))
+           (buf (get-buffer-create "*pygn-mode-board*"))
            (win (get-buffer-window buf)))
       (with-current-buffer buf
         (setq cursor-type nil)
