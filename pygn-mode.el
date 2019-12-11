@@ -191,8 +191,20 @@
 (defvar pygn-mode-python-chess-succeeded nil
   "Whether a simple external command using the python-chess library has succeeded.")
 
+(defvar pygn-mode-fen-buffer-name "*pygn-mode-fen*"
+  "Buffer name used to display FENs.")
+
+(defvar pygn-mode-board-buffer-name "*pygn-mode-board*"
+  "Buffer name used to display boards.")
+
+(defvar pygn-mode-dependency-check-buffer-name "*pygn-mode-dependency-check*"
+  "Buffer name used to display a dependency check.")
+
 (defvar pygn-mode--server-process nil
   "Python-based server which powers many `pygn-mode' features.")
+
+(defvar pygn-mode--server-buffer-name " *pygn-mode-server*"
+  "Buffer name used to associate a server process.")
 
 (defvar pygn-mode--server-buffer nil
   "Buffer to which the `pygn-mode' server process is associated.")
@@ -347,7 +359,7 @@ Optionally FORCE recreation if the server already exists."
     (when pygn-mode-pythonpath
       (setenv "PYTHONPATH" pygn-mode-pythonpath))
     (setenv "PYTHONIOENCODING" "UTF-8")
-    (setq pygn-mode--server-buffer (get-buffer-create " *pygn-mode-server*"))
+    (setq pygn-mode--server-buffer (get-buffer-create pygn-mode--server-buffer-name))
     (setq pygn-mode--server-process
           (make-process :name "pygn-mode-server"
                         :buffer pygn-mode--server-buffer
@@ -759,7 +771,7 @@ board will respect variations."
         (pygn-mode-follow-mode-post-command-hook)
         (add-hook 'post-command-hook #'pygn-mode-follow-mode-post-command-hook nil t))
     (remove-hook 'post-command-hook #'pygn-mode-follow-mode-post-command-hook t)
-    (let ((win (get-buffer-window (get-buffer "*pygn-mode-board*"))))
+    (let ((win (get-buffer-window (get-buffer pygn-mode-board-buffer-name))))
       (when (window-live-p win)
         (delete-window win)))))
 
@@ -787,7 +799,7 @@ Recenters buffer afterwards."
 (cl-defun pygn-mode-dependency-check ()
   "Open a buffer describing `pygn-mode' dependencies."
   (interactive)
-  (let ((buf (get-buffer-create "*pygn-mode-dependency-check*"))
+  (let ((buf (get-buffer-create pygn-mode-dependency-check-buffer-name))
         (process-environment (cl-copy-list process-environment)))
     (with-current-buffer buf
       (erase-buffer)
@@ -961,7 +973,7 @@ system clipboard when running a GUI Emacs."
 When called non-interactively, display the FEN corresponding to POS."
   (interactive "d")
   (let* ((fen (pygn-mode-fen-at-pos pos))
-         (buf (get-buffer-create "*pygn-mode-fen*"))
+         (buf (get-buffer-create pygn-mode-fen-buffer-name))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
       (erase-buffer)
@@ -1006,7 +1018,7 @@ for image size."
       (pygn-mode--save-gui-board-at-point pos)
     ;; else
     (let* ((svg-data (pygn-mode-board-at-pos pos))
-           (buf (get-buffer-create "*pygn-mode-board*"))
+           (buf (get-buffer-create pygn-mode-board-buffer-name))
            (win (get-buffer-window buf)))
       (with-current-buffer buf
         (setq cursor-type nil)
