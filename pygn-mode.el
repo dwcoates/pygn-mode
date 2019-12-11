@@ -759,7 +759,7 @@ board will respect variations."
         (pygn-mode-follow-mode-post-command-hook)
         (add-hook 'post-command-hook #'pygn-mode-follow-mode-post-command-hook nil t))
     (remove-hook 'post-command-hook #'pygn-mode-follow-mode-post-command-hook t)
-    (let ((win (get-buffer-window (get-buffer " *pygn-mode-board*"))))
+    (let ((win (get-buffer-window (get-buffer "*pygn-mode-board*"))))
       (when (window-live-p win)
         (delete-window win)))))
 
