@@ -7,7 +7,7 @@
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
 ;; Version: 0.5.0
 ;; Last-Updated: 26 Nov 2019
-;; Package-Requires: ((emacs "25.0") (nav-flash "1.0.0"))
+;; Package-Requires: ((emacs "25.0") (nav-flash "1.0.0") (uci-mode "0.5.0"))
 ;; Keywords: data, games, chess
 ;;
 ;; Simplified BSD License
@@ -61,6 +61,10 @@
 ;;     Automatically restart server when it gets into a bad state
 ;;      - place :version <number> at the start of all requests and responses
 ;;
+;;     pygn-mode-go-depth/pygn-mode-go-time should respect variations
+;;
+;;     pygn-mode-go-searchmoves which defaults to searching move under point
+;;
 ;;     Flash current move on selection
 ;;
 ;; IDEA
@@ -70,9 +74,6 @@
 ;;        Select fens with ivy
 ;;
 ;;     UCI moves to pgn: UCI position command arguments to pgn and/or graphical display
-;;
-;;     uci-mode:
-;;        use comint to make a uci mode and integrate this with pygn?
 ;;
 ;;     count games in current file? Display in modeline?
 ;;
@@ -121,13 +122,22 @@
 ;;; Imports
 
 (require 'cl-lib)
+(require 'comint)
 (require 'nav-flash nil t)
+(require 'uci-mode nil t)
 
 ;;; Declarations
 
 (eval-when-compile
   (defvar font-lock-beg)
-  (defvar font-lock-end))
+  (defvar font-lock-end)
+  (defvar uci-mode-engine-buffer)
+  (defvar uci-mode-engine-buffer-name))
+
+(declare-function uci-mode-engine-proc   "uci-mode.el")
+(declare-function uci-mode-run-engine    "uci-mode.el")
+(declare-function uci-mode-send-stop     "uci-mode.el")
+(declare-function uci-mode-send-commands "uci-mode.el")
 
 ;;; Customizable variables
 
@@ -158,6 +168,16 @@
   "If non-nil, flash the entire PGN on game selection actions."
   :group 'pygn-mode
   :type 'boolean)
+
+(defcustom pygn-mode-default-engine-depth 20
+  "Default depth for engine analysis."
+  :group 'pygn-mode
+  :type 'int)
+
+(defcustom pygn-mode-default-engine-time 15
+  "Default seconds for engine analysis."
+  :group 'pygn-mode
+  :type 'int)
 
 ;;;###autoload
 (defgroup pygn-mode-faces nil
@@ -291,6 +311,14 @@
       '(menu-item "Next Move" pygn-mode-next-move
                   :help "Navigate to the next move"))
     (define-key map [menu-bar PyGN sep-2] menu-bar-separator)
+    (define-key map [menu-bar PyGN pygn-mode-engine-go-time]
+      '(menu-item "Go Time at Point" pygn-mode-engine-go-time
+                  :enable (featurep 'uci-mode)
+                  :help "UCI Engine \"go time\" at point in separate window"))
+    (define-key map [menu-bar PyGN pygn-mode-engine-go-depth]
+      '(menu-item "Go Depth at Point" pygn-mode-engine-go-depth
+                  :enable (featurep 'uci-mode)
+                  :help "UCI Engine \"go depth\" at point in separate window"))
     (define-key map [menu-bar PyGN pygn-mode-display-fen-at-point]
       '(menu-item "FEN at Point" pygn-mode-display-fen-at-point
                   :help "Display FEN at point in separate window"))
@@ -1150,6 +1178,104 @@ With numeric prefix ARG, move ARG moves forward."
   (interactive "p")
   (pygn-mode-next-move arg)
   (pygn-mode-display-board-at-point (point)))
+
+(defun pygn-mode-engine-go-depth (pos &optional depth)
+  "Evaluate the position at POS in a `uci-mode' engine buffer.
+
+DEPTH defaults to `pygn-mode-default-engine-depth'.  It may be
+overridden directly as a numeric prefix argument, or prompted for
+interactively by giving a universal prefix argument."
+  (interactive "d\nP")
+  (setq depth
+        (cond
+          ((numberp depth)
+           depth)
+          ((and depth (listp depth))
+           (completing-read "Depth: " nil))
+          (t
+           pygn-mode-default-engine-depth)))
+  (unless (and uci-mode-engine-buffer
+               (window-live-p
+                (get-buffer-window uci-mode-engine-buffer)))
+    (uci-mode-run-engine))
+  (let ((fen (pygn-mode-fen-at-pos pos)))
+    (sleep-for 0.05)
+    (uci-mode-send-stop)
+    (uci-mode-send-commands
+     (list (format "position fen %s" fen)
+           (format "go depth %s" depth)))))
+
+(defun pygn-mode-engine-go-time (pos &optional seconds)
+  "Evaluate the position at POS in a `uci-mode' engine buffer.
+
+SECONDS defaults to `pygn-mode-default-engine-time'.  It may be
+overridden directly as a numeric prefix argument, or prompted for
+interactively by giving a universal prefix argument."
+  (interactive "d\nP")
+  (setq seconds
+        (cond
+          ((numberp seconds)
+           seconds)
+          ((and seconds (listp seconds))
+           (completing-read "Seconds: " nil))
+          (t
+           pygn-mode-default-engine-time)))
+  (unless (and uci-mode-engine-buffer
+               (window-live-p
+                (get-buffer-window uci-mode-engine-buffer)))
+    (uci-mode-run-engine))
+  (let ((fen (pygn-mode-fen-at-pos pos)))
+    (sleep-for 0.05)
+    (uci-mode-send-stop)
+    (uci-mode-send-commands
+     (list (format "position fen %s" fen)
+           (format "go time %s" seconds)))))
+
+(defun pygn-mode-triple-window-layout-bottom ()
+  "Set up three windows for PGN buffer, board image, and UCI interaction.
+
+Place the board and UCI windows on the right side."
+  (interactive)
+  (unless (eq major-mode 'pygn-mode)
+    (error "Select a buffer in `pygn-mode'"))
+  (delete-other-windows)
+  (split-window-vertically)
+  (other-window 1)
+  (switch-to-buffer
+   (get-buffer-create pygn-mode-board-buffer-name))
+  (split-window-horizontally)
+  (when (> (point-max) (point-min))
+    (let ((fit-window-to-buffer-horizontally t))
+      (fit-window-to-buffer (get-buffer-window (current-buffer)))))
+  (other-window 1)
+  (switch-to-buffer
+   (get-buffer-create (or uci-mode-engine-buffer-name "*UCI*")))
+  (set-window-scroll-bars
+   (get-buffer-window (current-buffer)) nil nil nil 'bottom)
+  (other-window 1))
+
+(defun pygn-mode-triple-window-layout-right ()
+  "Set up three windows for PGN buffer, board image, and UCI interaction.
+
+Place the board and UCI windows on the right side."
+  (interactive)
+  (unless (eq major-mode 'pygn-mode)
+    (error "Select a buffer in `pygn-mode'"))
+  (delete-other-windows)
+  (split-window-horizontally)
+  (other-window 1)
+  (switch-to-buffer
+   (get-buffer-create pygn-mode-board-buffer-name))
+  (split-window-vertically)
+  (when (> (point-max) (point-min))
+    (let ((fit-window-to-buffer-horizontally t))
+      (fit-window-to-buffer (get-buffer-window (current-buffer)))))
+  (other-window 1)
+  (switch-to-buffer
+   (get-buffer-create (or uci-mode-engine-buffer-name "*UCI*")))
+  (set-window-scroll-bars
+   (get-buffer-window (current-buffer)) nil nil nil 'bottom)
+  (other-window 1))
 
 (provide 'pygn-mode)
 
