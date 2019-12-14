@@ -25,7 +25,7 @@ Requests to the `pygn_server.py` server are on a single line, terminated by
 newline, in the form
 
 ```
-<command> [<options>] -- <payload-type> <payload-data>
+:version <version> <command> [<options>] -- <payload-type> <payload-data>
 ```
 
 Note that `<options>` are not required, but a single double-dash `--` is
@@ -34,8 +34,13 @@ mandatory.
 Example:
 
 ```
-:pgn-to-board -pixels=200 -- :pgn [Event "?"]\n[Site ...
+:version 0.5.0 :pgn-to-board -pixels=200 -- :pgn [Event "?"]\n[Site ...
 ```
+
+### `<version>`
+
+The request `<version>` string must agree between the client and server.  If
+the version string does not agree, the server may refuse to respond.
 
 ### `<command>`
 
@@ -93,14 +98,20 @@ Responses from the `pygn_server.py` server are on a single line, terminated by
 newline, in the form
 
 ```
-<payload-type> <payload-data>
+:version <version> <payload-type> <payload-data>
 ```
 
 Example:
 
 ```
-:fen r1bRQ3/ppp3pp/4p3/2b1P1k1/1np1q3/8/PPP3PP/5R1K w - - 0 20
+:version 0.5.0 :fen r1bRQ3/ppp3pp/4p3/2b1P1k1/1np1q3/8/PPP3PP/5R1K w - - 0 20
 ```
+
+### `<version>`
+
+The response `<version>` string must agree between the client and server.  If
+the version string does not agree, the client may attempt to restart the
+server.
 
 ### `<payload-type>`
 

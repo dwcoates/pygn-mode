@@ -19,7 +19,7 @@
 ### version
 ###
 
-__version__ = '0.50'
+__version__ = '0.5.0'
 
 ###
 ### imports
@@ -117,32 +117,36 @@ def listen():
             continue
 
         # Parse request.
-        m = re.compile("(:\S+)(.*?)\s+--\s+(:\S+)\s+(\S.*)\n").search(input_str)
+        m = re.compile("\A:version\s+(\S+)\s+(:\S+)(.*?)\s+--\s+(:\S+)\s+(\S.*)\n").search(input_str)
         if (not m):
             print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
             continue
 
+        if not m.group(1) == __version__:
+            print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
+            continue
+
         # Command code for handling input.
-        command = m.group(1)
+        command = m.group(2)
         if command not in CALLBACKS:
             print("Bad request command (unknown): {}".format(command), file=sys.stderr)
             continue
 
         # Options to modify operation of the command.
         try:
-            args = argparser.parse_args(shlex.split(m.group(2)))
+            args = argparser.parse_args(shlex.split(m.group(3)))
         except:
-            print("Bad request options: {}".format(m.group(2)), file=sys.stderr)
+            print("Bad request options: {}".format(m.group(3)), file=sys.stderr)
             continue
 
         # Payload_type is for future extensibility, currently always :pgn
-        payload_type = m.group(3)
+        payload_type = m.group(4)
         if not payload_type == ":pgn":
             print("Bad request :payload-type (unknown): {}".format(payload_type), file=sys.stderr)
             continue
 
         # Build game board.
-        pgn = m.group(4)
+        pgn = m.group(5)
         pgn = re.sub(r'\\n', '\n', pgn)
         pgn = pgn + '\n\n'
         game = chess.pgn.read_game(io.StringIO(pgn))
@@ -153,7 +157,8 @@ def listen():
             board.push(move)
 
         # Send response to client.
-        print(CALLBACKS[command](game,board,last_move,args))
+        print(':version ' + __version__ + ' ' +
+              CALLBACKS[command](game,board,last_move,args))
 
 ###
 ### argument processing

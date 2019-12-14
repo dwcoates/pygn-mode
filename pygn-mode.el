@@ -58,9 +58,6 @@
 ;;
 ;;     Special-case handling of position on result
 ;;
-;;     Automatically restart server when it gets into a bad state
-;;      - place :version <number> at the start of all requests and responses
-;;
 ;;     pygn-mode-go-depth/pygn-mode-go-time should respect variations
 ;;
 ;;     pygn-mode-go-searchmoves which defaults to searching move under point
@@ -440,6 +437,8 @@ data payload, and PAYLOAD may contain arbitrary data."
    pygn-mode--server-process
    (mapconcat 'identity
               (list
+               (symbol-name :version)
+               pygn-mode-version
                (symbol-name command)
                (pygn-mode--opts-to-argparse options)
                "--"
@@ -487,20 +486,31 @@ FORCE forces a new server process to be created."
    :payload      payload)
   (pygn-mode--server-receive))
 
+;; it is a bit muddy that the parser is permitted to restart the server
 (defun pygn-mode--parse-response (response)
   "Parse RESPONSE string into a list of payload-id and payload."
-  (save-match-data
-    (setq response
-          (replace-regexp-in-string
-           "\n+\\'" ""
-           response))
-    (unless (string-match
-             "\\`\\(:\\S-+\\)\\(.*\\)" response)
-      (error "Bad response from `pygn-mode' server"))
-    (list
-     (intern (match-string 1 response))
-     (replace-regexp-in-string
-      "\\`\s-*" "" (match-string 2 response)))))
+  (let ((response-version nil))
+    (save-match-data
+      (setq response
+            (replace-regexp-in-string
+             "\n+\\'" ""
+             response))
+      (unless (string-match
+               "\\`:version\\s-+\\(\\S-+\\)\\s-+\\(.*\\)" response)
+        (pygn-mode--server-start 'force)
+        (error "Bad response from `pygn-mode' server -- no :version. Attempted restart"))
+      (setq response-version (match-string 1 response))
+      (setq response (match-string 2 response))
+      (unless (equal response-version pygn-mode-version)
+        (pygn-mode--server-start 'force)
+        (error "Bad response from `pygn-mode' server -- unexpected :version value. Attempted restart"))
+      (unless (string-match
+               "\\`\\(:\\S-+\\)\\(.*\\)" response)
+        (error "Bad response from `pygn-mode' server"))
+      (list
+       (intern (match-string 1 response))
+       (replace-regexp-in-string
+        "\\`\s-*" "" (match-string 2 response))))))
 
 (defun pygn-mode--inside-comment-p (&optional pos)
   "Whether the point is inside a PGN comment."
