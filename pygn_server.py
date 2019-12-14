@@ -59,7 +59,7 @@ def cleanup():
         except:
             pass
 
-def pgn_to_board_callback(board,last_move,args):
+def pgn_to_board_callback(game,board,last_move,args):
     if args.board_format[0] == 'svg':
         return ':board-svg ' + chess.svg.board(
             board=board,
@@ -80,13 +80,22 @@ def pgn_to_board_callback(board,last_move,args):
     else:
         print("Bad pgn-mode -board_format value: {}".format(args.board_format[0]), file=sys.stderr)
 
-def pgn_to_fen_callback(board,last_move,args):
+def pgn_to_fen_callback(game,board,last_move,args):
     return ':fen ' + board.fen()
 
-def pgn_to_score_callback(board,last_move,args):
+def pgn_to_score_callback(game,board,last_move,args):
     engine = instantiate_engine(args.engine[0])
     uci_info = engine.analyse(board, chess.engine.Limit(depth=args.depth[0]))
     return ':score ' + str(uci_info["score"])
+
+def pgn_to_mainline_callback(game,board,last_move,args):
+    clean_exporter = chess.pgn.StringExporter(columns=None,
+                                              headers=False,
+                                              variations=False,
+                                              comments=False)
+    mainline = game.accept(clean_exporter)
+    mainline = re.sub(r'\s+\S+\Z', '', mainline)
+    return ':san ' + mainline
 
 def listen():
     """
@@ -144,7 +153,7 @@ def listen():
             board.push(move)
 
         # Send response to client.
-        print(CALLBACKS[command](board,last_move,args))
+        print(CALLBACKS[command](game,board,last_move,args))
 
 ###
 ### argument processing
@@ -190,6 +199,7 @@ if __name__ == '__main__':
         ":pgn-to-fen": pgn_to_fen_callback,
         ":pgn-to-board": pgn_to_board_callback,
         ":pgn-to-score": pgn_to_score_callback,
+        ":pgn-to-mainline": pgn_to_mainline_callback,
     }
 
     atexit.register(cleanup)

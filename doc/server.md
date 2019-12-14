@@ -45,6 +45,7 @@ always begin with `:`.  Commands known at the time of writing are
  * `:pgn-to-fen` -- render a FEN from a PGN payload
  * `:pgn-to-board` -- render a board image from a PGN payload
  * `:pgn-to-score` -- render an engine score from a PGN payload
+ * `:pgn-to-mainline` -- render the main line from a PGN payload
 
 ### `<options>`
 
@@ -59,6 +60,8 @@ of writing are
  * `:pgn-to-score`
    - `-engine=<path>` -- path to a UCI engine executable
    - `-depth=<int>` -- depth to which to limit the evaluation
+ * `:pgn-to-mainline`
+   - _none_
 
 ### double-dash separator
 
@@ -73,6 +76,7 @@ begins with `:`.  Request payload types known at the time of writing are
  * command `:pgn-to-fen` -- request `<payload-type>` `:pgn`
  * command `:pgn-to-board` -- request `<payload-type>` `:pgn`
  * command `:pgn-to-score` -- request `<payload-type>` `:pgn`
+ * command `:pgn-to-mainline` -- request `<payload-type>` `:pgn`
 
 ### `<payload-data>`
 
@@ -106,6 +110,7 @@ begins with `:`.  Response payload types known at the time of writing are
  * `:fen`
  * `:board-svg`
  * `:score`
+ * `:san`
 
 ### `<payload-data>`
 
