@@ -49,7 +49,11 @@ ENGINES = {}
 
 def instantiate_engine(engine_path):
     if not engine_path in ENGINES:
-        ENGINES[engine_path] = chess.engine.SimpleEngine.popen_uci(engine_path)
+        ENGINES[engine_path] = chess.engine.SimpleEngine.popen_uci(engine_path, timeout=None)
+    try:
+        ENGINES[engine_path].ping()
+    except:
+        ENGINES[engine_path] = chess.engine.SimpleEngine.popen_uci(engine_path, timeout=None)
     return ENGINES[engine_path]
 
 def cleanup():
@@ -180,8 +184,8 @@ def generate_argparser():
     argparser.add_argument('-depth', '--depth',
                            nargs=1,
                            type=int,
-                           default=[10],
-                           help='set depth for depth-limited to UCI evaluations. Default is 10.')
+                           default=[20],
+                           help='set depth for depth-limited to UCI evaluations. Default is 20.')
     return argparser
 
 ###

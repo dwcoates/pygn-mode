@@ -169,6 +169,11 @@
   :group 'pygn-mode
   :type 'boolean)
 
+(defcustom pygn-mode-engine-executable "stockfish"
+  "Path to a UCI engine executable."
+  :group 'pygn-mode
+  :type 'string)
+
 (defcustom pygn-mode-default-engine-depth 20
   "Default depth for engine analysis."
   :group 'pygn-mode
@@ -230,6 +235,9 @@
 (defvar pygn-mode-dependency-check-buffer-name "*pygn-mode-dependency-check*"
   "Buffer name used to display a dependency check.")
 
+(defvar pygn-mode-score-buffer-name "*pygn-mode-score*"
+  "Buffer name used to engine scores.")
+
 (defvar pygn-mode--server-process nil
   "Python-based server which powers many `pygn-mode' features.")
 
@@ -244,6 +252,9 @@
 
 (defvar pygn-mode--server-receive-max-seconds 0.5
   "The maximum amount of time `pygn-mode--server-receive' should check the server for output when polling.")
+
+(defvar pygn-mode--server-receive-engine-max-seconds 60
+  "The maximum amount of time `pygn-mode--server-receive' should check the server for output when polling for an engine response.")
 
 ;;; Syntax table
 
@@ -319,6 +330,9 @@
       '(menu-item "Go Depth at Point" pygn-mode-engine-go-depth
                   :enable (featurep 'uci-mode)
                   :help "UCI Engine \"go depth\" at point in separate window"))
+    (define-key map [menu-bar PyGN pygn-mode-display-score-at-point]
+      '(menu-item "Score at point" pygn-mode-display-score-at-point
+                  :help "Display engine score at point in separate window"))
     (define-key map [menu-bar PyGN pygn-mode-display-fen-at-point]
       '(menu-item "FEN at Point" pygn-mode-display-fen-at-point
                   :help "Display FEN at point in separate window"))
@@ -447,23 +461,33 @@ data payload, and PAYLOAD may contain arbitrary data."
                payload)
               " ")))
 
-(defun pygn-mode--server-receive ()
+(defun pygn-mode--server-receive (needs-engine)
   "Receive a response after `pygn-mode--server-send'.
 
-Respects the variables `pygn-mode--server-receive-every-seconds' and
-`pygn-mode--server-receive-max-seconds'."
+When NEEDS-ENGINE is non-nil, wait longer, and show a progress reporter.
+
+Respects the variables `pygn-mode--server-receive-every-seconds',
+`pygn-mode--server-receive-max-seconds', and
+`pygn-mode--server-receive-engine-max-seconds'."
   (unless (pygn-mode--server-running-p)
     (error "The pygn-mode server is not running -- cannot receive a response"))
   (unless (get-buffer pygn-mode--server-buffer)
     (error "The pygn-mode server output buffer does not exist -- cannot receive a response"))
   (with-current-buffer pygn-mode--server-buffer
     (erase-buffer)
-    (let ((tries 0))
+    (let ((tries 0)
+          (reporter (when needs-engine (make-progress-reporter "Waiting for engine"))))
       (goto-char (point-min))
       (while (and (not (eq ?\n (char-before (point-max))))
-                  (< (* tries pygn-mode--server-receive-every-seconds) pygn-mode--server-receive-max-seconds))
+                  (< (* tries pygn-mode--server-receive-every-seconds)
+                     (if needs-engine pygn-mode--server-receive-engine-max-seconds pygn-mode--server-receive-max-seconds)))
         (accept-process-output pygn-mode--server-process pygn-mode--server-receive-every-seconds nil 1)
-        (cl-incf tries))
+        (cl-incf tries)
+        (when needs-engine
+          (progress-reporter-update reporter)
+          (sit-for 0)))
+      (when needs-engine
+        (progress-reporter-done reporter))
       (buffer-substring-no-properties (point-min) (point-max)))))
 
 (cl-defun pygn-mode--server-query (&key
@@ -471,11 +495,14 @@ Respects the variables `pygn-mode--server-receive-every-seconds' and
                                    options
                                    payload-type
                                    payload
+                                   needs-engine
                                    force)
   "Send a request to `pygn-mode--server-process', await, and return the response.
 
 COMMAND, OPTIONS, PAYLOAD-TYPE, and PAYLOAD are as documented at
 `pygn-mode--server-send'.
+
+NEEDS-ENGINE is as documented at `pygn-mode--server-receive'.
 
 FORCE forces a new server process to be created."
   (unless (pygn-mode--server-running-p)
@@ -485,7 +512,7 @@ FORCE forces a new server process to be created."
    :options      options
    :payload-type payload-type
    :payload      payload)
-  (pygn-mode--server-receive))
+  (pygn-mode--server-receive needs-engine))
 
 (defun pygn-mode--parse-response (response)
   "Parse RESPONSE string into a list of payload-id and payload."
@@ -640,6 +667,7 @@ Does not work for nested variations."
 (cl-defun pygn-mode--send-pgn-and-fetch (&key
                                          command
                                          options
+                                         needs-engine
                                          pos)
   "Get PGN string preceding POS, send a `pygn-mode--server-process' request denoted by COMMAND, and return the response."
   (cl-callf or pos (point))
@@ -647,6 +675,7 @@ Does not work for nested variations."
     (let ((pgn (buffer-substring-no-properties (pygn-mode-game-start-position) pos)))
       (pygn-mode--server-query
        :command       command
+       :needs-engine  needs-engine
        :options       options
        :payload-type :pgn
        :payload       pgn))))
@@ -688,6 +717,19 @@ Does not work for nested variations."
       (nav-flash-show beg end))))
 
 ;;; Font-lock
+
+(defun pygn-mode-score-at-pos (pos &optional depth)
+  "Get engine score for PGN string preceding POS."
+  (let ((response (pygn-mode--send-pgn-and-fetch
+                   :needs-engine t
+                   :command      :pgn-to-score
+                   :options      `(:engine ,pygn-mode-engine-executable
+                                   :depth ,(or depth pygn-mode-default-engine-depth))
+                   :pos          pos)))
+    (cl-callf pygn-mode--parse-response response)
+    (unless (eq :score (car response))
+      (error "Bad response from `pygn-mode' server"))
+    (cadr response)))
 
 (defun pygn-mode-after-change-function (beg end old-len)
   "Help refontify multi-line variations during edits."
@@ -879,6 +921,14 @@ Recenters buffer afterwards."
           "[ ] Bad. The executable '%s' cannot import the python-chess library.  Try installing python-chess, and/or customizing the value of pygn-mode-pythonpath.\n\n"
           pygn-mode-python-executable))
         (cl-return-from pygn-mode-dependency-check))
+      (if (executable-find pygn-mode-engine-executable)
+          (insert (format "[x] Good. The pygn-mode-engine-executable exists at '%s'\n\n" (executable-find pygn-mode-engine-executable)))
+        ;; else
+        (insert
+         (format
+          "[ ] Bad. The engine executable '%s' cannot be found.  Try installing a chess engine and/or customizing the value of pygn-mode-engine-executable.\n\n"
+          pygn-mode-engine-executable))
+        (cl-return-from pygn-mode-dependency-check))
       (insert (format "------------------------------------\n\n"))
       (insert (format "All pygn-mode dependencies verified.\n")))))
 
@@ -1035,6 +1085,44 @@ When called non-interactively, display the board corresponding to POS."
     (with-temp-buffer
       (insert pgn)
       (pygn-mode-display-fen-at-point (point-max)))))
+
+(defun pygn-mode-display-score-at-point (pos &optional arg)
+  "Display an engine score corresponding to the point in a separate buffer.
+
+When called non-interactively, display the score corresponding to POS.
+
+With optional universal prefix ARG, prompt for the desired engine depth.
+With optional numeric prefix ARG, ARG specifies the desired depth.
+
+The UCI engine is defined by `pygn-mode-engine-executable'.  The
+default depth is defined by `pygn-mode-default-engine-depth'."
+  (interactive "d\nP")
+  (let* ((depth (cond
+                  ((numberp arg) arg)
+                  (arg (completing-read "Depth: " nil))
+                  (t pygn-mode-default-engine-depth)))
+         (score (pygn-mode-score-at-pos pos depth))
+         (buf (get-buffer-create pygn-mode-score-buffer-name))
+         (win (get-buffer-window buf)))
+    (with-current-buffer buf
+      (erase-buffer)
+      (insert score)
+      (goto-char (point-min))
+      (display-buffer buf '(display-buffer-reuse-window))
+      (unless win
+        (setq win (get-buffer-window buf))
+        (set-window-dedicated-p win t)
+        (resize-temp-buffer-window win)))))
+
+(defun pygn-mode-display-variation-score-at-point (pos)
+  "Respecting variations, display and engine score corresponding to the point.
+
+When called non-interactively, display the score corresponding to POS."
+  (interactive "d")
+  (let ((pgn (pygn-mode-pgn-as-if-variation pos)))
+    (with-temp-buffer
+      (insert pgn)
+      (pygn-mode-display-score-at-point (point-max)))))
 
 ;; interactive helper
 (defun pygn-mode--save-gui-board-at-point (pos)

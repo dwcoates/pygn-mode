@@ -117,6 +117,11 @@ of each game starting with an `[Event "?"]` tagpair.
 
  * `pygn-mode-dependency-check` — check Python and python-chess dependencies
 
+### Engine Commands
+
+ * `pygn-mode-display-score-at-point` — display engine evaluation corresponding to the position of the point
+ * `pygn-mode-display-variation-score-at-point` — display engine evaluation respecting variations
+
 ## Minor Mode
 
 Enabling `pygn-mode-follow-minor-mode` causes a GUI board to be displayed and
