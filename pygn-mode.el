@@ -51,6 +51,16 @@
 ;;
 ;; TODO
 ;;
+;;     Refactor to pass PGN text instead of position to inner functions
+;;
+;;     More consistent handling of position on and around moves
+;;      - no partial moves
+;;
+;;     Special-case handling of position on result
+;;
+;;     Automatically restart server when it gets into a bad state
+;;      - place :version <number> at the start of all requests and responses
+;;
 ;;     Flash current move on selection
 ;;
 ;; IDEA
@@ -464,19 +474,19 @@ FORCE forces a new server process to be created."
      (replace-regexp-in-string
       "\\`\s-*" "" (match-string 2 response)))))
 
-(defun pygn-mode--inside-comment-p ()
+(defun pygn-mode--inside-comment-p (&optional pos)
   "Whether the point is inside a PGN comment."
-  (nth 4 (syntax-ppss)))
+  (nth 4 (save-excursion (syntax-ppss pos))))
 
-(defun pygn-mode-inside-variation-p ()
+(defun pygn-mode-inside-variation-p (&optional pos)
   "Whether the point is inside a PGN variation."
-  (when (> (nth 0 (syntax-ppss)) 0)
-    (nth 0 (syntax-ppss))))
+  (when (> (nth 0 (save-excursion (syntax-ppss pos))) 0)
+    (nth 0 (save-excursion (syntax-ppss pos)))))
 
-(defun pygn-mode-inside-variation-or-comment-p ()
+(defun pygn-mode-inside-variation-or-comment-p (&optional pos)
   "Whether the point is inside a PGN comment or a variation."
-  (or (pygn-mode--inside-comment-p)
-      (pygn-mode-inside-variation-p)))
+  (or (pygn-mode--inside-comment-p pos)
+      (pygn-mode-inside-variation-p pos)))
 
 (defun pygn-mode-looking-at-legal-move ()
   "Whether the point is looking at a legal SAN chess move.
@@ -1077,7 +1087,15 @@ The board display respects variations."
   (set-buffer (window-buffer (posn-window (event-start event))))
   (goto-char (posn-point (event-start event)))
   (save-excursion
-    (skip-syntax-backward "^\\s-")
+    ;; todo make this part of pygn-mode-pgn-as-if-variation (and new defun pygn-mode-pgn-at-pos, after refactor)
+    (if (and (not (pygn-mode-inside-variation-or-comment-p (line-beginning-position)))
+             (eq ?\[ (char-after (line-beginning-position))))
+        (progn
+          (goto-char (line-beginning-position))
+          (when (looking-at-p "\\[Event ")
+            (forward-line 1)))
+      ;; else
+      (skip-syntax-backward "^-"))
     (let ((pgn (pygn-mode-pgn-as-if-variation (point))))
       (with-temp-buffer
         (insert pgn)
@@ -1094,8 +1112,14 @@ The board display respects variations."
   (set-buffer (window-buffer (posn-window (event-start event))))
   (goto-char (posn-point (event-start event)))
   (save-excursion
-    (skip-syntax-forward "^\\s-")
-    (skip-syntax-forward "\\s-")
+    ;; todo make this part of pygn-mode-pgn-as-if-variation (and new defun pygn-mode-pgn-at-pos, after refactor)
+    (if (and (not (pygn-mode-inside-variation-or-comment-p (line-beginning-position)))
+             (eq ?\[ (char-after (line-beginning-position))))
+        (forward-line 1)
+      ;; else
+      (skip-syntax-forward "^-")
+      (skip-syntax-forward "-"))
+    ;; todo this should use second parameter 'inclusive instead of prefacing with syntax skips
     (let ((pgn (pygn-mode-pgn-as-if-variation (point))))
       (with-temp-buffer
         (insert pgn)
