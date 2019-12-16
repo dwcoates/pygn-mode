@@ -252,6 +252,8 @@
     (with-syntax-table st
       (modify-syntax-entry ?{ "<")
       (modify-syntax-entry ?} ">")
+      (modify-syntax-entry ?\; "< b")
+      (modify-syntax-entry ?\n "> b")
       (modify-syntax-entry ?\\ "\\")
       (modify-syntax-entry ?\" "\"")
       (modify-syntax-entry ?| "w")
