@@ -1458,8 +1458,7 @@ the search string."
          (choice (ivy-completing-read "Choose Game: " read-collection)))
     (when (and choice (not (zerop (length choice))))
       (goto-char (cdr (assoc choice read-collection)))
-      (recenter-window-group)
-      (pygn-mode-flash-game-at-point))))
+      (pygn-mode-focus-game-at-point))))
 
 (defun pygn-mode-ivy-jump-to-game-by-fen ()
   "Navigate to a game by `ivy-completing-read' against FEN tagpair values.
@@ -1470,8 +1469,7 @@ Games without FEN tagpairs are not represented in the search."
          (choice (ivy-completing-read "Choose Game: " read-collection)))
     (when (and choice (not (zerop (length choice))))
       (goto-char (cdr (assoc choice read-collection)))
-      (recenter-window-group)
-      (pygn-mode-flash-game-at-point))))
+      (pygn-mode-focus-game-at-point))))
 
 (provide 'pygn-mode)
 
