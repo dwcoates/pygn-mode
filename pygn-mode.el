@@ -339,11 +339,11 @@
       '(menu-item "Go Depth at Point" pygn-mode-engine-go-depth
                   :enable (featurep 'uci-mode)
                   :help "UCI Engine \"go depth\" at point in separate window"))
-    (define-key map [menu-bar PyGN pygn-mode-display-fen-at-point]
-      '(menu-item "FEN at Point" pygn-mode-display-fen-at-point
+    (define-key map [menu-bar PyGN pygn-mode-display-fen-at-pos]
+      '(menu-item "FEN at Point" pygn-mode-display-fen-at-pos
                   :help "Display FEN at point in separate window"))
-    (define-key map [menu-bar PyGN pygn-mode-display-board-at-point]
-      '(menu-item "Board at Point" pygn-mode-display-board-at-point
+    (define-key map [menu-bar PyGN pygn-mode-display-board-at-pos]
+      '(menu-item "Board at Point" pygn-mode-display-board-at-pos
                   :help "Display board at point in separate window"))
 
     ;; mouse
@@ -1023,7 +1023,7 @@ board will respect variations."
   "Driver for `pygn-mode-follow-minor-mode'.
 
 Intended for use in `post-command-hook'."
-  (pygn-mode-display-variation-board-at-point (point)))
+  (pygn-mode-display-variation-board-at-pos (point)))
 
 (defun pygn-mode--next-game-driver (arg)
   "Move point to next game, moving ARG games forward (backwards if negative).
@@ -1194,7 +1194,7 @@ When called non-interactively, select the game containing POS."
   (push-mark (pygn-mode-game-end-position) t t)
   (goto-char (pygn-mode-game-start-position)))
 
-(defun pygn-mode-echo-fen-at-point (pos &optional do-copy)
+(defun pygn-mode-echo-fen-at-pos (pos &optional do-copy)
   "Display the FEN corresponding to the point in the echo area.
 
 When called non-interactively, display the FEN corresponding to POS.
@@ -1210,7 +1210,7 @@ system clipboard when running a GUI Emacs."
         (gui-set-selection 'CLIPBOARD fen)))
     (message "%s%s" fen (if do-copy (propertize "\t(copied)" 'face '(:foreground "grey33")) ""))))
 
-(defun pygn-mode-display-fen-at-point (pos)
+(defun pygn-mode-display-fen-at-pos (pos)
   "Display the FEN corresponding to the point in a separate buffer.
 
 When called non-interactively, display the FEN corresponding to POS."
@@ -1228,7 +1228,7 @@ When called non-interactively, display the FEN corresponding to POS."
         (set-window-dedicated-p win t)
         (resize-temp-buffer-window win)))))
 
-(defun pygn-mode-display-variation-fen-at-point (pos)
+(defun pygn-mode-display-variation-fen-at-pos (pos)
   "Respecting variations, display the FEN corresponding to the point.
 
 When called non-interactively, display the board corresponding to POS."
@@ -1237,10 +1237,10 @@ When called non-interactively, display the board corresponding to POS."
     ;; todo it might be a better design if a temp buffer wasn't needed here
     (with-temp-buffer
       (insert pgn)
-      (pygn-mode-display-fen-at-point (point-max)))))
+      (pygn-mode-display-fen-at-pos (point-max)))))
 
 ;; interactive helper
-(defun pygn-mode--save-gui-board-at-point (pos)
+(defun pygn-mode--save-gui-board-at-pos (pos)
   "Save the board image corresponding to POS to a file."
   (let* ((pygn-mode-board-size (completing-read "Pixels per side: " nil nil nil nil nil pygn-mode-board-size))
          (filename (read-file-name "SVG filename: "))
@@ -1249,8 +1249,8 @@ When called non-interactively, display the board corresponding to POS."
       (insert svg-data)
       (write-file filename))))
 
-;; todo the save feature should be part of pygn-mode-display-board-at-point
-(defun pygn-mode-display-gui-board-at-point (pos &optional arg)
+;; todo the save feature should be part of pygn-mode-display-board-at-pos
+(defun pygn-mode-display-gui-board-at-pos (pos &optional arg)
   "Display a GUI board corresponding to the point in a separate buffer.
 
 When called non-interactively, display the board corresponding to POS.
@@ -1259,7 +1259,7 @@ With optional universal prefix ARG, write the image to a file, prompting
 for image size."
   (interactive "d\nP")
   (if arg
-      (pygn-mode--save-gui-board-at-point pos)
+      (pygn-mode--save-gui-board-at-pos pos)
     ;; else
     (let* ((svg-data (pygn-mode-pgn-to-board (pygn-mode-pgn-at-pos pos) 'svg))
            (buf (get-buffer-create pygn-mode-board-buffer-name))
@@ -1274,7 +1274,7 @@ for image size."
         (set-window-dedicated-p win t)
         (resize-temp-buffer-window win)))))
 
-(defun pygn-mode-display-text-board-at-point (pos)
+(defun pygn-mode-display-text-board-at-pos (pos)
   "Display a text board corresponding to the point in a separate buffer.
 
 When called non-interactively, display the board corresponding to POS."
@@ -1294,7 +1294,7 @@ When called non-interactively, display the board corresponding to POS."
       (set-window-dedicated-p win t)
       (resize-temp-buffer-window win))))
 
-(defun pygn-mode-display-board-at-point (pos &optional format)
+(defun pygn-mode-display-board-at-pos (pos &optional format)
   "Display a board corresponding to the point in a separate buffer.
 
 When called non-interactively, display the board corresponding to POS.
@@ -1304,9 +1304,9 @@ FORMAT may be 'svg or 'text, and if nil will be determined based on
   (setq format (or format (if (display-graphic-p) 'svg 'text)))
   (cond
     ((eq format 'svg)
-     (pygn-mode-display-gui-board-at-point pos))
+     (pygn-mode-display-gui-board-at-pos pos))
     ((eq format 'text)
-     (pygn-mode-display-text-board-at-point pos))
+     (pygn-mode-display-text-board-at-pos pos))
     (t
      (error "Bad board format: %s" format))))
 
@@ -1321,9 +1321,9 @@ The board display respects variations."
     ;; todo it might be a better design if a temp buffer wasn't needed here
     (with-temp-buffer
       (insert pgn)
-      (pygn-mode-display-board-at-point (point)))))
+      (pygn-mode-display-board-at-pos (point)))))
 
-(defun pygn-mode-display-variation-board-at-point (pos)
+(defun pygn-mode-display-variation-board-at-pos (pos)
   "Respecting variations, display the board corresponding to the point.
 
 When called non-interactively, display the board corresponding to POS."
@@ -1332,7 +1332,7 @@ When called non-interactively, display the board corresponding to POS."
     ;; todo it might be a better design if a temp buffer wasn't needed here
     (with-temp-buffer
       (insert pgn)
-      (pygn-mode-display-board-at-point (point-max)))))
+      (pygn-mode-display-board-at-pos (point-max)))))
 
 (defun pygn-mode-previous-move-follow-board (arg)
   "Move back to the previous move and display the updated board.
@@ -1340,7 +1340,7 @@ When called non-interactively, display the board corresponding to POS."
 With numeric prefix ARG, move ARG moves backward."
   (interactive "p")
   (pygn-mode-previous-move arg)
-  (pygn-mode-display-board-at-point (point)))
+  (pygn-mode-display-board-at-pos (point)))
 
 (defun pygn-mode-next-move-follow-board (arg)
   "Advance to the next move and display the updated board.
@@ -1348,7 +1348,7 @@ With numeric prefix ARG, move ARG moves backward."
 With numeric prefix ARG, move ARG moves forward."
   (interactive "p")
   (pygn-mode-next-move arg)
-  (pygn-mode-display-board-at-point (point)))
+  (pygn-mode-display-board-at-pos (point)))
 
 (defun pygn-mode-engine-go-depth (pos &optional depth)
   "Evaluate the position at POS in a `uci-mode' engine buffer.
