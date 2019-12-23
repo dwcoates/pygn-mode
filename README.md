@@ -54,11 +54,9 @@ form.
 Default mouse bindings are provided:
 
  * mouse-2 — `pygn-mode-mouse-display-variation-board`
- * double-mouse-2 — `pygn-mode-mouse-display-variation-board-inclusive`
 
 In English, clicking the middle mouse button on a move in Emacs displays a
-board image computed before that move was made.  Double-clicking the mouse
-button on a move displays a board after that move was made.
+board image computed after that move was made.
 
 In addition, the mouse wheel (buttons 4/5) is bound to `pygn-mode-next-move`
 and `pygn-mode-previous-move` when hovering over the `PyGN` lighter in the

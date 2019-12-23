@@ -51,12 +51,16 @@
 ;;
 ;; TODO
 ;;
-;;     Refactor to pass PGN text instead of position to inner functions
+;;     Make forward-exit and backward-exit defuns robust against %-escaped lines
+;;     Make forward-exit and backward-exit defuns robust against semicolon comments
 ;;
-;;     More consistent handling of position on and around moves
-;;      - no partial moves
+;;     Extensive ert test coverage of
+;;      - pygn-mode-pgn-at-pos
+;;      - pygn-mode-pgn-at-pos-as-if-variation
 ;;
-;;     Special-case handling of position on result
+;;     Link to separate uci-mode repo
+;;      - in comments
+;;      - in README.md
 ;;
 ;;     pygn-mode-go-depth/pygn-mode-go-time should respect variations
 ;;
@@ -128,6 +132,7 @@
 (eval-when-compile
   (defvar font-lock-beg)
   (defvar font-lock-end)
+  (defvar nav-flash-delay)
   (defvar uci-mode-engine-buffer)
   (defvar uci-mode-engine-buffer-name))
 
@@ -242,6 +247,14 @@
 (defvar pygn-mode--server-receive-max-seconds 0.5
   "The maximum amount of time `pygn-mode--server-receive' should check the server for output when polling.")
 
+(defvar pygn-mode--strict-legal-move-pat
+  "\\<\\([RNBQK][a-h]?[1-8]?x?[a-h][1-8]\\|[a-h]x?[1-8]=?[RNBQ]?\\|O-O\\|O-O-O\\)\\(\\+\\+?\\|#\\)?"
+  "Regular expression strictly matching a legal SAN move.")
+
+(defvar pygn-mode--relaxed-legal-move-pat
+  (concat "[ \t]*[0-9]*[.…\s-]*" pygn-mode--strict-legal-move-pat)
+  "Regular expression matching a legal SAN move with leading move numbers and whitespace.")
+
 ;;; Syntax table
 
 (defvar pygn-mode-syntax-table
@@ -256,9 +269,12 @@
       (modify-syntax-entry ?| "w")
       (modify-syntax-entry ?+ "w")
       (modify-syntax-entry ?- "w")
+      (modify-syntax-entry ?* "w")
       (modify-syntax-entry ?/ "w")
       (modify-syntax-entry ?± "w")
       (modify-syntax-entry ?– "w")
+      (modify-syntax-entry ?! "w")
+      (modify-syntax-entry ?? "w")
       (modify-syntax-entry ?‼ "w")
       (modify-syntax-entry ?⁇ "w")
       (modify-syntax-entry ?⁈ "w")
@@ -326,8 +342,7 @@
                   :help "Display board at point in separate window"))
 
     ;; mouse
-    (define-key map [mouse-2]        'pygn-mode-mouse-display-variation-board)
-    (define-key map [double-mouse-2] 'pygn-mode-mouse-display-variation-board-inclusive)
+    (define-key map [mouse-2] 'pygn-mode-mouse-display-variation-board)
 
     ;; example keystrokes:
     ;;
@@ -514,27 +529,91 @@ FORCE forces a new server process to be created."
        (replace-regexp-in-string
         "\\`\s-*" "" (match-string 2 response))))))
 
-(defun pygn-mode--inside-comment-p (&optional pos)
-  "Whether the point is inside a PGN comment."
+(defun pygn-mode-inside-comment-p (&optional pos)
+  "Whether POS is inside a PGN comment.
+
+POS defaults to the point."
   (nth 4 (save-excursion (syntax-ppss pos))))
 
+(defun pygn-mode-inside-escaped-line-p (&optional pos)
+  "Whether POS is inside a PGN line-comment.
+
+POS defaults to the point."
+  (save-excursion
+    (goto-char (or pos (point)))
+    (and (nth 4 (syntax-ppss pos))
+         (eq ?\% (char-after (line-beginning-position))))))
+
 (defun pygn-mode-inside-variation-p (&optional pos)
-  "Whether the point is inside a PGN variation."
-  (when (> (nth 0 (save-excursion (syntax-ppss pos))) 0)
-    (nth 0 (save-excursion (syntax-ppss pos)))))
+  "Whether POS is inside a PGN variation.
+
+POS defaults to the point."
+  (let ((syn (save-excursion (syntax-ppss pos))))
+    (when (and (> (nth 0 syn) 0)
+               (eq ?\( (char-after (nth 1 syn))))
+      (nth 0 syn))))
 
 (defun pygn-mode-inside-variation-or-comment-p (&optional pos)
-  "Whether the point is inside a PGN comment or a variation."
-  (or (pygn-mode--inside-comment-p pos)
+  "Whether POS is inside a PGN comment or a variation.
+
+POS defaults to the point."
+  (or (pygn-mode-inside-comment-p pos)
       (pygn-mode-inside-variation-p pos)))
 
-(defun pygn-mode-looking-at-legal-move ()
+(defun pygn-mode-inside-header-p (&optional pos)
+  "Whether POS is inside a PGN header.
+
+POS defaults to the point."
+  (save-excursion
+    (goto-char (or pos (point)))
+    (and (not (pygn-mode-inside-variation-or-comment-p (line-beginning-position)))
+         (eq ?\[ (char-after (line-beginning-position))))))
+
+(defun pygn-mode-inside-separator-p (&optional pos)
+  "Whether POS is inside a PGN separator.
+
+Separators are empty lines after tagpair headers or after games.
+
+POS defaults to the point."
+  (save-excursion
+    (goto-char (or pos (point)))
+    (looking-at-p "^$")))
+
+(defun pygn-mode-looking-at-result-code ()
+  "Whether the point is looking at a PGN movetext result code."
+  (looking-at-p "\\(?:1-0\\|0-1\\|1/2-1/2\\|\\*\\)\\s-*$"))
+
+(defun pygn-mode-looking-at-suffix-annotation ()
+  "Whether the point is looking at a SAN suffix annotation."
+  (looking-at-p "\\(?:‼\\|⁇\\|⁈\\|⁉\\|!\\|\\?\\|!!\\|!\\?\\|\\?!\\|\\?\\?\\)\\>"))
+
+(defun pygn-mode-looking-at-relaxed-legal-move ()
   "Whether the point is looking at a legal SAN chess move.
 
-Leading move numbers, punctuation and spaces are allowed, and ignored."
+Leading move numbers, punctuation, and spaces are allowed, and ignored."
   (let ((inhibit-changing-match-data t))
-    (and (looking-at-p "[ \t]*[0-9]*[.…\s-]*\\<\\([RNBQK][a-h]?[1-8]?x?[a-h][1-8]\\|[a-h]x?[1-8]=?[RNBQ]?\\|O-O\\|O-O-O\\)\\(\\+\\+?\\|#\\)?")
+    (and (looking-at-p pygn-mode--relaxed-legal-move-pat)
          (not (looking-back "[A-Za-z]" 1)))))
+
+(defun pygn-mode-looking-at-strict-legal-move ()
+  "Whether the point is looking at a legal SAN chess move.
+
+\"Strict\" means that leading move numbers, punctuation, and spaces are
+not allowed on the SAN move."
+  (let ((inhibit-changing-match-data t))
+    (and (looking-at-p pygn-mode--strict-legal-move-pat)
+         (not (looking-back "[A-Za-z]" 1)))))
+
+(defun pygn-mode-looking-back-strict-legal-move ()
+  "Whether the point is looking back at a legal SAN chess move.
+
+\"Strict\" means that leading move numbers, punctuation, and spaces are
+not examined on the SAN move."
+  (and (or (looking-at-p "\\s-")
+           (pygn-mode-looking-at-suffix-annotation))
+       (save-excursion
+         (forward-word-strictly -1)
+         (pygn-mode-looking-at-strict-legal-move))))
 
 (defun pygn-mode-game-start-position (&optional pos)
   "Start position for the PGN game which contains position POS.
@@ -618,70 +697,122 @@ POS defaults to `point'."
         (goto-char (line-end-position))
         (skip-syntax-backward "-")))))
 
-(defun pygn-mode-pgn-as-if-variation (pos &optional inclusive)
+(defun pygn-mode-pgn-at-pos (pos)
+  "PGN string inclusive of any move at POS."
+  (save-match-data
+    (save-excursion
+      (goto-char pos)
+      (cond
+        ((pygn-mode-inside-header-p)
+         (unless (= pos (line-end-position))
+           (goto-char (line-beginning-position))
+           (when (looking-at-p "\\[Event ")
+             (forward-line 1))))
+        ((pygn-mode-inside-separator-p)
+         t)
+        ((pygn-mode-inside-variation-or-comment-p)
+         ;; crudely truncate at pos
+         ;; and depend on python-chess to clean up trailing garbage
+         t)
+        ((pygn-mode-looking-at-result-code)
+         t)
+        ((pygn-mode-looking-back-strict-legal-move)
+         t)
+        ((looking-back "[)}]" 1)
+         t)
+        ((pygn-mode-looking-at-relaxed-legal-move)
+         (re-search-forward pygn-mode--relaxed-legal-move-pat nil t))
+        ;; todo both of these might be arguable. shake this out in ert testing.
+        ((or (looking-at-p "^")
+             (looking-back "[\s-]" 1))
+         t)
+        (t
+         ;; this fallback logic is probably too subtle because it sometimes rests
+         ;; on the previous word, and sometimes successfully searches forward.
+         ;; todo continue making the conditions more explicit and descriptiive
+         (let ((word-bound (save-excursion (forward-word-strictly 1) (point)))
+               (game-bound (pygn-mode-game-end-position)))
+           (forward-word-strictly -1)
+           (re-search-forward pygn-mode--relaxed-legal-move-pat
+                              (min word-bound game-bound)
+                              t))))
+      (buffer-substring-no-properties
+       (pygn-mode-game-start-position)
+       (point)))))
+
+(defun pygn-mode-pgn-at-pos-as-if-variation (pos)
   "PGN string as if a variation had been played until position POS.
 
-When INCLUSIVE is non-nil, synthesize a PGN inclusive of any move
-on which the point is resting.
-
 Does not work for nested variations."
-  (save-excursion
-    (goto-char pos)
-    (if inclusive
-        (progn
-          (skip-chars-forward "0-9.…\s-")
-          (skip-syntax-forward "^-"))
-      (skip-syntax-backward "^-"))
-    (let ((pgn (buffer-substring-no-properties
-                (pygn-mode-game-start-position)
-                (point))))
-    (with-temp-buffer
-      (insert pgn)
-      (when (pygn-mode-inside-variation-p)
-        (up-list -1)
-        (delete-char 1)
-        (delete-region
-         (save-excursion (pygn-mode-backward-exit-variations-and-comments) (point))
-         (point))
-        (delete-region
-         (save-excursion (forward-word-strictly -1) (point))
-         (point)))
-        (goto-char (point-max))
-        (buffer-substring-no-properties (point-min) (point-max))))))
+  (if (not (pygn-mode-inside-variation-p pos))
+      (pygn-mode-pgn-at-pos pos)
+    ;; else
+    (save-excursion
+      (save-match-data
+        (goto-char pos)
+        (cond
+          ((looking-at-p "\\s-*)")
+           ;; crudely truncate at pos
+           ;; and depend on python-chess to clean up trailing garbage
+           t)
+          ((pygn-mode-inside-comment-p)
+           ;; crudely truncate at pos
+           ;; and depend on python-chess to clean up trailing garbage
+           t)
+          ((pygn-mode-looking-back-strict-legal-move)
+           t)
+          ((pygn-mode-looking-at-relaxed-legal-move)
+           (re-search-forward pygn-mode--relaxed-legal-move-pat nil t))
+          (t
+           ;; this fallback logic is probably too subtle because it sometimes rests
+           ;; on the previous word, and sometimes successfully searches forward.
+           ;; todo continue making the conditions more explicit and descriptive
+           (let ((word-bound (save-excursion (forward-word-strictly 1) (point)))
+                 (sexp-bound (save-excursion (up-list 1) (1- (point)))))
+             (forward-word-strictly -1)
+             (re-search-forward pygn-mode--relaxed-legal-move-pat
+                                (min word-bound sexp-bound)
+                                t))))
+        (let ((pgn (buffer-substring-no-properties
+                    (pygn-mode-game-start-position)
+                    (point))))
+          (with-temp-buffer
+            (insert pgn)
+            (when (pygn-mode-inside-variation-p)
+              (up-list -1)
+              (delete-char 1)
+              (delete-region
+               (save-excursion (pygn-mode-backward-exit-variations-and-comments) (point))
+               (point))
+              (delete-region
+               (save-excursion (forward-word-strictly -1) (point))
+               (point)))
+            (goto-char (point-max))
+            (buffer-substring-no-properties (point-min) (point-max))))))))
 
-(cl-defun pygn-mode--send-pgn-and-fetch (&key
-                                         command
-                                         options
-                                         pos)
-  "Get PGN string preceding POS, send a `pygn-mode--server-process' request denoted by COMMAND, and return the response."
-  (cl-callf or pos (point))
-  (save-excursion
-    (let ((pgn (buffer-substring-no-properties (pygn-mode-game-start-position) pos)))
-      (pygn-mode--server-query
-       :command       command
-       :options       options
-       :payload-type :pgn
-       :payload       pgn))))
-
-(defun pygn-mode-fen-at-pos (pos)
-  "Return the FEN corresponding to POS, which defaults to the point."
-  (let ((response (pygn-mode--send-pgn-and-fetch
-                   :command :pgn-to-fen
-                   :pos     pos)))
+(defun pygn-mode-pgn-to-fen (pgn)
+  "Return the FEN corresponding to the position after PGN."
+  (let ((response (pygn-mode--server-query
+                   :command      :pgn-to-fen
+                   :payload-type :pgn
+                   :payload      pgn)))
     (cl-callf pygn-mode--parse-response response)
     (unless (eq :fen (car response))
       (error "Bad response from `pygn-mode' server"))
     (cadr response)))
 
-(defun pygn-mode-generate-board-at-pos (pos format)
-  "Get board representation for PGN string preceding POS."
-  (let ((response (pygn-mode--send-pgn-and-fetch
-                   :command :pgn-to-board
-                   :options `(
-                              :pixels       ,pygn-mode-board-size
-                              :board_format ,format
-                             )
-                   :pos     pos)))
+(defun pygn-mode-pgn-to-board (pgn format)
+  "Get board representation for the position after PGN.
+
+FORMAT may be either 'svg or 'text."
+  (let ((response (pygn-mode--server-query
+                   :command      :pgn-to-board
+                   :options      `(
+                                   :pixels       ,pygn-mode-board-size
+                                   :board_format ,format
+                                  )
+                   :payload-type :pgn
+                   :payload      pgn)))
     (cl-callf pygn-mode--parse-response response)
     (unless (memq (car response) '(:board-svg :board-text))
       (error "Bad response from `pygn-mode' server"))
@@ -701,7 +832,7 @@ Does not work for nested variations."
 
 ;;; Font-lock
 
-(defun pygn-mode-after-change-function (beg end old-len)
+(defun pygn-mode-after-change-function (beg end _)
   "Help refontify multi-line variations during edits."
   (let ((syn (syntax-ppss beg)))
     (if (> 0 (nth 0 syn))
@@ -804,8 +935,6 @@ Intended to be used as a `syntax-propertize-function'."
 
 ;;; Minor-mode definition
 
-;; todo: support inclusive mode
-;; todo: support TUI mode
 (define-minor-mode pygn-mode-follow-minor-mode
   "Minor mode for pygn-mode.
 
@@ -832,7 +961,7 @@ board will respect variations."
   "Driver for `pygn-mode-follow-minor-mode'.
 
 Intended for use in `post-command-hook'."
-  (pygn-mode-display-variation-gui-board-at-point (point)))
+  (pygn-mode-display-variation-board-at-point (point)))
 
 (defun pygn-mode--next-game-driver (arg)
   "Move point to next game, moving ARG games forward (backwards if negative).
@@ -935,13 +1064,13 @@ With numeric prefix ARG, advance ARG moves forward."
         (when (or (looking-at-p "[^\n]*\\]")
                   (and (looking-at-p "\\s-*$") (looking-back "\\]\\s-*" 10)))
           (re-search-forward "\n\n" nil t))
-        (dotimes (counter arg)
-          (when (pygn-mode-looking-at-legal-move)
+        (dotimes (_ arg)
+          (when (pygn-mode-looking-at-relaxed-legal-move)
             (setq thumb (point))
             (skip-chars-forward "0-9.…\s-")
             (forward-char 1))
           (while (and (not (= (point) last-point))
-                      (or (not (pygn-mode-looking-at-legal-move))
+                      (or (not (pygn-mode-looking-at-relaxed-legal-move))
                           (pygn-mode-inside-variation-or-comment-p)))
             (setq last-point (point))
             (cond
@@ -950,7 +1079,7 @@ With numeric prefix ARG, advance ARG moves forward."
              (t
               (forward-sexp 1)))))
         (skip-chars-forward "0-9.…\s-")
-        (unless (pygn-mode-looking-at-legal-move)
+        (unless (pygn-mode-looking-at-relaxed-legal-move)
           (goto-char thumb)
           (when (= thumb start)
             (error "No more moves")))))))
@@ -975,13 +1104,13 @@ With numeric prefix ARG, move ARG moves backward."
         (when (or (looking-at-p "[^\n]*\\]")
                   (and (looking-at-p "\\s-*$") (looking-back "\\]\\s-*" 10)))
           (error "No more moves"))
-        (dotimes (counter arg)
-          (when (pygn-mode-looking-at-legal-move)
+        (dotimes (_ arg)
+          (when (pygn-mode-looking-at-relaxed-legal-move)
             (setq thumb (point))
             (skip-chars-backward "0-9.…\s-")
             (backward-char 1))
           (while (and (not (= (point) last-point))
-                      (or (not (pygn-mode-looking-at-legal-move))
+                      (or (not (pygn-mode-looking-at-relaxed-legal-move))
                           (pygn-mode-inside-variation-or-comment-p)))
             (setq last-point (point))
             (cond
@@ -990,7 +1119,7 @@ With numeric prefix ARG, move ARG moves backward."
               (t
                (skip-chars-backward "0-9.…\s-")
                (forward-sexp -1)))))
-        (unless (pygn-mode-looking-at-legal-move)
+        (unless (pygn-mode-looking-at-relaxed-legal-move)
           (goto-char thumb)
           (when (= thumb start)
             (error "No more moves")))))))
@@ -1012,7 +1141,7 @@ When called non-interactively, display the FEN corresponding to POS.
 With prefix-arg DO-COPY, copy the FEN to the kill ring, and to the
 system clipboard when running a GUI Emacs."
   (interactive "d\nP")
-  (let ((fen (pygn-mode-fen-at-pos pos)))
+  (let ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos pos))))
     (when do-copy
       (kill-new fen)
       (when (and (fboundp 'gui-set-selection)
@@ -1025,7 +1154,7 @@ system clipboard when running a GUI Emacs."
 
 When called non-interactively, display the FEN corresponding to POS."
   (interactive "d")
-  (let* ((fen (pygn-mode-fen-at-pos pos))
+  (let* ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos pos)))
          (buf (get-buffer-create pygn-mode-fen-buffer-name))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
@@ -1043,7 +1172,8 @@ When called non-interactively, display the FEN corresponding to POS."
 
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
-  (let ((pgn (pygn-mode-pgn-as-if-variation pos)))
+  (let ((pgn (pygn-mode-pgn-at-pos-as-if-variation pos)))
+    ;; todo it might be a better design if a temp buffer wasn't needed here
     (with-temp-buffer
       (insert pgn)
       (pygn-mode-display-fen-at-point (point-max)))))
@@ -1053,7 +1183,7 @@ When called non-interactively, display the board corresponding to POS."
   "Save the board image corresponding to POS to a file."
   (let* ((pygn-mode-board-size (completing-read "Pixels per side: " nil nil nil nil nil pygn-mode-board-size))
          (filename (read-file-name "SVG filename: "))
-         (svg-data (pygn-mode-generate-board-at-pos pos 'svg)))
+         (svg-data (pygn-mode-pgn-to-board (pygn-mode-pgn-at-pos pos) 'svg)))
     (with-temp-buffer
       (insert svg-data)
       (write-file filename))))
@@ -1070,7 +1200,7 @@ for image size."
   (if arg
       (pygn-mode--save-gui-board-at-point pos)
     ;; else
-    (let* ((svg-data (pygn-mode-generate-board-at-pos pos 'svg))
+    (let* ((svg-data (pygn-mode-pgn-to-board (pygn-mode-pgn-at-pos pos) 'svg))
            (buf (get-buffer-create pygn-mode-board-buffer-name))
            (win (get-buffer-window buf)))
       (with-current-buffer buf
@@ -1088,7 +1218,7 @@ for image size."
 
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
-  (let* ((text-data (pygn-mode-generate-board-at-pos pos 'text))
+  (let* ((text-data (pygn-mode-pgn-to-board (pygn-mode-pgn-at-pos pos) 'text))
          (buf (get-buffer-create pygn-mode-board-buffer-name))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
@@ -1126,51 +1256,19 @@ The board display respects variations."
   (interactive "@e")
   (set-buffer (window-buffer (posn-window (event-start event))))
   (goto-char (posn-point (event-start event)))
-  (save-excursion
-    ;; todo make this part of pygn-mode-pgn-as-if-variation (and new defun pygn-mode-pgn-at-pos, after refactor)
-    (if (and (not (pygn-mode-inside-variation-or-comment-p (line-beginning-position)))
-             (eq ?\[ (char-after (line-beginning-position))))
-        (progn
-          (goto-char (line-beginning-position))
-          (when (looking-at-p "\\[Event ")
-            (forward-line 1)))
-      ;; else
-      (skip-syntax-backward "^-"))
-    (let ((pgn (pygn-mode-pgn-as-if-variation (point))))
-      (with-temp-buffer
-        (insert pgn)
-        (pygn-mode-display-board-at-point (point))))))
-
-(defun pygn-mode-mouse-display-variation-board-inclusive (event)
-  "Display inclusive board corresponding to the mouse click in a separate buffer.
-
-\"Inclusive\" here means that the board includes any move which contains the
-click position.
-
-The board display respects variations."
-  (interactive "@e")
-  (set-buffer (window-buffer (posn-window (event-start event))))
-  (goto-char (posn-point (event-start event)))
-  (save-excursion
-    ;; todo make this part of pygn-mode-pgn-as-if-variation (and new defun pygn-mode-pgn-at-pos, after refactor)
-    (if (and (not (pygn-mode-inside-variation-or-comment-p (line-beginning-position)))
-             (eq ?\[ (char-after (line-beginning-position))))
-        (forward-line 1)
-      ;; else
-      (skip-syntax-forward "^-")
-      (skip-syntax-forward "-"))
-    ;; todo this should use second parameter 'inclusive instead of prefacing with syntax skips
-    (let ((pgn (pygn-mode-pgn-as-if-variation (point))))
-      (with-temp-buffer
-        (insert pgn)
-        (pygn-mode-display-board-at-point (point))))))
+  (let ((pgn (pygn-mode-pgn-at-pos-as-if-variation (point))))
+    ;; todo it might be a better design if a temp buffer wasn't needed here
+    (with-temp-buffer
+      (insert pgn)
+      (pygn-mode-display-board-at-point (point)))))
 
 (defun pygn-mode-display-variation-board-at-point (pos)
   "Respecting variations, display the board corresponding to the point.
 
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
-  (let ((pgn (pygn-mode-pgn-as-if-variation pos)))
+  (let ((pgn (pygn-mode-pgn-at-pos-as-if-variation pos)))
+    ;; todo it might be a better design if a temp buffer wasn't needed here
     (with-temp-buffer
       (insert pgn)
       (pygn-mode-display-board-at-point (point-max)))))
@@ -1210,7 +1308,7 @@ interactively by giving a universal prefix argument."
                (window-live-p
                 (get-buffer-window uci-mode-engine-buffer)))
     (uci-mode-run-engine))
-  (let ((fen (pygn-mode-fen-at-pos pos)))
+  (let ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos pos))))
     (sleep-for 0.05)
     (uci-mode-send-stop)
     (uci-mode-send-commands
@@ -1236,7 +1334,7 @@ interactively by giving a universal prefix argument."
                (window-live-p
                 (get-buffer-window uci-mode-engine-buffer)))
     (uci-mode-run-engine))
-  (let ((fen (pygn-mode-fen-at-pos pos)))
+  (let ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos pos))))
     (sleep-for 0.05)
     (uci-mode-send-stop)
     (uci-mode-send-commands
