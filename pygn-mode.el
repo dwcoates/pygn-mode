@@ -7,7 +7,7 @@
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
 ;; Version: 0.5.0
 ;; Last-Updated: 26 Nov 2019
-;; Package-Requires: ((emacs "25.0") (nav-flash "1.0.0") (uci-mode "0.5.0"))
+;; Package-Requires: ((emacs "25.0") (uci-mode "0.5.0") (nav-flash "1.0.0") (ivy-mode "0.10.0"))
 ;; Keywords: data, games, chess
 ;;
 ;; Simplified BSD License
@@ -70,10 +70,6 @@
 ;;
 ;; IDEA
 ;;
-;;     pygn-ivy:
-;;        Select games with ivy (via header contents)
-;;        Select fens with ivy
-;;
 ;;     UCI moves to pgn: UCI position command arguments to pgn and/or graphical display
 ;;
 ;;     count games in current file? Display in modeline?
@@ -124,8 +120,9 @@
 
 (require 'cl-lib)
 (require 'comint)
-(require 'nav-flash nil t)
 (require 'uci-mode nil t)
+(require 'nav-flash nil t)
+(require 'ivy-mode nil t)
 
 ;;; Declarations
 
@@ -140,6 +137,8 @@
 (declare-function uci-mode-run-engine    "uci-mode.el")
 (declare-function uci-mode-send-stop     "uci-mode.el")
 (declare-function uci-mode-send-commands "uci-mode.el")
+
+(declare-function ivy-completing-read "ivy-mode.el")
 
 ;;; Customizable variables
 
@@ -312,6 +311,12 @@
     (define-key map [menu-bar PyGN pygn-mode-select-game]
       '(menu-item "Select Game" pygn-mode-select-game
                   :help "Select the current game"))
+    (define-key map [menu-bar PyGN pygn-mode-ivy-jump-to-game-by-fen]
+      '(menu-item "Jump to Game by FEN" pygn-mode-ivy-jump-to-game-by-fen
+                  :help "Jump to a game by FEN"))
+    (define-key map [menu-bar PyGN pygn-mode-ivy-jump-to-game-by-any-header]
+      '(menu-item "Jump to Game by Header" pygn-mode-ivy-jump-to-game-by-header
+                  :help "Jump to a game by any header content"))
     (define-key map [menu-bar PyGN pygn-mode-previous-game]
       '(menu-item "Previous Game" pygn-mode-previous-game
                   :help "Navigate to the previous game"))
@@ -829,6 +834,62 @@ FORMAT may be either 'svg or 'text."
                    (pygn-mode-game-end-position)
                  nil)))
       (nav-flash-show beg end))))
+
+(defun pygn-mode-all-header-coordinates ()
+  "Return an alist of cells in the form (CONTENT . POS), where
+CONTENT contains strings from header tagpairs of games, and POS
+is the starting position of a game in the buffer.
+
+For use in `pygn-mode-ivy-jump-to-game-by-any-header'."
+  (let ((game-starts nil)
+        (game-bounds nil)
+        (header-coordinates nil)
+        (element nil))
+    (save-excursion
+      (save-restriction
+        (goto-char (point-min))
+        (while (re-search-forward "^\\[Event " nil t)
+          (push (line-beginning-position) game-starts))
+        (setq game-starts (nreverse game-starts))
+        (while (setq element (pop game-starts))
+          (push (cons element (1- (or (car game-starts) (point-max)))) game-bounds))
+        (setq game-bounds (nreverse game-bounds))
+        (cl-loop for cell in game-bounds
+              do (progn
+                   (narrow-to-region (car cell) (cdr cell))
+                   (goto-char (point-min))
+                   (re-search-forward "\n[ \t\r]*\n" nil t)
+                   (push (cons
+                          (replace-regexp-in-string
+                           "\\`\\s-+" ""
+                           (replace-regexp-in-string
+                            "\n" " "
+                            (replace-regexp-in-string
+                             "^\\[\\S-+\\s-+\"[?.]*\"\\]" ""
+                             (buffer-substring-no-properties (car cell) (point)))))
+                          (car cell))
+                         header-coordinates)))
+        (nreverse header-coordinates)))))
+
+(defun pygn-mode-fen-coordinates ()
+  "Return an alist of cells in the form (CONTENT . POS), where
+CONTENT contains strings from FEN header tagpairs of games, and
+POS is the starting position of a game in the buffer.
+
+For use in `pygn-mode-ivy-jump-to-game-by-fen'."
+  (let ((all-coordinates (pygn-mode-all-header-coordinates))
+        (fen-coordinates nil)
+        (fen nil))
+    (cl-loop for cell in (cl-remove-if-not
+                          #'(lambda (x) (cl-search "[FEN " (car x)))
+                          all-coordinates)
+             do (progn
+                  (setq fen
+                        (replace-regexp-in-string
+                         "\\`.*?\\[FEN\\s-+\"\\(.*?\\)\".*" "\\1"
+                         (car cell)))
+                  (push (cons fen (cdr cell)) fen-coordinates)))
+    (nreverse fen-coordinates)))
 
 ;;; Font-lock
 
@@ -1386,6 +1447,31 @@ Place the board and UCI windows on the right side."
   (set-window-scroll-bars
    (get-buffer-window (current-buffer)) nil nil nil 'bottom)
   (other-window 1))
+
+(defun pygn-mode-ivy-jump-to-game-by-any-header ()
+  "Navigate to a game by `ivy-completing-read' against header tagpairs.
+
+Header tagpairs for which the value is \"?\" or empty are elided from
+the search string."
+  (interactive)
+  (let* ((read-collection (pygn-mode-all-header-coordinates))
+         (choice (ivy-completing-read "Choose Game: " read-collection)))
+    (when (and choice (not (zerop (length choice))))
+      (goto-char (cdr (assoc choice read-collection)))
+      (recenter-window-group)
+      (pygn-mode-flash-game-at-point))))
+
+(defun pygn-mode-ivy-jump-to-game-by-fen ()
+  "Navigate to a game by `ivy-completing-read' against FEN tagpair values.
+
+Games without FEN tagpairs are not represented in the search."
+  (interactive)
+  (let* ((read-collection (pygn-mode-fen-coordinates))
+         (choice (ivy-completing-read "Choose Game: " read-collection)))
+    (when (and choice (not (zerop (length choice))))
+      (goto-char (cdr (assoc choice read-collection)))
+      (recenter-window-group)
+      (pygn-mode-flash-game-at-point))))
 
 (provide 'pygn-mode)
 
