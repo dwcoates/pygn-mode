@@ -100,16 +100,16 @@ of each game starting with an `[Event "?"]` tagpair.
 
 ### FEN Commands
 
- * `pygn-mode-echo-fen-at-point` — echo FEN, optionally copying to clipboard
- * `pygn-mode-display-fen-at-point` — display FEN in another buffer
- * `pygn-mode-display-variation-fen-at-point` — display FEN, respecting variations
+ * `pygn-mode-echo-fen-at-pos` — echo FEN, optionally copying to clipboard
+ * `pygn-mode-display-fen-at-pos` — display FEN in another buffer
+ * `pygn-mode-display-variation-fen-at-pos` — display FEN, respecting variations
 
 ### Board Commands
 
- * `pygn-mode-display-board-at-point` — display board image in another buffer (format automatic)
- * `pygn-mode-display-gui-board-at-point` — display graphical board image in another buffer
- * `pygn-mode-display-text-board-at-point` — display text board image in another buffer
- * `pygn-mode-display-variation-board-at-point` — display board image, respecting variations
+ * `pygn-mode-display-board-at-pos` — display board image in another buffer (format automatic)
+ * `pygn-mode-display-gui-board-at-pos` — display graphical board image in another buffer
+ * `pygn-mode-display-text-board-at-pos` — display text board image in another buffer
+ * `pygn-mode-display-variation-board-at-pos` — display board image, respecting variations
  * `pygn-mode-previous-move-follow-board` — advance to next move and display board image
  * `pygn-mode-next-move-follow-board` — move point to previous move and display board image
 
