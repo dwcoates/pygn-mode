@@ -823,8 +823,9 @@ FORMAT may be either 'svg or 'text."
       (error "Bad response from `pygn-mode' server"))
     (cadr response)))
 
-(defun pygn-mode-flash-game-at-point ()
-  "Use nav-flash to highlight the current game at point."
+(defun pygn-mode-focus-game-at-point ()
+  "Recenter the window and use nav-flash to highlight the current game at point."
+  (recenter-window-group)
   (when (fboundp 'nav-flash-show)
     (let ((nav-flash-delay 0.2)
           (beg (if pygn-mode-flash-full-game
@@ -1031,10 +1032,9 @@ Recenters buffer afterwards."
   (save-match-data
     (let ((next-game (and (re-search-forward "^\\[Event " nil t arg)
                           (goto-char (line-beginning-position)))))
-      (recenter-window-group)
       (when (not next-game)
         (error "No next game")))
-    (pygn-mode-flash-game-at-point)))
+    (pygn-mode-focus-game-at-point)))
 
 ;;; Interactive commands
 
