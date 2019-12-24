@@ -7,7 +7,7 @@
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
 ;; Version: 0.5.0
 ;; Last-Updated: 26 Nov 2019
-;; Package-Requires: ((emacs "25.0") (uci-mode "0.5.0") (nav-flash "1.0.0") (ivy-mode "0.10.0"))
+;; Package-Requires: ((emacs "25.0") (uci-mode "0.5.0") (nav-flash "1.0.0") (ivy "0.10.0"))
 ;; Keywords: data, games, chess
 ;;
 ;; Simplified BSD License
@@ -122,7 +122,7 @@
 (require 'comint)
 (require 'uci-mode nil t)
 (require 'nav-flash nil t)
-(require 'ivy-mode nil t)
+(require 'ivy nil t)
 
 ;;; Declarations
 
@@ -138,7 +138,7 @@
 (declare-function uci-mode-send-stop     "uci-mode.el")
 (declare-function uci-mode-send-commands "uci-mode.el")
 
-(declare-function ivy-completing-read "ivy-mode.el")
+(declare-function ivy-completing-read "ivy.el")
 
 ;;; Customizable variables
 
@@ -313,9 +313,11 @@
                   :help "Select the current game"))
     (define-key map [menu-bar PyGN pygn-mode-ivy-jump-to-game-by-fen]
       '(menu-item "Jump to Game by FEN" pygn-mode-ivy-jump-to-game-by-fen
+                  :enable (featurep 'ivy)
                   :help "Jump to a game by FEN"))
     (define-key map [menu-bar PyGN pygn-mode-ivy-jump-to-game-by-any-header]
       '(menu-item "Jump to Game by Header" pygn-mode-ivy-jump-to-game-by-header
+                  :enable (featurep 'ivy)
                   :help "Jump to a game by any header content"))
     (define-key map [menu-bar PyGN pygn-mode-previous-game]
       '(menu-item "Previous Game" pygn-mode-previous-game
