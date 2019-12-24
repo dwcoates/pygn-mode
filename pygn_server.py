@@ -117,36 +117,39 @@ def listen():
             continue
 
         # Parse request.
-        m = re.compile("\A:version\s+(\S+)\s+(:\S+)(.*?)\s+--\s+(:\S+)\s+(\S.*)\n").search(input_str)
-        if (not m):
+        match = re.compile("\A:version\s+(\S+)\s+(:\S+)(.*?)\s+--\s+(:\S+)\s+(\S.*)\n").search(input_str)
+        if (not match):
             print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
             continue
+        [req_version,
+         req_command,
+         req_options,
+         req_payload_type,
+         req_payload] = match.groups()
 
-        if not m.group(1) == __version__:
+        if not req_version == __version__:
             print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
             continue
 
         # Command code for handling input.
-        command = m.group(2)
-        if command not in CALLBACKS:
-            print("Bad request command (unknown): {}".format(command), file=sys.stderr)
+        if req_command not in CALLBACKS:
+            print("Bad request command (unknown): {}".format(req_command), file=sys.stderr)
             continue
 
         # Options to modify operation of the command.
         try:
-            args = argparser.parse_args(shlex.split(m.group(3)))
+            args = argparser.parse_args(shlex.split(req_options))
         except:
-            print("Bad request options: {}".format(m.group(3)), file=sys.stderr)
+            print("Bad request options: {}".format(req_options), file=sys.stderr)
             continue
 
         # Payload_type is for future extensibility, currently always :pgn
-        payload_type = m.group(4)
-        if not payload_type == ":pgn":
-            print("Bad request :payload-type (unknown): {}".format(payload_type), file=sys.stderr)
+        if not req_payload_type == ":pgn":
+            print("Bad request :payload-type (unknown): {}".format(req_payload_type), file=sys.stderr)
             continue
 
         # Build game board.
-        pgn = m.group(5)
+        pgn = req_payload
         pgn = re.sub(r'\\n', '\n', pgn)
         pgn = pgn + '\n\n'
         game = chess.pgn.read_game(io.StringIO(pgn))
@@ -158,7 +161,7 @@ def listen():
 
         # Send response to client.
         print(':version ' + __version__ + ' ' +
-              CALLBACKS[command](game,board,last_move,args))
+              CALLBACKS[req_command](game,board,last_move,args))
 
 ###
 ### argument processing
