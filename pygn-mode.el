@@ -1279,30 +1279,23 @@ When called non-interactively, display the FEN corresponding to POS."
       (insert svg-data)
       (write-file filename))))
 
-;; todo the save feature should be part of pygn-mode-display-board-at-pos
-(defun pygn-mode-display-gui-board-at-pos (pos &optional arg)
+(defun pygn-mode-display-gui-board-at-pos (pos)
   "Display a GUI board corresponding to the point in a separate buffer.
 
-When called non-interactively, display the board corresponding to POS.
-
-With optional universal prefix ARG, write the image to a file, prompting
-for image size."
-  (interactive "d\nP")
-  (if arg
-      (pygn-mode--save-gui-board-at-pos pos)
-    ;; else
-    (let* ((svg-data (pygn-mode-pgn-to-board (pygn-mode-pgn-at-pos pos) 'svg))
-           (buf (get-buffer-create pygn-mode-board-buffer-name))
-           (win (get-buffer-window buf)))
-      (with-current-buffer buf
-        (setq cursor-type nil)
-        (erase-buffer)
-        (insert-image (create-image svg-data 'svg t)))
-      (display-buffer buf '(display-buffer-reuse-window))
-      (unless win
-        (setq win (get-buffer-window buf))
-        (set-window-dedicated-p win t)
-        (resize-temp-buffer-window win)))))
+When called non-interactively, display the board corresponding to POS."
+  (interactive "d")
+  (let* ((svg-data (pygn-mode-pgn-to-board (pygn-mode-pgn-at-pos pos) 'svg))
+         (buf (get-buffer-create pygn-mode-board-buffer-name))
+         (win (get-buffer-window buf)))
+    (with-current-buffer buf
+      (setq cursor-type nil)
+      (erase-buffer)
+      (insert-image (create-image svg-data 'svg t)))
+    (display-buffer buf '(display-buffer-reuse-window))
+    (unless win
+      (setq win (get-buffer-window buf))
+      (set-window-dedicated-p win t)
+      (resize-temp-buffer-window win))))
 
 (defun pygn-mode-display-text-board-at-pos (pos)
   "Display a text board corresponding to the point in a separate buffer.
@@ -1324,21 +1317,26 @@ When called non-interactively, display the board corresponding to POS."
       (set-window-dedicated-p win t)
       (resize-temp-buffer-window win))))
 
-(defun pygn-mode-display-board-at-pos (pos &optional format)
+(defun pygn-mode-display-board-at-pos (pos &optional arg)
   "Display a board corresponding to the point in a separate buffer.
 
 When called non-interactively, display the board corresponding to POS.
-FORMAT may be 'svg or 'text, and if nil will be determined based on
-`display-graphic-p'."
-  (interactive "d")
-  (setq format (or format (if (display-graphic-p) 'svg 'text)))
+
+The board format will be determined automatically based on
+`display-graphic-p'.  To force a GUI or TUI board, call
+`pygn-mode-display-gui-board-at-pos' or
+`pygn-mode-display-text-board-at-pos' directly.
+
+With optional universal prefix ARG, write a board image to a file,
+prompting for image size."
+  (interactive "d\nP")
   (cond
-    ((eq format 'svg)
+    (arg
+     (pygn-mode--save-gui-board-at-pos pos))
+    ((display-graphic-p)
      (pygn-mode-display-gui-board-at-pos pos))
-    ((eq format 'text)
-     (pygn-mode-display-text-board-at-pos pos))
     (t
-     (error "Bad board format: %s" format))))
+     (pygn-mode-display-text-board-at-pos pos))))
 
 (defun pygn-mode-mouse-display-variation-board (event)
   "Display the board corresponding to a mouse click in a separate buffer.
