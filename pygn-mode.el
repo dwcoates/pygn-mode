@@ -14,11 +14,28 @@
 ;;
 ;;; Commentary:
 ;;
-;; No keys are bound by default.  Consider
+;; Quickstart
 ;;
-;;     (eval-after-load "pygn-mode"
-;;       (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move)
-;;       (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move))
+;;     $ pip install python-chess
+;;
+;;     (require 'pygn-mode)
+;;
+;;     M-x pygn-mode-dependency-check
+;;
+;; Explanation
+;;
+;;     Pygn-mode is a major-mode for viewing and editing chess PGN files.
+;;     Directly editing PGN files is interesting for programmers who are
+;;     developing chess engines, or advanced players who are doing deep
+;;     analysis on games.  This mode is not useful for simply playing chess.
+;;
+;; Bindings
+;;
+;;     No keys are bound by default.  Consider
+;;
+;;         (eval-after-load "pygn-mode"
+;;           (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move)
+;;           (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move))
 ;;
 ;; Customization
 ;;
@@ -45,9 +62,16 @@
 ;;
 ;; Bugs
 ;;
+;;     Most commands stop working after a certain distance into a PGN.  The
+;;     docstring for `process-send-string' says "If STRING is more than 500
+;;     characters long, it is sent in several bunches."  This is probably the
+;;     reason.
+;;
 ;;     `pygn-mode-after-change-function' should be made faster
 ;;
-;;     bracketed {comments} inside variations can't contain close-parenthesis
+;;     Bracketed {comments} inside variations can't contain close-parenthesis
+;;
+;;     No support for recursive variations
 ;;
 ;; TODO
 ;;
@@ -403,7 +427,7 @@ To produce a flag which takes no options, give a plist value of `t'."
 
 ;; TODO: pipes?
 (defun pygn-mode--server-start (&optional force)
-  "Initialize the `pygn-mode' `pygn-mode--server-process'.
+  "Initialize `pygn-mode--server-process'.
 
 Optionally FORCE recreation if the server already exists."
   (pygn-mode--python-chess-guard)
@@ -446,11 +470,11 @@ Optionally FORCE recreation if the server already exists."
 The server request format is documented more completely at doc/server.md
 in the source distribution for `pygn-mode'.
 
-COMMAND should be a symbol such as :pgn-to-fen, which is a command
-known by the server.  OPTIONS should be a plist such as (:pixels 400)
+:COMMAND should be a symbol such as :pgn-to-fen, which is a command
+known by the server.  :OPTIONS should be a plist such as (:pixels 400)
 in which the keys correspond to argparse arguments known by the server.
-PAYLOAD-ID should be a symbol such as :pgn, identifying the type of the
-data payload, and PAYLOAD may contain arbitrary data."
+:PAYLOAD-ID should be a symbol such as :pgn, identifying the type of the
+data payload, and :PAYLOAD may contain arbitrary data."
   (unless (pygn-mode--server-running-p)
     (error "The pygn-mode server is not running -- cannot send a message"))
   (setq payload (replace-regexp-in-string "\n" "\\\\n" payload))
@@ -493,12 +517,13 @@ Respects the variables `pygn-mode--server-receive-every-seconds' and
                                    payload-type
                                    payload
                                    force)
-  "Send a request to `pygn-mode--server-process', await, and return the response.
+  "Send a request to `pygn-mode--server-process', wait, and return the
+response.
 
-COMMAND, OPTIONS, PAYLOAD-TYPE, and PAYLOAD are as documented at
+:COMMAND, :OPTIONS, :PAYLOAD-TYPE, and :PAYLOAD are as documented at
 `pygn-mode--server-send'.
 
-FORCE forces a new server process to be created."
+:FORCE forces a new server process to be created."
   (unless (pygn-mode--server-running-p)
     (pygn-mode--server-start force))
   (pygn-mode--server-send
@@ -510,7 +535,10 @@ FORCE forces a new server process to be created."
 
 ;; it is a bit muddy that the parser is permitted to restart the server
 (defun pygn-mode--parse-response (response)
-  "Parse RESPONSE string into a list of payload-id and payload."
+  "Parse RESPONSE string into a list of payload-id and payload.
+
+Restart `pygn-mode--server-process' if the response version string does
+not match the client."
   (let ((response-version nil))
     (save-match-data
       (setq response
@@ -623,7 +651,7 @@ not examined on the SAN move."
 (defun pygn-mode-game-start-position (&optional pos)
   "Start position for the PGN game which contains position POS.
 
-POS defaults to `point'."
+POS defaults to the point."
   (cl-callf or pos (point))
   (save-excursion
     (goto-char pos)
@@ -636,7 +664,7 @@ POS defaults to `point'."
 (defun pygn-mode-game-end-position (&optional pos)
   "End position for the PGN game which contains position POS.
 
-POS defaults to `point'."
+POS defaults to the point."
   (cl-callf or pos (point))
   (save-excursion
     (save-match-data
@@ -703,7 +731,7 @@ POS defaults to `point'."
         (skip-syntax-backward "-")))))
 
 (defun pygn-mode-pgn-at-pos (pos)
-  "PGN string inclusive of any move at POS."
+  "Return a single-game PGN string inclusive of any move at POS."
   (save-match-data
     (save-excursion
       (goto-char pos)
@@ -746,7 +774,8 @@ POS defaults to `point'."
        (point)))))
 
 (defun pygn-mode-pgn-at-pos-as-if-variation (pos)
-  "PGN string as if a variation had been played until position POS.
+  "Return a single-game PGN string as if a variation had been played,
+inclusive of any move at POS.
 
 Does not work for nested variations."
   (if (not (pygn-mode-inside-variation-p pos))
@@ -807,7 +836,7 @@ Does not work for nested variations."
     (cadr response)))
 
 (defun pygn-mode-pgn-to-board (pgn format)
-  "Get board representation for the position after PGN.
+  "Return a board representation for the position after PGN.
 
 FORMAT may be either 'svg or 'text."
   (let ((response (pygn-mode--server-query
@@ -824,7 +853,7 @@ FORMAT may be either 'svg or 'text."
     (cadr response)))
 
 (defun pygn-mode-focus-game-at-point ()
-  "Recenter the window and use nav-flash to highlight the current game at point."
+  "Recenter the window and highlight the current game at point."
   (recenter-window-group)
   (when (fboundp 'nav-flash-show)
     (let ((nav-flash-delay 0.2)
@@ -837,9 +866,9 @@ FORMAT may be either 'svg or 'text."
       (nav-flash-show beg end))))
 
 (defun pygn-mode-all-header-coordinates ()
-  "Return an alist of cells in the form (CONTENT . POS), where
-CONTENT contains strings from header tagpairs of games, and POS
-is the starting position of a game in the buffer.
+  "Return an alist of cells in the form (CONTENT . POS), where CONTENT
+contains strings from header tagpairs of games, and POS is the starting
+position of a game in the buffer.
 
 For use in `pygn-mode-ivy-jump-to-game-by-any-header'."
   (let ((game-starts nil)
@@ -873,9 +902,9 @@ For use in `pygn-mode-ivy-jump-to-game-by-any-header'."
         (nreverse header-coordinates)))))
 
 (defun pygn-mode-fen-coordinates ()
-  "Return an alist of cells in the form (CONTENT . POS), where
-CONTENT contains strings from FEN header tagpairs of games, and
-POS is the starting position of a game in the buffer.
+  "Return an alist of cells in the form (CONTENT . POS), where CONTENT
+contains strings from FEN header tagpairs of games, and POS is the starting
+position of a game in the buffer.
 
 For use in `pygn-mode-ivy-jump-to-game-by-fen'."
   (let ((all-coordinates (pygn-mode-all-header-coordinates))
@@ -998,15 +1027,14 @@ Intended to be used as a `syntax-propertize-function'."
 ;;; Minor-mode definition
 
 (define-minor-mode pygn-mode-follow-minor-mode
-  "Minor mode for pygn-mode.
+  "Minor mode for `pygn-mode'.
 
-With a prefix argument ARG, enable mode if ARG is positive, and
-disable it otherwise.  If called from Lisp, enable mode if ARG is
-omitted or nil.
+With a prefix argument ARG, enable mode if ARG is positive, and disable it
+otherwise.  If called from Lisp, enable mode if ARG is omitted or nil.
 
-When turned on, cursor motion in a PyGN buffer causes automatic
-display of a GUI board corresponding to the point.  The displayed
-board will respect variations."
+When turned on, cursor motion in a PyGN buffer causes automatic display of
+a board representation corresponding to the point.  The displayed board
+will respect variations."
   :group 'pygn-mode
   :init-value nil
   :lighter " fol"
@@ -1028,7 +1056,7 @@ Intended for use in `post-command-hook'."
 (defun pygn-mode--next-game-driver (arg)
   "Move point to next game, moving ARG games forward (backwards if negative).
 
-Recenters buffer afterwards."
+Focus the game after motion."
   (save-match-data
     (let ((next-game (and (re-search-forward "^\\[Event " nil t arg)
                           (goto-char (line-beginning-position)))))
@@ -1106,10 +1134,10 @@ With numeric prefix ARG, move back ARG games."
     (pygn-mode--next-game-driver (* arg -1))))
 
 (defun pygn-mode-next-move (arg)
-  "Advance to the next move in a PGN game.
+  "Advance to the next player move in a PGN game.
 
 Treats move numbers purely as punctuation.  If the point is on a move
-number, it considered to be on the move followed by that move number.
+number, it is considered to be on the move followed by that move number.
 But the advancing motion will skip over move numbers when possible.
 
 With numeric prefix ARG, advance ARG moves forward."
@@ -1146,10 +1174,10 @@ With numeric prefix ARG, advance ARG moves forward."
             (error "No more moves")))))))
 
 (defun pygn-mode-previous-move (arg)
-  "Move back to the previous move in a PGN game.
+  "Move back to the previous player move in a PGN game.
 
 Treats move numbers purely as punctuation.  If the point is on a move
-number, it considered to be on the move followed by that move number.
+number, it is considered to be on the move followed by that move number.
 But the backward motion will skip over move numbers when possible.
 
 With numeric prefix ARG, move ARG moves backward."
@@ -1199,8 +1227,8 @@ When called non-interactively, select the game containing POS."
 
 When called non-interactively, display the FEN corresponding to POS.
 
-With prefix-arg DO-COPY, copy the FEN to the kill ring, and to the
-system clipboard when running a GUI Emacs."
+With prefix-arg DO-COPY, copy the FEN to the kill ring, and to the system
+clipboard when running a GUI Emacs."
   (interactive "d\nP")
   (let ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos pos))))
     (when do-copy
@@ -1231,7 +1259,7 @@ When called non-interactively, display the FEN corresponding to POS."
 (defun pygn-mode-display-variation-fen-at-pos (pos)
   "Respecting variations, display the FEN corresponding to the point.
 
-When called non-interactively, display the board corresponding to POS."
+When called non-interactively, display the FEN corresponding to POS."
   (interactive "d")
   (let ((pgn (pygn-mode-pgn-at-pos-as-if-variation pos)))
     ;; todo it might be a better design if a temp buffer wasn't needed here
@@ -1311,7 +1339,7 @@ FORMAT may be 'svg or 'text, and if nil will be determined based on
      (error "Bad board format: %s" format))))
 
 (defun pygn-mode-mouse-display-variation-board (event)
-  "Display the board corresponding to the mouse click in a separate buffer.
+  "Display the board corresponding to a mouse click in a separate buffer.
 
 The board display respects variations."
   (interactive "@e")
@@ -1335,7 +1363,7 @@ When called non-interactively, display the board corresponding to POS."
       (pygn-mode-display-board-at-pos (point-max)))))
 
 (defun pygn-mode-previous-move-follow-board (arg)
-  "Move back to the previous move and display the updated board.
+  "Move back to the previous player move and display the updated board.
 
 With numeric prefix ARG, move ARG moves backward."
   (interactive "p")
@@ -1343,7 +1371,7 @@ With numeric prefix ARG, move ARG moves backward."
   (pygn-mode-display-board-at-pos (point)))
 
 (defun pygn-mode-next-move-follow-board (arg)
-  "Advance to the next move and display the updated board.
+  "Advance to the next player move and display the updated board.
 
 With numeric prefix ARG, move ARG moves forward."
   (interactive "p")
@@ -1353,9 +1381,9 @@ With numeric prefix ARG, move ARG moves forward."
 (defun pygn-mode-engine-go-depth (pos &optional depth)
   "Evaluate the position at POS in a `uci-mode' engine buffer.
 
-DEPTH defaults to `pygn-mode-default-engine-depth'.  It may be
-overridden directly as a numeric prefix argument, or prompted for
-interactively by giving a universal prefix argument."
+DEPTH defaults to `pygn-mode-default-engine-depth'.  It may be overridden
+directly as a numeric prefix argument, or prompted for interactively by
+giving a universal prefix argument."
   (interactive "d\nP")
   (setq depth
         (cond
@@ -1379,9 +1407,9 @@ interactively by giving a universal prefix argument."
 (defun pygn-mode-engine-go-time (pos &optional seconds)
   "Evaluate the position at POS in a `uci-mode' engine buffer.
 
-SECONDS defaults to `pygn-mode-default-engine-time'.  It may be
-overridden directly as a numeric prefix argument, or prompted for
-interactively by giving a universal prefix argument."
+SECONDS defaults to `pygn-mode-default-engine-time'.  It may be overridden
+directly as a numeric prefix argument, or prompted for interactively by
+giving a universal prefix argument."
   (interactive "d\nP")
   (setq seconds
         (cond
@@ -1405,7 +1433,7 @@ interactively by giving a universal prefix argument."
 (defun pygn-mode-triple-window-layout-bottom ()
   "Set up three windows for PGN buffer, board image, and UCI interaction.
 
-Place the board and UCI windows on the right side."
+Place the board and UCI windows below the PGN window."
   (interactive)
   (unless (eq major-mode 'pygn-mode)
     (error "Select a buffer in `pygn-mode'"))
@@ -1428,7 +1456,7 @@ Place the board and UCI windows on the right side."
 (defun pygn-mode-triple-window-layout-right ()
   "Set up three windows for PGN buffer, board image, and UCI interaction.
 
-Place the board and UCI windows on the right side."
+Place the board and UCI windows to the right of the PGN window."
   (interactive)
   (unless (eq major-mode 'pygn-mode)
     (error "Select a buffer in `pygn-mode'"))

@@ -53,7 +53,7 @@ form.
 
 Default mouse bindings are provided:
 
- * mouse-2 — `pygn-mode-mouse-display-variation-board`
+ * <kbd>mouse-2</kbd> — `pygn-mode-mouse-display-variation-board`
 
 In English, clicking the middle mouse button on a move in Emacs displays a
 board image computed after that move was made.
@@ -115,12 +115,12 @@ of each game starting with an `[Event "?"]` tagpair.
 
 ### Diagnostic Commands
 
- * `pygn-mode-dependency-check` — check Python and python-chess dependencies
+ * `pygn-mode-dependency-check` — check dependencies: Python, python-chess, and engine
 
 ## Minor Mode
 
-Enabling `pygn-mode-follow-minor-mode` causes a GUI board to be displayed and
-updated after any changes to the cursor position.
+Enabling `pygn-mode-follow-minor-mode` causes a board rendering to be displayed
+and updated after any changes to the cursor position.
 
 ## Prior Art
 
