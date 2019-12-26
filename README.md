@@ -113,6 +113,11 @@ of each game starting with an `[Event "?"]` tagpair.
  * `pygn-mode-previous-move-follow-board` — advance to next move and display board image
  * `pygn-mode-next-move-follow-board` — move point to previous move and display board image
 
+### Line Commands
+
+ * `pygn-mode-display-line-at-pos` — display SAN line in another buffer
+ * `pygn-mode-display-variation-line-at-pos` — display SAN line, respecting variations
+
 ### Diagnostic Commands
 
  * `pygn-mode-dependency-check` — check dependencies: Python, python-chess, and engine
