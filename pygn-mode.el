@@ -86,8 +86,6 @@
 ;;      - in comments
 ;;      - in README.md
 ;;
-;;     pygn-mode-go-depth/pygn-mode-go-time should respect variations
-;;
 ;;     pygn-mode-go-searchmoves which defaults to searching move under point
 ;;
 ;;     Flash current move on selection
@@ -1399,7 +1397,7 @@ giving a universal prefix argument."
                (window-live-p
                 (get-buffer-window uci-mode-engine-buffer)))
     (uci-mode-run-engine))
-  (let ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos pos))))
+  (let ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos-as-if-variation pos))))
     (sleep-for 0.05)
     (uci-mode-send-stop)
     (uci-mode-send-commands
@@ -1425,7 +1423,7 @@ giving a universal prefix argument."
                (window-live-p
                 (get-buffer-window uci-mode-engine-buffer)))
     (uci-mode-run-engine))
-  (let ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos pos))))
+  (let ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos-as-if-variation pos))))
     (sleep-for 0.05)
     (uci-mode-send-stop)
     (uci-mode-send-commands
