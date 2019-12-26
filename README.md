@@ -1,5 +1,5 @@
-<a href="/doc/images/pygn-mode-follow.gif">
-<img src="/doc/images/pygn-mode-board.png" width=300 align="right"/>
+<a href="/doc/images/gallery.md">
+    <img src="/doc/images/pygn-mode-board.png" width=300 align="right"/>
 </a>
 
 # Overview
