@@ -61,10 +61,10 @@ def cleanup():
 
 def pgn_to_board_callback(game,board,last_move,args):
     if args.board_format[0] == 'svg':
-        return ':board-svg ' + chess.svg.board(
-            board=board,
-            lastmove=last_move,
-            size=args.pixels[0])
+        svg = chess.svg.board(board=board,
+                              lastmove=last_move,
+                              size=args.pixels[0])
+        return f':board-svg {svg}'
     elif args.board_format[0] == 'text':
         text = board.unicode(borders=True)
         text = re.sub(r'·', ' ', text)
@@ -76,17 +76,17 @@ def pgn_to_board_callback(game,board,last_move,args):
         text = re.sub(r'^(\d) ', '\\1', text, flags=re.MULTILINE)
         text = text.translate(str.maketrans('♜♞♝♛♚♟♖♘♗♕♔♙','RNBQKPrnbqkp'))
         text = re.sub(r'\n', '\\\\n', text)
-        return ':board-text ' + text
+        return f':board-text {text}'
     else:
-        print("Bad pgn-mode -board_format value: {}".format(args.board_format[0]), file=sys.stderr)
+        print(f'Bad pgn-mode -board_format value: {args.board_format[0]}', file=sys.stderr)
 
 def pgn_to_fen_callback(game,board,last_move,args):
-    return ':fen ' + board.fen()
+    return f':fen {board.fen()}'
 
 def pgn_to_score_callback(game,board,last_move,args):
     engine = instantiate_engine(args.engine[0])
     uci_info = engine.analyse(board, chess.engine.Limit(depth=args.depth[0]))
-    return ':score ' + str(uci_info["score"])
+    return f':score {uci_info["score"]}'
 
 def pgn_to_mainline_callback(game,board,last_move,args):
     clean_exporter = chess.pgn.StringExporter(columns=None,
@@ -95,7 +95,7 @@ def pgn_to_mainline_callback(game,board,last_move,args):
                                               comments=False)
     mainline = game.accept(clean_exporter)
     mainline = re.sub(r'\s+\S+\Z', '', mainline)
-    return ':san ' + mainline
+    return f':san {mainline}'
 
 def listen():
     """
@@ -117,9 +117,9 @@ def listen():
             continue
 
         # Parse request.
-        match = re.compile("\A:version\s+(\S+)\s+(:\S+)(.*?)\s+--\s+(:\S+)\s+(\S.*)\n").search(input_str)
+        match = re.compile('\A:version\s+(\S+)\s+(:\S+)(.*?)\s+--\s+(:\S+)\s+(\S.*)\n').search(input_str)
         if (not match):
-            print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
+            print(f'Bad pgn-mode server request. Could not parse: {input_str}', file=sys.stderr)
             continue
         [req_version,
          req_command,
@@ -128,24 +128,24 @@ def listen():
          req_payload] = match.groups()
 
         if not req_version == __version__:
-            print("Bad pgn-mode python process input: {}".format(input_str), file=sys.stderr)
+            print(f'Bad request: version mismatch: {req_version}', file=sys.stderr)
             continue
 
         # Command code for handling input.
         if req_command not in CALLBACKS:
-            print("Bad request command (unknown): {}".format(req_command), file=sys.stderr)
+            print(f'Bad request command (unknown): {req_command}', file=sys.stderr)
             continue
 
         # Options to modify operation of the command.
         try:
             args = argparser.parse_args(shlex.split(req_options))
         except:
-            print("Bad request options: {}".format(req_options), file=sys.stderr)
+            print(f'Bad request options: {req_options}', file=sys.stderr)
             continue
 
-        if not req_payload_type == ":pgn":
-            print("Bad request :payload-type (unknown): {}".format(req_payload_type), file=sys.stderr)
         # :payload-type is for future extensibility, currently always :pgn
+        if not req_payload_type == ':pgn':
+            print(f'Bad request :payload-type (unknown): {req_payload_type}', file=sys.stderr)
             continue
 
         # Build game board.
@@ -159,9 +159,11 @@ def listen():
             last_move = move
             board.push(move)
 
+        # Compute response.
+        response = CALLBACKS[req_command](game,board,last_move,args)
+
         # Send response to client.
-        print(':version ' + __version__ + ' ' +
-              CALLBACKS[req_command](game,board,last_move,args))
+        print(f':version {__version__} {response}')
 
 ###
 ### argument processing
@@ -178,12 +180,12 @@ def generate_argparser():
     argparser.add_argument('-board_format', '--board_format',
                            nargs=1,
                            type=str,
-                           default=["svg"],
+                           default=['svg'],
                            help='format for board output.  Default is "svg".')
     argparser.add_argument('-engine', '--engine',
                            nargs=1,
                            type=str,
-                           default=["stockfish"],
+                           default=['stockfish'],
                            help='set path to UCI engine for analysis. Default is "stockfish".')
     argparser.add_argument('-depth', '--depth',
                            nargs=1,
@@ -204,10 +206,10 @@ if __name__ == '__main__':
         exit(0)
 
     CALLBACKS = {
-        ":pgn-to-fen": pgn_to_fen_callback,
-        ":pgn-to-board": pgn_to_board_callback,
-        ":pgn-to-score": pgn_to_score_callback,
-        ":pgn-to-mainline": pgn_to_mainline_callback,
+        ':pgn-to-fen': pgn_to_fen_callback,
+        ':pgn-to-board': pgn_to_board_callback,
+        ':pgn-to-score': pgn_to_score_callback,
+        ':pgn-to-mainline': pgn_to_mainline_callback,
     }
 
     atexit.register(cleanup)
