@@ -62,11 +62,6 @@
 ;;
 ;; Bugs
 ;;
-;;     Most commands stop working after a certain distance into a PGN.  The
-;;     docstring for `process-send-string' says "If STRING is more than 500
-;;     characters long, it is sent in several bunches."  This is probably the
-;;     reason.
-;;
 ;;     `pygn-mode-after-change-function' should be made faster
 ;;
 ;;     Bracketed {comments} inside variations can't contain close-parenthesis
@@ -427,7 +422,6 @@ To produce a flag which takes no options, give a plist value of `t'."
           (setq pygn-mode-python-chess-succeeded t)
         (error "The Python interpreter at `pygn-mode-python-path' must have the python-chess library available")))))
 
-;; TODO: pipes?
 (defun pygn-mode--server-start (&optional force)
   "Initialize `pygn-mode--server-process'.
 
@@ -449,6 +443,8 @@ Optionally FORCE recreation if the server already exists."
                         :noquery t
                         :sentinel #'ignore
                         :coding 'utf-8
+                        :connection-type 'pipe
+                        :stderr null-device
                         :command (list pygn-mode-python-executable
                                        "-u"
                                        (expand-file-name "pygn_server.py" pygn-mode-script-directory)
