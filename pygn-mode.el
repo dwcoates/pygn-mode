@@ -245,6 +245,9 @@
 (defvar pygn-mode-board-buffer-name "*pygn-mode-board*"
   "Buffer name used to display boards.")
 
+(defvar pygn-mode-line-buffer-name "*pygn-mode-line*"
+  "Buffer name used to display SAN lines.")
+
 (defvar pygn-mode-dependency-check-buffer-name "*pygn-mode-dependency-check*"
   "Buffer name used to display a dependency check.")
 
@@ -364,6 +367,9 @@
     (define-key map [menu-bar PyGN pygn-mode-display-board-at-pos]
       '(menu-item "Board at Point" pygn-mode-display-board-at-pos
                   :help "Display board at point in separate window"))
+    (define-key map [menu-bar PyGN pygn-mode-display-variation-line-at-pos]
+      '(menu-item "Line at Point" pygn-mode-display-variation-line-at-pos
+                  :help "Display SAN line at point in separate window"))
 
     ;; mouse
     (define-key map [mouse-2] 'pygn-mode-mouse-display-variation-board)
@@ -845,6 +851,17 @@ FORMAT may be either 'svg or 'text."
                    :payload      pgn)))
     (cl-callf pygn-mode--parse-response response)
     (unless (memq (car response) '(:board-svg :board-text))
+      (error "Bad response from `pygn-mode' server"))
+    (cadr response)))
+
+(defun pygn-mode-pgn-to-line (pgn)
+  "Return the SAN line corresponding to the position after PGN."
+  (let ((response (pygn-mode--server-query
+                   :command      :pgn-to-mainline
+                   :payload-type :pgn
+                   :payload      pgn)))
+    (cl-callf pygn-mode--parse-response response)
+    (unless (eq :san (car response))
       (error "Bad response from `pygn-mode' server"))
     (cadr response)))
 
@@ -1354,6 +1371,44 @@ When called non-interactively, display the board corresponding to POS."
     (with-temp-buffer
       (insert pgn)
       (pygn-mode-display-board-at-pos (point-max)))))
+
+(defun pygn-mode-display-line-at-pos (pos)
+  "Display the SAN line corresponding to the point in a separate buffer.
+
+When called non-interactively, display the line corresponding to POS."
+  (interactive "d")
+  (let* ((line (pygn-mode-pgn-to-line (pygn-mode-pgn-at-pos pos)))
+         (buf (get-buffer-create pygn-mode-line-buffer-name))
+         (win (get-buffer-window buf)))
+    (with-current-buffer buf
+      (erase-buffer)
+      (insert line)
+      (goto-char (point-min))
+      (display-buffer buf '(display-buffer-reuse-window))
+      (unless win
+        (setq win (get-buffer-window buf))
+        (set-window-dedicated-p win t)
+        (resize-temp-buffer-window win)))))
+
+(defun pygn-mode-display-variation-line-at-pos (pos)
+  "Display the SAN line corresponding to the point in a separate buffer.
+
+When called non-interactively, display the line corresponding to POS.
+
+The SAN line respects variations."
+  (interactive "d")
+  (let* ((line (pygn-mode-pgn-to-line (pygn-mode-pgn-at-pos-as-if-variation pos)))
+         (buf (get-buffer-create pygn-mode-line-buffer-name))
+         (win (get-buffer-window buf)))
+    (with-current-buffer buf
+      (erase-buffer)
+      (insert line)
+      (goto-char (point-min))
+      (display-buffer buf '(display-buffer-reuse-window))
+      (unless win
+        (setq win (get-buffer-window buf))
+        (set-window-dedicated-p win t)
+        (resize-temp-buffer-window win)))))
 
 (defun pygn-mode-previous-move-follow-board (arg)
   "Move back to the previous player move and display the updated board.
