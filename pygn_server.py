@@ -8,7 +8,7 @@
 #
 #     requires python-chess
 #
-#     documentation of the server request format is at doc/server.md
+#     documentation of the server protocol is at doc/server.md
 #
 # bugs
 #
@@ -143,9 +143,9 @@ def listen():
             print("Bad request options: {}".format(req_options), file=sys.stderr)
             continue
 
-        # Payload_type is for future extensibility, currently always :pgn
         if not req_payload_type == ":pgn":
             print("Bad request :payload-type (unknown): {}".format(req_payload_type), file=sys.stderr)
+        # :payload-type is for future extensibility, currently always :pgn
             continue
 
         # Build game board.
