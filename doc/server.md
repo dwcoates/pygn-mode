@@ -3,7 +3,7 @@
 Many features of `pygn-mode` are powered by a Python server using the
 [python-chess](https://pypi.org/project/python-chess/) library.
 
-The server script `pygn_server.py` targets Python 3 (3.5 or newer).
+The server script `pygn_server.py` targets Python 3 (3.6 or newer).
 
 # Development Mode
 
