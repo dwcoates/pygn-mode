@@ -517,17 +517,14 @@ Respects the variables `pygn-mode--server-receive-every-seconds' and
                                    command
                                    options
                                    payload-type
-                                   payload
-                                   force)
+                                   payload)
   "Send a request to `pygn-mode--server-process', wait, and return the
 response.
 
 :COMMAND, :OPTIONS, :PAYLOAD-TYPE, and :PAYLOAD are as documented at
-`pygn-mode--server-send'.
-
-:FORCE forces a new server process to be created."
+`pygn-mode--server-send'."
   (unless (pygn-mode--server-running-p)
-    (pygn-mode--server-start force))
+    (pygn-mode--server-start))
   (pygn-mode--server-send
    :command      command
    :options      options
