@@ -45,6 +45,7 @@ Provides
  * navigation and selection commands
  * computation of FEN at point (requires [python-chess](https://pypi.org/project/python-chess/) library)
  * computation and display of board at point (requires [python-chess](https://pypi.org/project/python-chess/))
+ * evaluation of board at point (requires [uci-mode](https://github.com/dwcoates/uci-mode))
 
 ## Interactive Commands
 
@@ -118,6 +119,16 @@ of each game starting with an `[Event "?"]` tagpair.
  * `pygn-mode-display-line-at-pos` — display SAN line in another buffer
  * `pygn-mode-display-variation-line-at-pos` — display SAN line, respecting variations
 
+### Engine Commands
+
+ * `pygn-mode-engine-go-depth` — display depth-limited engine evaluation in another buffer
+ * `pygn-mode-engine-go-time` — display time-limited engine evaluation in another buffer
+
+### Window-management Commands
+
+ * `pygn-mode-triple-window-layout-bottom` — arrange windows for engine evaluation
+ * `pygn-mode-triple-window-layout-right` — arrange windows for engine evaluation
+
 ### Diagnostic Commands
 
  * `pygn-mode-dependency-check` — check dependencies: Python, python-chess, and engine
@@ -138,6 +149,8 @@ emacs-chess
 GNU Emacs 25
 
 Needed for board images and FENs: [python-chess](https://pypi.org/project/python-chess/)
+
+Needed for engine evaluations: [uci-mode](https://github.com/dwcoates/uci-mode)
 
 Needed for jump commands: [ivy-mode.el](https://github.com/abo-abo/swiper)
 
