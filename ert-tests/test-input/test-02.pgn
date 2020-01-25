@@ -1,0 +1,75 @@
+[Event "Tata Steel Masters"]
+[Site "?"]
+[Date "2020.01.24"]
+[Round "11.3"]
+[White "Firouzja, Alireza"]
+[Black "Anand, Viswanathan"]
+[Result "0-1"]
+[ECO "E20"]
+[WhiteElo "2723"]
+[BlackElo "2758"]
+[Annotator "Bojkov,Dejan"]
+[PlyCount "94"]
+[EventDate "2020.??.??"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. f3 d5 5. a3 Be7 6. e4 dxe4 7. fxe4 c5 8. e5 ({
+A top game from last year witnessed a short draw after:} 8. d5 O-O 9. Bd3 Bd6
+10. Bg5 Nbd7 11. Nf3 exd5 12. Nxd5 h6 13. Bh4 Qa5+ 14. Qd2 Qxd2+ 15. Kxd2 Ng4
+16. Be7 Bxe7 17. Nxe7+ Kh8 18. Rhe1 Nge5 19. Rad1 {1/2-1/2 (19) So,W (2763)
+-Karjakin,S (2748) Riga 2019}) 8... Nfd7 9. dxc5 Nxe5 10. Qxd8+ Bxd8 11. Be2 {
+All of this has been played recently as well. After some thought Anand
+uncorked a novelty.} Bd7 $146 ({The predecessor of one of the main specialists
+in the line saw:} 11... Nbd7 12. Be3 Bh4+ 13. Kd2 Be7 14. Ne4 Nf6 15. Nxf6+
+Bxf6 16. Nf3 Bd7 17. Kc2 Ng4 18. Bd4 e5 19. h3 exd4 20. hxg4 Bxg4 21. Nxd4 Bxe2
+22. Nxe2 O-O-O {where Black obviously did not have any problems at all (to say
+at least), Najer,E (2635)-Leko,P (2670) Douglas 2019}) 12. Nf3 {Firouzja is
+taking his time as well and reacts in a logical way.} Nxf3+ 13. Bxf3 Bc6 {
+The white bishop cannot be tolerated.} 14. Ne4 {Heading to the d6 square.} ({
+The obvious:} 14. b4 {was not optimal due to:} Bf6) ({However, it made sense
+to secure the d6 spot with:} 14. Bf4 $5 {And only after:} Bxf3 15. gxf3 Nc6 {
+To go for:} 16. Ne4) 14... Bc7 $1 {Anand comfortably regroups his forces. But
+since the bishop can no longer hurt White on the long diagonal now:} 15. b4 {
+Becomes possible.} ({Firouzja correctly avoids:} 15. Nd6+ Bxd6 16. cxd6 Bxf3
+17. gxf3 Kd7 {with a pleasant position for Black thanks to the blockade.}) 15...
+Nd7 16. Bb2 ({Here though White could have already tried:} 16. Nd6+ Bxd6 {
+But not in conjunction with:} 17. cxd6 ({But in connection with the in-between
+capture:} 17. Bxc6 $5 Be5 18. Bxb7 Rb8 19. Rb1 Rxb7 20. c6 Rc7 21. cxd7+ Kxd7 {
+It is hard to say which is more valuable. White's queenside majority should
+technically speaking be more useful, but the black rooks have two nice
+half-open files to work on.}) 17... Bxf3 18. gxf3 Ne5 {which is good for Black.
+}) 16... Ne5 17. O-O-O {Only this is inaccurate.} ({The king belonged to the
+center:} 17. Rd1 {Made more sense, for instance:} Nxf3+ 18. gxf3 f6 19. Rg1 {
+with pressure along the half-open files.}) 17... Nxf3 18. gxf3 Bf4+ {An
+important difference in comparison to line from above. The bishop will be
+active.} 19. Kb1 f6 20. Rhg1 {White's initiative fizzled out. From here on it
+will be only Black to improve his position, hence White's next decision to
+trade the enemy bishop pair.} Kf7 21. Nd6+ Bxd6 22. Rxd6 g5 {With the threat
+of Bc6xf3.} ({Naturally not the immediate:} 22... Bxf3 23. Rd7+) 23. Rf1 ({
+There is no tiime for:} 23. b5 Bxf3 24. Rf1 g4) 23... a6 24. Kc2 {Firouzja
+does not feel the danger! The OCB endgame is far more insidious than it seems.}
+({Better was:} 24. f4 $1 g4 25. Kc2 Rhd8 26. Bd4 {with good chances for
+survival.}) 24... Rhd8 25. Kd2 e5 $1 {Now the f3 pawn is fixed and although
+will take Black 20 moves to take it, it never stood a chance.} 26. Ke3 Rxd6
+27. cxd6 Ke6 28. c5 b6 $1 {Black's pieces are doing great; now he needs the
+rook out.} 29. h4 h6 30. hxg5 hxg5 31. cxb6 ({Or:} 31. Rh1 bxc5 32. bxc5 Rb8
+33. Bc3 Rb3 34. Kd2 Rb5 {when Black wins a pawn.}) 31... Rb8 32. Rd1 Rxb6 33.
+Kf2 {With the idea to maneuver the bishop all the way up to c5.} Ba4 $1 {
+Which is easily spoiled by the Indian GM.} ({He could have won a pawn with:} 
+33... Bd7 34. Bc1 Rxd6 35. Rxd6+ Kxd6 {However after:} 36. Be3 {It is not easy
+to win the pure OCB endgame. White often wants to swap his two pawns for the
+opponent's only one and sacrifice his bishop...or even sacrifice the bishop
+first in a good moment provided he can get rid of his b-pawn and make it in
+time in the corner of the a-pawn.}) 34. Rd2 Rb8 35. Kg3 Rc8 36. Kf2 Rc4 {
+The rook is out, but Anand is not in a hurry. He first makes it to the time
+control.} 37. Kg3 Rc8 38. Kf2 Rh8 39. Kg3 Rh1 {Then infiltrates with his rook.}
+40. Kg2 Rb1 41. Kg3 Bc6 42. Kf2 Kd7 $1 {And sets zugzwang.} 43. Kg3 (43. Kg2 g4
+{loses prosaically.}) ({Whereas:} 43. Ke3 Rf1 44. Rf2 Rh1 45. Rd2 Rh3 {dos not
+save the f3 pawn neither.}) 43... Rf1 44. Rd3 Ke6 {Anand wants the f3 pawn for
+free.} ({Although the connected passers in the line:} 44... e4 45. fxe4 Bxe4
+46. Rd2 f5 {are sufficient for the win.}) 45. Kg4 ({Since:} 45. Kg2 Rxf3 $1 46.
+Rxf3 g4 {is lost for White.}) 45... Rb1 46. Rd2 Rg1+ {Suddenly it all might
+end with checkmate.} 47. Kh3 ({The checkmate is inevitable after:} 47. Kh5 Kf7
+48. Rd3 Bd7) 47... Rf1 {There is nothing White can do to save the weak pawn.
+Three painful defeats for Firouzja, three hard-lessons-learned for the young
+grandmaster.}
+0-1
