@@ -45,6 +45,8 @@
 ;;
 ;;     http://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm
 ;;
+;;     https://github.com/dwcoates/uci-mode
+;;
 ;; Prior Art
 ;;
 ;;     https://github.com/jwiegley/emacs-chess
@@ -76,10 +78,6 @@
 ;;     Extensive ert test coverage of
 ;;      - pygn-mode-pgn-at-pos
 ;;      - pygn-mode-pgn-at-pos-as-if-variation
-;;
-;;     Link to separate uci-mode repo
-;;      - in comments
-;;      - in README.md
 ;;
 ;;     pygn-mode-go-searchmoves which defaults to searching move under point
 ;;

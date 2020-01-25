@@ -3,9 +3,11 @@ Comparison between [PyGN-mode](https://github.com/dwcoates/pygn-mode) and [emacs
 | feature                           | PyGN-mode | emacs-chess |
 | --------------------------------- | --------- | ----------- |
 | complete chess application        |           |           ✓ |
+| useful for playing chess          |           |           ✓ |
 | part of ELPA                      |           |           ✓ |
 | provides mode for displaying PGNs |         ✓ |           ✓ |
 | can display graphical boards      |         ✓ |           ✓ |
 | more complete PGN fontification   |         ✓ |             |
 | provides PGN navigation commands  |         ✓ |             |
 | requires Python and [python-chess](https://pypi.org/project/python-chess/) |         ✓ |             |
+| integrates with [uci-mode](https://github.com/dwcoates/uci-mode) |         ✓ |             |
