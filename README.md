@@ -2,6 +2,8 @@
     <img src="/doc/images/pygn-mode-board.png" width=300 align="right"/>
 </a>
 
+[![Build Status](https://github.com/dwcoates/pygn-mode/workflows/CI/badge.svg)](https://github.com/dwcoates/pygn-mode/actions)
+
 # Overview
 
 An Emacs major-mode for chess PGN files, powered by Python.
