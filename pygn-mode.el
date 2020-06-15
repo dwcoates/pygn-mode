@@ -180,6 +180,11 @@
   :group 'pygn-mode
   :type 'int)
 
+(defcustom pygn-mode-board-flipped nil
+  "If non-nil, display the board flipped."
+  :group 'pygn-mode
+  :type 'boolean)
+
 (defcustom pygn-mode-flash-full-game nil
   "If non-nil, flash the entire PGN on game selection actions."
   :group 'pygn-mode
@@ -399,16 +404,18 @@ To produce a flag which takes no options, give a plist value of `t'."
                   (setq key-string
                         (replace-regexp-in-string
                          "^:" "-" (symbol-name key)))
-                  (if (eq value t)
-                      (setq argparse-string (concat
-                                             argparse-string
-                                             " " key-string))
-                    ;; else
-                    (setq val-string (shell-quote-argument
-                                      (format "%s" value)))
+                  (cond
+                   ((eq value t)
                     (setq argparse-string (concat
                                            argparse-string
-                                           (format " %s=%s" key-string val-string))))))
+                                           " " key-string)))
+                   ;; if option is nil then we just don't send the flag.
+                   ((not (eq value nil))
+                    (let ((val-string (shell-quote-argument
+                                       (format "%s" value))))
+                      (setq argparse-string (concat
+                                             argparse-string
+                                             (format " %s=%s" key-string val-string))))))))
     argparse-string))
 
 (defun pygn-mode--server-running-p ()
@@ -842,6 +849,7 @@ FORMAT may be either 'svg or 'text."
                    :options      `(
                                    :pixels       ,pygn-mode-board-size
                                    :board_format ,format
+                                   :flipped      ,pygn-mode-board-flipped
                                   )
                    :payload-type :pgn
                    :payload      pgn)))
