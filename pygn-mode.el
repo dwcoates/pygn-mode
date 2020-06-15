@@ -175,7 +175,7 @@
   :group 'pygn-mode
   :type 'string)
 
-(defcustom pygn-mode-board-size 380
+(defcustom pygn-mode-board-size 360
   "Size for graphical board display, expressed as pixels-per-side."
   :group 'pygn-mode
   :type 'int)
