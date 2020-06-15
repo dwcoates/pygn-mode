@@ -265,11 +265,12 @@
   "The maximum amount of time `pygn-mode--server-receive' should check the server for output when polling.")
 
 (defvar pygn-mode--strict-legal-move-pat
-  "\\<\\([RNBQK]\\(?:[1-8a-h]?x?\\)?[a-h][1-8]\\|\\(?:[a-h]x\\)?[a-h][1-8]\\(?:=[RNBQ]\\)?\\|O-O\\|O-O-O\\)\\(\\+\\+?\\|#\\)?"
+  "\\b\\(?:[RNBQK]\\(?:[1-8a-h]?x?\\)?[a-h][1-8]\\|\\(?:[a-h]x\\)?[a-h][1-8]\\(=[RNBQ]\\)?\\|O-O\\(?:-O\\)?\\)\\(?:\\+\\+?\\|#\\)?\\b"
+
   "Regular expression strictly matching a legal SAN move.")
 
 (defvar pygn-mode--relaxed-legal-move-pat
-  (concat "[ \t]*[0-9]*[.…\s-]*" pygn-mode--strict-legal-move-pat)
+  (concat "\\(?:[ \t]*[0-9]*[.…\s]*\\)?" pygn-mode--strict-legal-move-pat)
   "Regular expression matching a legal SAN move with leading move numbers and whitespace.")
 
 ;;; Syntax table
