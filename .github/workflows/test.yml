@@ -2,7 +2,6 @@ name: CI
 
 on:
   pull_request:
-  push:
     paths-ignore:
     - '**.md'
     - '**.py'
@@ -15,13 +14,9 @@ jobs:
     strategy:
       matrix:
         emacs_version:
-          - 25.1
-          - 25.2
           - 25.3
-          - 26.1
-          - 26.2
           - 26.3
-          - snapshot
+          - 27.2
     steps:
     - uses: purcell/setup-emacs@master
       with:
