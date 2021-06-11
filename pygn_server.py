@@ -6,7 +6,7 @@
 #
 # notes
 #
-#     requires python-chess
+#     requires chess library
 #
 #     documentation of the server protocol is at doc/server.md
 #

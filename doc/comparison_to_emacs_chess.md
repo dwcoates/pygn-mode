@@ -9,5 +9,5 @@ Comparison between [PyGN-mode](https://github.com/dwcoates/pygn-mode) and [emacs
 | can display graphical boards      |         ✓ |           ✓ |
 | more complete PGN fontification   |         ✓ |             |
 | provides PGN navigation commands  |         ✓ |             |
-| requires Python and [python-chess](https://pypi.org/project/python-chess/) |         ✓ |             |
+| requires Python and [chess](https://pypi.org/project/chess/) |         ✓ |             |
 | integrates with [uci-mode](https://github.com/dwcoates/uci-mode) |         ✓ |             |
