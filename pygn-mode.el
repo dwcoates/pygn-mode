@@ -171,7 +171,7 @@
   :type 'string)
 
 (defcustom pygn-mode-pythonpath nil
-  "A colon-delimited path to override the $PYTHONPATH environment variable."
+  "A colon-delimited path to override the `$PYTHONPATH' environment variable."
   :group 'pygn-mode
   :type 'string)
 
@@ -410,6 +410,10 @@ To produce a flag which takes no options, give a plist value of `t'."
                                            (format " %s=%s" key-string val-string))))))
     argparse-string))
 
+(defun pygn-mode--set-python-path ()
+  "Use `pygn-mode-pythonpath' to update the system `$PYTHONPATH'."
+  (setenv "PYTHONPATH" (concat pygn-mode-pythonpath ":" (getenv "PYTHONPATH"))))
+
 (defun pygn-mode--server-running-p ()
   "Return non-nil iff `pygn-mode--server-process' is running."
   (and pygn-mode--server-process (process-live-p pygn-mode--server-process)))
@@ -419,7 +423,7 @@ To produce a flag which takes no options, give a plist value of `t'."
   (unless pygn-mode-python-chess-succeeded
     (let ((process-environment (cl-copy-list process-environment)))
       (when pygn-mode-pythonpath
-        (setenv "PYTHONPATH" pygn-mode-pythonpath))
+        (pygn-mode--set-python-path))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
           (setq pygn-mode-python-chess-succeeded t)
         (error "The Python interpreter at `pygn-mode-python-path' must have the Python chess library available")))))
@@ -436,7 +440,7 @@ Optionally FORCE recreation if the server already exists."
   (message (format "Initializing pygn-mode server process%s." (if force " (forcing)" "")))
   (let ((process-environment (cl-copy-list process-environment)))
     (when pygn-mode-pythonpath
-      (setenv "PYTHONPATH" pygn-mode-pythonpath))
+      (pygn-mode--set-python-path))
     (setenv "PYTHONIOENCODING" "UTF-8")
     (setq pygn-mode--server-buffer (get-buffer-create pygn-mode--server-buffer-name))
     (setq pygn-mode--server-process
@@ -1084,7 +1088,7 @@ Focus the game after motion."
       (erase-buffer)
       (display-buffer buf '(display-buffer-reuse-window))
       (when pygn-mode-pythonpath
-        (setenv "PYTHONPATH" pygn-mode-pythonpath))
+        (pygn-mode--set-python-path))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "pass"))
           (insert (format "[x] Good. We can execute the pygn-mode-python-executable at '%s'\n\n" pygn-mode-python-executable))
         ;; else
