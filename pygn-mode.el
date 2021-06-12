@@ -1055,9 +1055,10 @@ will respect variations."
         (pygn-mode-follow-mode-post-command-hook)
         (add-hook 'post-command-hook #'pygn-mode-follow-mode-post-command-hook nil t))
     (remove-hook 'post-command-hook #'pygn-mode-follow-mode-post-command-hook t)
-    (let ((win (get-buffer-window (get-buffer pygn-mode-board-buffer-name))))
-      (when (window-live-p win)
-        (delete-window win)))))
+    (when (get-buffer pygn-mode-board-buffer-name)
+      (let ((win (get-buffer-window (get-buffer pygn-mode-board-buffer-name))))
+        (when (window-live-p win)
+          (delete-window win))))))
 
 (defun pygn-mode-follow-mode-post-command-hook ()
   "Driver for `pygn-mode-follow-minor-mode'.
