@@ -18,7 +18,7 @@ An Emacs major-mode for chess PGN files, powered by Python.
 ## Quickstart
 
 ```bash
-$ pip install python-chess
+$ pip install chess
 ```
 
 ```elisp
@@ -45,8 +45,8 @@ Provides
    `{comments}` and parenthesized `(variations)`.
  * customizable faces
  * navigation and selection commands
- * computation of FEN at point (requires [python-chess](https://pypi.org/project/python-chess/) library)
- * computation and display of board at point (requires [python-chess](https://pypi.org/project/python-chess/))
+ * computation of FEN at point (requires [chess](https://pypi.org/project/chess/) library)
+ * computation and display of board at point (requires [chess](https://pypi.org/project/chess/))
  * evaluation of board at point (requires [uci-mode](https://github.com/dwcoates/uci-mode))
 
 ## Interactive Commands
@@ -133,7 +133,8 @@ of each game starting with an `[Event "?"]` tagpair.
 
 ### Diagnostic Commands
 
- * `pygn-mode-dependency-check` — check dependencies: Python, python-chess, and engine
+ * `pygn-mode-dependency-check` — check dependencies: Python, `chess` library,
+   and engine
 
 ## Minor Mode
 
@@ -150,7 +151,7 @@ emacs-chess
 
 GNU Emacs 25
 
-Needed for board images and FENs: [python-chess](https://pypi.org/project/python-chess/)
+Needed for board images and FENs: [chess](https://pypi.org/project/chess/)
 
 Needed for engine evaluations: [uci-mode](https://github.com/dwcoates/uci-mode)
 

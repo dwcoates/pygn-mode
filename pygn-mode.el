@@ -16,7 +16,7 @@
 ;;
 ;; Quickstart
 ;;
-;;     $ pip install python-chess
+;;     $ pip install chess
 ;;
 ;;     (require 'pygn-mode)
 ;;
@@ -57,10 +57,10 @@
 ;;
 ;;     GNU Emacs 25
 ;;
-;;     Python and the python-chess library are needed for numerous features
-;;     such as SVG board images:
+;;     Python and the chess library are needed for numerous features such
+;;     as SVG board images:
 ;;
-;;         https://pypi.org/project/python-chess/
+;;         https://pypi.org/project/chess/
 ;;
 ;; Bugs
 ;;
@@ -235,7 +235,7 @@
   "Directory to find Python server script \"pygn_server.py\".")
 
 (defvar pygn-mode-python-chess-succeeded nil
-  "Whether a simple external command using the python-chess library has succeeded.")
+  "Whether a simple external command using the Python chess library has succeeded.")
 
 (defvar pygn-mode-fen-buffer-name "*pygn-mode-fen*"
   "Buffer name used to display FENs.")
@@ -415,14 +415,14 @@ To produce a flag which takes no options, give a plist value of `t'."
   (and pygn-mode--server-process (process-live-p pygn-mode--server-process)))
 
 (defun pygn-mode--python-chess-guard ()
-  "Throw an error unless the python-chess library is available."
+  "Throw an error unless the Python chess library is available."
   (unless pygn-mode-python-chess-succeeded
     (let ((process-environment (cl-copy-list process-environment)))
       (when pygn-mode-pythonpath
         (setenv "PYTHONPATH" pygn-mode-pythonpath))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
           (setq pygn-mode-python-chess-succeeded t)
-        (error "The Python interpreter at `pygn-mode-python-path' must have the python-chess library available")))))
+        (error "The Python interpreter at `pygn-mode-python-path' must have the Python chess library available")))))
 
 (defun pygn-mode--server-start (&optional force)
   "Initialize `pygn-mode--server-process'.
@@ -742,7 +742,7 @@ POS defaults to the point."
          t)
         ((pygn-mode-inside-variation-or-comment-p)
          ;; crudely truncate at pos
-         ;; and depend on python-chess to clean up trailing garbage
+         ;; and depend on Python chess library to clean up trailing garbage
          t)
         ((pygn-mode-looking-at-result-code)
          t)
@@ -784,11 +784,11 @@ Does not work for nested variations."
         (cond
           ((looking-at-p "\\s-*)")
            ;; crudely truncate at pos
-           ;; and depend on python-chess to clean up trailing garbage
+           ;; and depend on Python chess library to clean up trailing garbage
            t)
           ((pygn-mode-inside-comment-p)
            ;; crudely truncate at pos
-           ;; and depend on python-chess to clean up trailing garbage
+           ;; and depend on Python chess library to clean up trailing garbage
            t)
           ((pygn-mode-looking-back-strict-legal-move)
            t)
@@ -1110,11 +1110,11 @@ Focus the game after motion."
           pygn-mode-python-executable))
         (cl-return-from pygn-mode-dependency-check))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
-          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' can import the python-chess library.\n\n" pygn-mode-python-executable))
+          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' can import the Python chess library.\n\n" pygn-mode-python-executable))
         ;; else
         (insert
          (format
-          "[ ] Bad. The executable '%s' cannot import the python-chess library.  Try installing python-chess, and/or customizing the value of pygn-mode-pythonpath.\n\n"
+          "[ ] Bad. The executable '%s' cannot import the Python chess library.  Try installing chess, and/or customizing the value of pygn-mode-pythonpath.\n\n"
           pygn-mode-python-executable))
         (cl-return-from pygn-mode-dependency-check))
       (insert (format "------------------------------------\n\n"))
