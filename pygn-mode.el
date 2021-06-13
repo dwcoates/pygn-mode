@@ -463,7 +463,9 @@ Optionally FORCE recreation if the server already exists."
                         :command (list pygn-mode-python-executable
                                        "-u"
                                        (expand-file-name "pygn_server.py" pygn-mode-script-directory)
-                                       "-")))))
+                                       "-"))))
+  (unless (string-match-p (regexp-quote  "Server started.") (pygn-mode--server-receive))
+    (error "Server for `pygn-mode' failed to start. Try running `pygn-mode-do-diagnostic'.")))
 
 (defun pygn-mode--server-kill ()
   "Stop the currently running `pygn-mode--server-process'."
@@ -556,7 +558,7 @@ not match the client."
       (setq response (match-string 2 response))
       (unless (equal response-version pygn-mode-version)
         (pygn-mode--server-start 'force)
-        (error "Bad response from `pygn-mode' server -- unexpected :version value. Attempted restart"))
+        (error "Bad response from `pygn-mode' server -- unexpected :version value: '%s'. Attempted restart" response-version))
       (unless (string-match
                "\\`\\(:\\S-+\\)\\(.*\\)" response)
         (error "Bad response from `pygn-mode' server"))
