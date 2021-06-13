@@ -551,7 +551,7 @@ not match the client."
   (let ((response-version nil))
     (save-match-data
       (setq response (replace-regexp-in-string "\n+\\'" "" response))
-      (when (string-empty-p response)
+      (when (string= "" response)
         (error "Bad response from `pygn-mode' server -- empty response"))
       (unless (string-match
                "\\`:version\\s-+\\(\\S-+\\)\\s-+\\(.*\\)" response)
