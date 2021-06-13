@@ -254,6 +254,9 @@
 (defvar pygn-mode-dependency-check-buffer-name "*pygn-mode-dependency-check*"
   "Buffer name used to display a dependency check.")
 
+(defvar pygn-mode-diagnostic-output-buffer-name "*pygn-mode-diagnostic-output*"
+  "Buffer name used to display a dependency check.")
+
 (defvar pygn-mode--server-process nil
   "Python-based server which powers many `pygn-mode' features.")
 
@@ -1085,13 +1088,17 @@ Focus the game after motion."
 
 ;;;###autoload
 (cl-defun pygn-mode-dependency-check ()
-  "Open a buffer describing `pygn-mode' dependencies."
+  "Open a buffer describing `pygn-mode' dependencies.
+
+Warning: DEPRECATED. Please use `pygn-mode-run-diagnostic'.
+"
   (interactive)
   (let ((buf (get-buffer-create pygn-mode-dependency-check-buffer-name))
         (process-environment (cl-copy-list process-environment)))
     (with-current-buffer buf
       (erase-buffer)
       (display-buffer buf '(display-buffer-reuse-window))
+
       (when pygn-mode-pythonpath
         (pygn-mode--set-python-path))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "pass"))
@@ -1128,6 +1135,77 @@ Focus the game after motion."
         (cl-return-from pygn-mode-dependency-check))
       (insert (format "------------------------------------\n\n"))
       (insert (format "All pygn-mode dependencies verified.\n")))))
+
+;;;###autoload
+(cl-defun pygn-mode--run-diagnostic ()
+  "Open a buffer describing `pygn-mode' dependencies. "
+  (let ((buf (get-buffer-create pygn-mode-diagnostic-output-buffer-name))
+        (process-environment (cl-copy-list process-environment)))
+    (with-current-buffer buf
+      (erase-buffer)
+      (when pygn-mode-pythonpath
+        (pygn-mode--set-python-path))
+      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "pass"))
+          (insert (format "[x] Good. We can execute the pygn-mode-python-executable at '%s'\n\n" pygn-mode-python-executable))
+        ;; else
+        (insert
+         (format
+          "[ ] Bad. We cannot execute the interpreter '%s'.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
+          pygn-mode-python-executable))
+        (cl-return-from pygn-mode--run-diagnostic nil))
+      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3000000 else 1)"))
+          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is a Python 3 interpreter.\n\n" pygn-mode-python-executable))
+        ;; else
+        (insert
+         (format
+          "[ ] Bad. The executable '%s' is not a Python 3 interpreter.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
+          pygn-mode-python-executable))
+        (cl-return-from pygn-mode--run-diagnostic nil))
+      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3060000 else 1)"))
+          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is better than or equal to Python version 3.6.\n\n" pygn-mode-python-executable))
+        ;; else
+        (insert
+         (format
+          "[ ] Bad. The executable '%s' is not at least Python version 3.6.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
+          pygn-mode-python-executable))
+        (cl-return-from pygn-mode--run-diagnostic nil))
+      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
+          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' can import the Python chess library.\n\n" pygn-mode-python-executable))
+        ;; else
+        (insert
+         (format
+          "[ ] Bad. The executable '%s' cannot import the Python chess library.  Try installing chess, and/or customizing the value of pygn-mode-pythonpath.\n\n"
+          pygn-mode-python-executable))
+        (cl-return-from pygn-mode--run-diagnostic nil))
+      (let ((server-script-path (expand-file-name "pygn_server.py" pygn-mode-script-directory)))
+        (if (and (file-exists-p server-script-path)
+                 (zerop (call-process server-script-path  nil nil nil "-version")))
+           (insert (format "[x] Good. The pygn-mode-script-directory ('%s') is good and server script is callable.\n\n" pygn-mode-script-directory))
+         (insert
+          (format
+           "[ ] Bad. The pygn-mode-script-directory ('%s') is bad or does not contain working server script (pygn_server.py).\n\n" pygn-mode-script-directory))
+         (cl-return-from pygn-mode--run-diagnostic nil)))
+      (insert (format "------------------------------------\n\n"))
+      (insert (format "All pygn-mode diagnostics completed successfully.\n"))))
+  (cl-return-from pygn-mode--run-diagnostic t))
+
+(defun pygn-mode-do-diagnostic ()
+  "Run a dependency/configuration diagnostic for pygn-mode.
+
+Return value is truthy iff diagnostics passed successfully.
+
+Check `pygn-mode-diagnostic-output-buffer-name' buffer for diagnostics details."
+  (if (pygn-mode--run-diagnostic)
+      (or (message "pygn-mode diagnostics passed.") t)
+    (message "WARN: pygn-mode diagnostics failed (see '%s' buffer for details)"
+             pygn-mode-diagnostic-output-buffer-name)
+    nil))
+
+(defun pygn-mode-run-diagnostic ()
+  "Run a dependency/configuration diagnostic for pygn-mode."
+  (interactive)
+  (pygn-mode--run-diagnostic)
+  (display-buffer (get-buffer pygn-mode-diagnostic-output-buffer-name) '(display-buffer-reuse-window)))
 
 (defun pygn-mode-next-game (arg)
   "Advance to the next game in a multi-game PGN buffer.
