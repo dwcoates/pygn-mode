@@ -473,11 +473,7 @@ Optionally FORCE recreation if the server already exists."
     (setq pygn-mode--server-process nil)
     (message "pygn-mode server process killed.")))
 
-(cl-defun pygn-mode--server-send (&key
-                                  command
-                                  options
-                                  payload-type
-                                  payload)
+(cl-defun pygn-mode--server-send (&key command options payload-type payload)
   "Send a message to the running `pygn-mode--server-process'.
 
 The server request format is documented more completely at doc/server.md
@@ -524,11 +520,7 @@ Respects the variables `pygn-mode--server-receive-every-seconds' and
         (cl-incf tries))
       (buffer-substring-no-properties (point-min) (point-max)))))
 
-(cl-defun pygn-mode--server-query (&key
-                                   command
-                                   options
-                                   payload-type
-                                   payload)
+(cl-defun pygn-mode--server-query (&key command options payload-type payload)
   "Send a request to `pygn-mode--server-process', wait, and return the
 response.
 
@@ -551,10 +543,9 @@ Restart `pygn-mode--server-process' if the response version string does
 not match the client."
   (let ((response-version nil))
     (save-match-data
-      (setq response
-            (replace-regexp-in-string
-             "\n+\\'" ""
-             response))
+      (setq response (replace-regexp-in-string "\n+\\'" "" response))
+      (when (string-empty-p response)
+        (error "Bad response from `pygn-mode' server -- empty response"))
       (unless (string-match
                "\\`:version\\s-+\\(\\S-+\\)\\s-+\\(.*\\)" response)
         (pygn-mode--server-start 'force)
