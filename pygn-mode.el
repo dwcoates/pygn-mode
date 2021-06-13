@@ -195,6 +195,11 @@
   :group 'pygn-mode
   :type 'int)
 
+(defcustom pygn-mode-server-stderr-buffer-name nil
+  "Buffer name for server stderr output, nil to redirect stderr to null device"
+  :group 'pygn-mode
+  :type 'string)
+
 ;;;###autoload
 (defgroup pygn-mode-faces nil
   "Faces used by pygn-mode."
@@ -428,6 +433,10 @@ To produce a flag which takes no options, give a plist value of `t'."
           (setq pygn-mode-python-chess-succeeded t)
         (error "The Python interpreter at `pygn-mode-python-path' must have the Python chess library available")))))
 
+(defun pygn-mode--get-stderr-buffer ()
+  (when pygn-mode-server-stderr-buffer-name
+    (get-buffer-create pygn-mode-server-stderr-buffer-name)))
+
 (defun pygn-mode--server-start (&optional force)
   "Initialize `pygn-mode--server-process'.
 
@@ -450,7 +459,7 @@ Optionally FORCE recreation if the server already exists."
                         :sentinel #'ignore
                         :coding 'utf-8
                         :connection-type 'pipe
-                        :stderr null-device
+                        :stderr (or (pygn-mode--get-stderr-buffer) null-device)
                         :command (list pygn-mode-python-executable
                                        "-u"
                                        (expand-file-name "pygn_server.py" pygn-mode-script-directory)
