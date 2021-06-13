@@ -149,7 +149,7 @@ emacs-chess
 
 ## Compatibility and Requirements
 
-GNU Emacs 25
+GNU Emacs 25+
 
 Needed for board images and FENs: [chess](https://pypi.org/project/chess/)
 
@@ -158,3 +158,16 @@ Needed for engine evaluations: [uci-mode](https://github.com/dwcoates/uci-mode)
 Needed for jump commands: [ivy-mode.el](https://github.com/abo-abo/swiper)
 
 Uses if present: [nav-flash.el](http://github.com/rolandwalker/nav-flash)
+
+### Requirements Diagnostic
+
+Running the diagnostic utility can be useful. 
+
+Interactively: `M-x pygn-mode-run-diagnostic`
+
+Programmatically:
+
+``` elisp
+(pygn-mode-do-diagnostic) ;; truthy iff diagnostic completed successfully.
+```
+
