@@ -511,14 +511,16 @@ Respects the variables `pygn-mode--server-receive-every-seconds' and
   (unless (get-buffer pygn-mode--server-buffer)
     (error "The pygn-mode server output buffer does not exist -- cannot receive a response"))
   (with-current-buffer pygn-mode--server-buffer
-    (erase-buffer)
-    (let ((tries 0))
+    (let ((tries 0)
+          (server-message nil))
       (goto-char (point-min))
       (while (and (not (eq ?\n (char-before (point-max))))
                   (< (* tries pygn-mode--server-receive-every-seconds) pygn-mode--server-receive-max-seconds))
         (accept-process-output pygn-mode--server-process pygn-mode--server-receive-every-seconds nil 1)
         (cl-incf tries))
-      (buffer-substring-no-properties (point-min) (point-max)))))
+      (setq server-message (buffer-substring-no-properties (point-min) (point-max)))
+      (erase-buffer)
+      server-message)))
 
 (cl-defun pygn-mode--server-query (&key command options payload-type payload)
   "Send a request to `pygn-mode--server-process', wait, and return the
