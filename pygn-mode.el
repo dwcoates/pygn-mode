@@ -1084,58 +1084,6 @@ Focus the game after motion."
         (error "No next game")))
     (pygn-mode-focus-game-at-point)))
 
-;;; Interactive commands
-
-;;;###autoload
-(cl-defun pygn-mode-dependency-check ()
-  "Open a buffer describing `pygn-mode' dependencies.
-
-Warning: DEPRECATED. Please use `pygn-mode-run-diagnostic'.
-"
-  (interactive)
-  (let ((buf (get-buffer-create pygn-mode-dependency-check-buffer-name))
-        (process-environment (cl-copy-list process-environment)))
-    (with-current-buffer buf
-      (erase-buffer)
-      (display-buffer buf '(display-buffer-reuse-window))
-
-      (when pygn-mode-pythonpath
-        (pygn-mode--set-python-path))
-      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "pass"))
-          (insert (format "[x] Good. We can execute the pygn-mode-python-executable at '%s'\n\n" pygn-mode-python-executable))
-        ;; else
-        (insert
-         (format
-          "[ ] Bad. We cannot execute the interpreter '%s'.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
-          pygn-mode-python-executable))
-        (cl-return-from pygn-mode-dependency-check))
-      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3000000 else 1)"))
-          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is a Python 3 interpreter.\n\n" pygn-mode-python-executable))
-        ;; else
-        (insert
-         (format
-          "[ ] Bad. The executable '%s' is not a Python 3 interpreter.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
-          pygn-mode-python-executable))
-        (cl-return-from pygn-mode-dependency-check))
-      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3060000 else 1)"))
-          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is better than or equal to Python version 3.6.\n\n" pygn-mode-python-executable))
-        ;; else
-        (insert
-         (format
-          "[ ] Bad. The executable '%s' is not at least Python version 3.6.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
-          pygn-mode-python-executable))
-        (cl-return-from pygn-mode-dependency-check))
-      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
-          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' can import the Python chess library.\n\n" pygn-mode-python-executable))
-        ;; else
-        (insert
-         (format
-          "[ ] Bad. The executable '%s' cannot import the Python chess library.  Try installing chess, and/or customizing the value of pygn-mode-pythonpath.\n\n"
-          pygn-mode-python-executable))
-        (cl-return-from pygn-mode-dependency-check))
-      (insert (format "------------------------------------\n\n"))
-      (insert (format "All pygn-mode dependencies verified.\n")))))
-
 ;;;###autoload
 (cl-defun pygn-mode--run-diagnostic ()
   "Open a buffer describing `pygn-mode' dependencies. "
@@ -1200,6 +1148,10 @@ Check `pygn-mode-diagnostic-output-buffer-name' buffer for diagnostics details."
     (message "WARN: pygn-mode diagnostics failed (see '%s' buffer for details)"
              pygn-mode-diagnostic-output-buffer-name)
     nil))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Interactive commands ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun pygn-mode-run-diagnostic ()
   "Run a dependency/configuration diagnostic for pygn-mode."
