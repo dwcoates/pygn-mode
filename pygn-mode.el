@@ -195,6 +195,11 @@
   :group 'pygn-mode
   :type 'int)
 
+(defcustom pygn-mode-server-stderr-buffer-name nil
+  "Buffer name for server stderr output, nil to redirect stderr to null device"
+  :group 'pygn-mode
+  :type 'string)
+
 ;;;###autoload
 (defgroup pygn-mode-faces nil
   "Faces used by pygn-mode."
@@ -247,6 +252,9 @@
   "Buffer name used to display SAN lines.")
 
 (defvar pygn-mode-dependency-check-buffer-name "*pygn-mode-dependency-check*"
+  "Buffer name used to display a dependency check.")
+
+(defvar pygn-mode-diagnostic-output-buffer-name "*pygn-mode-diagnostic-output*"
   "Buffer name used to display a dependency check.")
 
 (defvar pygn-mode--server-process nil
@@ -428,6 +436,10 @@ To produce a flag which takes no options, give a plist value of `t'."
           (setq pygn-mode-python-chess-succeeded t)
         (error "The Python interpreter at `pygn-mode-python-path' must have the Python chess library available")))))
 
+(defun pygn-mode--get-stderr-buffer ()
+  (when pygn-mode-server-stderr-buffer-name
+    (get-buffer-create pygn-mode-server-stderr-buffer-name)))
+
 (defun pygn-mode--server-start (&optional force)
   "Initialize `pygn-mode--server-process'.
 
@@ -450,11 +462,13 @@ Optionally FORCE recreation if the server already exists."
                         :sentinel #'ignore
                         :coding 'utf-8
                         :connection-type 'pipe
-                        :stderr null-device
+                        :stderr (or (pygn-mode--get-stderr-buffer) null-device)
                         :command (list pygn-mode-python-executable
                                        "-u"
                                        (expand-file-name "pygn_server.py" pygn-mode-script-directory)
-                                       "-")))))
+                                       "-"))))
+  (unless (string-match-p (regexp-quote  "Server started.") (pygn-mode--server-receive))
+    (error "Server for `pygn-mode' failed to start. Try running `pygn-mode-do-diagnostic'.")))
 
 (defun pygn-mode--server-kill ()
   "Stop the currently running `pygn-mode--server-process'."
@@ -464,11 +478,7 @@ Optionally FORCE recreation if the server already exists."
     (setq pygn-mode--server-process nil)
     (message "pygn-mode server process killed.")))
 
-(cl-defun pygn-mode--server-send (&key
-                                  command
-                                  options
-                                  payload-type
-                                  payload)
+(cl-defun pygn-mode--server-send (&key command options payload-type payload)
   "Send a message to the running `pygn-mode--server-process'.
 
 The server request format is documented more completely at doc/server.md
@@ -506,20 +516,18 @@ Respects the variables `pygn-mode--server-receive-every-seconds' and
   (unless (get-buffer pygn-mode--server-buffer)
     (error "The pygn-mode server output buffer does not exist -- cannot receive a response"))
   (with-current-buffer pygn-mode--server-buffer
-    (erase-buffer)
-    (let ((tries 0))
+    (let ((tries 0)
+          (server-message nil))
       (goto-char (point-min))
       (while (and (not (eq ?\n (char-before (point-max))))
                   (< (* tries pygn-mode--server-receive-every-seconds) pygn-mode--server-receive-max-seconds))
         (accept-process-output pygn-mode--server-process pygn-mode--server-receive-every-seconds nil 1)
         (cl-incf tries))
-      (buffer-substring-no-properties (point-min) (point-max)))))
+      (setq server-message (buffer-substring-no-properties (point-min) (point-max)))
+      (erase-buffer)
+      server-message)))
 
-(cl-defun pygn-mode--server-query (&key
-                                   command
-                                   options
-                                   payload-type
-                                   payload)
+(cl-defun pygn-mode--server-query (&key command options payload-type payload)
   "Send a request to `pygn-mode--server-process', wait, and return the
 response.
 
@@ -542,10 +550,9 @@ Restart `pygn-mode--server-process' if the response version string does
 not match the client."
   (let ((response-version nil))
     (save-match-data
-      (setq response
-            (replace-regexp-in-string
-             "\n+\\'" ""
-             response))
+      (setq response (replace-regexp-in-string "\n+\\'" "" response))
+      (when (string= "" response)
+        (error "Bad response from `pygn-mode' server -- empty response"))
       (unless (string-match
                "\\`:version\\s-+\\(\\S-+\\)\\s-+\\(.*\\)" response)
         (pygn-mode--server-start 'force)
@@ -554,7 +561,7 @@ not match the client."
       (setq response (match-string 2 response))
       (unless (equal response-version pygn-mode-version)
         (pygn-mode--server-start 'force)
-        (error "Bad response from `pygn-mode' server -- unexpected :version value. Attempted restart"))
+        (error "Bad response from `pygn-mode' server -- unexpected :version value: '%s'. Attempted restart" response-version))
       (unless (string-match
                "\\`\\(:\\S-+\\)\\(.*\\)" response)
         (error "Bad response from `pygn-mode' server"))
@@ -1077,17 +1084,13 @@ Focus the game after motion."
         (error "No next game")))
     (pygn-mode-focus-game-at-point)))
 
-;;; Interactive commands
-
 ;;;###autoload
-(cl-defun pygn-mode-dependency-check ()
-  "Open a buffer describing `pygn-mode' dependencies."
-  (interactive)
-  (let ((buf (get-buffer-create pygn-mode-dependency-check-buffer-name))
+(cl-defun pygn-mode--run-diagnostic ()
+  "Open a buffer describing `pygn-mode' dependencies. "
+  (let ((buf (get-buffer-create pygn-mode-diagnostic-output-buffer-name))
         (process-environment (cl-copy-list process-environment)))
     (with-current-buffer buf
       (erase-buffer)
-      (display-buffer buf '(display-buffer-reuse-window))
       (when pygn-mode-pythonpath
         (pygn-mode--set-python-path))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "pass"))
@@ -1097,7 +1100,7 @@ Focus the game after motion."
          (format
           "[ ] Bad. We cannot execute the interpreter '%s'.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
           pygn-mode-python-executable))
-        (cl-return-from pygn-mode-dependency-check))
+        (cl-return-from pygn-mode--run-diagnostic nil))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3000000 else 1)"))
           (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is a Python 3 interpreter.\n\n" pygn-mode-python-executable))
         ;; else
@@ -1105,7 +1108,7 @@ Focus the game after motion."
          (format
           "[ ] Bad. The executable '%s' is not a Python 3 interpreter.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
           pygn-mode-python-executable))
-        (cl-return-from pygn-mode-dependency-check))
+        (cl-return-from pygn-mode--run-diagnostic nil))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3060000 else 1)"))
           (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is better than or equal to Python version 3.6.\n\n" pygn-mode-python-executable))
         ;; else
@@ -1113,7 +1116,7 @@ Focus the game after motion."
          (format
           "[ ] Bad. The executable '%s' is not at least Python version 3.6.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
           pygn-mode-python-executable))
-        (cl-return-from pygn-mode-dependency-check))
+        (cl-return-from pygn-mode--run-diagnostic nil))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
           (insert (format "[x] Good. The pygn-mode-python-executable at '%s' can import the Python chess library.\n\n" pygn-mode-python-executable))
         ;; else
@@ -1121,9 +1124,40 @@ Focus the game after motion."
          (format
           "[ ] Bad. The executable '%s' cannot import the Python chess library.  Try installing chess, and/or customizing the value of pygn-mode-pythonpath.\n\n"
           pygn-mode-python-executable))
-        (cl-return-from pygn-mode-dependency-check))
+        (cl-return-from pygn-mode--run-diagnostic nil))
+      (let ((server-script-path (expand-file-name "pygn_server.py" pygn-mode-script-directory)))
+        (if (and (file-exists-p server-script-path)
+                 (zerop (call-process server-script-path  nil nil nil "-version")))
+           (insert (format "[x] Good. The pygn-mode-script-directory ('%s') is good and server script is callable.\n\n" pygn-mode-script-directory))
+         (insert
+          (format
+           "[ ] Bad. The pygn-mode-script-directory ('%s') is bad or does not contain working server script (pygn_server.py).\n\n" pygn-mode-script-directory))
+         (cl-return-from pygn-mode--run-diagnostic nil)))
       (insert (format "------------------------------------\n\n"))
-      (insert (format "All pygn-mode dependencies verified.\n")))))
+      (insert (format "All pygn-mode diagnostics completed successfully.\n"))))
+  (cl-return-from pygn-mode--run-diagnostic t))
+
+(defun pygn-mode-do-diagnostic ()
+  "Run a dependency/configuration diagnostic for pygn-mode.
+
+Return value is truthy iff diagnostics passed successfully.
+
+Check `pygn-mode-diagnostic-output-buffer-name' buffer for diagnostics details."
+  (if (pygn-mode--run-diagnostic)
+      (or (message "pygn-mode diagnostics passed.") t)
+    (message "WARN: pygn-mode diagnostics failed (see '%s' buffer for details)"
+             pygn-mode-diagnostic-output-buffer-name)
+    nil))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Interactive commands ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun pygn-mode-run-diagnostic ()
+  "Run a dependency/configuration diagnostic for pygn-mode."
+  (interactive)
+  (pygn-mode--run-diagnostic)
+  (display-buffer (get-buffer pygn-mode-diagnostic-output-buffer-name) '(display-buffer-reuse-window)))
 
 (defun pygn-mode-next-game (arg)
   "Advance to the next game in a multi-game PGN buffer.

@@ -214,6 +214,8 @@ if __name__ == '__main__':
 
     atexit.register(cleanup)
 
+    print(f'Server started.')
+
     listen()
 
 #
