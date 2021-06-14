@@ -1127,7 +1127,7 @@ Focus the game after motion."
         (cl-return-from pygn-mode--run-diagnostic nil))
       (let ((server-script-path (expand-file-name "pygn_server.py" pygn-mode-script-directory)))
         (if (and (file-exists-p server-script-path)
-                 (zerop (call-process server-script-path  nil nil nil "-version")))
+                 (zerop (call-process pygn-mode-python-executable  nil nil nil server-script-path "-version")))
            (insert (format "[x] Good. The pygn-mode-script-directory ('%s') is good and server script is callable.\n\n" pygn-mode-script-directory))
          (insert
           (format
