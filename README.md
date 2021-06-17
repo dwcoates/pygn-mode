@@ -151,6 +151,8 @@ emacs-chess
 
 GNU Emacs 25+
 
+Python 3.7+
+
 Needed for board images and FENs: [chess](https://pypi.org/project/chess/)
 
 Needed for engine evaluations: [uci-mode](https://github.com/dwcoates/uci-mode)
