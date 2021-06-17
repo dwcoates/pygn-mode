@@ -166,7 +166,7 @@
   :group 'games)
 
 (defcustom pygn-mode-python-executable "python"
-  "Path to a Python 3.6+ interpreter."
+  "Path to a Python 3.7+ interpreter."
   :group 'pygn-mode
   :type 'string)
 
@@ -1098,7 +1098,7 @@ Focus the game after motion."
         ;; else
         (insert
          (format
-          "[ ] Bad. We cannot execute the interpreter '%s'.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
+          "[ ] Bad. We cannot execute the interpreter '%s'.  Try installing Python 3.7+ and/or customizing the value of pygn-mode-python-executable.\n\n"
           pygn-mode-python-executable))
         (cl-return-from pygn-mode--run-diagnostic nil))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3000000 else 1)"))
@@ -1106,15 +1106,15 @@ Focus the game after motion."
         ;; else
         (insert
          (format
-          "[ ] Bad. The executable '%s' is not a Python 3 interpreter.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
+          "[ ] Bad. The executable '%s' is not a Python 3 interpreter.  Try installing Python 3.7+ and/or customizing the value of pygn-mode-python-executable.\n\n"
           pygn-mode-python-executable))
         (cl-return-from pygn-mode--run-diagnostic nil))
-      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3060000 else 1)"))
-          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is better than or equal to Python version 3.6.\n\n" pygn-mode-python-executable))
+      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3070000 else 1)"))
+          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is better than or equal to Python version 3.7.\n\n" pygn-mode-python-executable))
         ;; else
         (insert
          (format
-          "[ ] Bad. The executable '%s' is not at least Python version 3.6.  Try installing Python 3.6+ and/or customizing the value of pygn-mode-python-executable.\n\n"
+          "[ ] Bad. The executable '%s' is not at least Python version 3.7.  Try installing Python 3.7+ and/or customizing the value of pygn-mode-python-executable.\n\n"
           pygn-mode-python-executable))
         (cl-return-from pygn-mode--run-diagnostic nil))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
