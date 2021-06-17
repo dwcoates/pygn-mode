@@ -74,7 +74,7 @@ def pgn_to_board_callback(game,board,last_move,args):
         text = re.sub( r'a b c d e f g h',   ' a   b   c   d   e   f   g   h',   text)
         text = re.sub(r'\|', ' │ ', text)
         text = re.sub(r'^(\d) ', '\\1', text, flags=re.MULTILINE)
-        text = text.translate(str.maketrans('♜♞♝♛♚♟♖♘♗♕♔♙','RNBQKPrnbqkp'))
+        text = text.translate(str.maketrans('♜♞♝♛♚♟♖♘♗♕♔♙⭘','RNBQKPrnbqkp '))
         text = re.sub(r'\n', '\\\\n', text)
         return f':board-text {text}'
     else:
