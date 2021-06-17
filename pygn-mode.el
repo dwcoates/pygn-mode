@@ -16,8 +16,6 @@
 ;;
 ;; Quickstart
 ;;
-;;     $ pip install chess
-;;
 ;;     (require 'pygn-mode)
 ;;
 ;;     M-x pygn-mode-run-diagnostic
@@ -170,8 +168,17 @@
   :group 'pygn
   :type 'string)
 
-(defcustom pygn-mode-pythonpath nil
-  "A colon-delimited path to override the `$PYTHONPATH' environment variable."
+(defcustom pygn-mode-pythonpath
+  (expand-file-name
+   "lib/python/site-packages"
+   (file-name-directory
+    (or load-file-name
+        (bound-and-true-p byte-compile-current-file)
+        (buffer-file-name (current-buffer)))))
+  "A colon-delimited path to prepend to the `$PYTHONPATH' environment variable.
+
+The default points to the bundled Python `chess' library.  Set to nil to
+ignore the bundled library and use only the system `$PYTHONPATH'."
   :group 'pygn
   :type 'string)
 
@@ -424,7 +431,7 @@ To produce a flag which takes no options, give a plist value of t."
     argparse-string))
 
 (defun pygn-mode--set-python-path ()
-  "Use `pygn-mode-pythonpath' to update the system `$PYTHONPATH'."
+  "Prepend `pygn-mode-pythonpath' to the system `$PYTHONPATH'."
   (setenv "PYTHONPATH" (concat pygn-mode-pythonpath ":" (getenv "PYTHONPATH"))))
 
 (defun pygn-mode--server-running-p ()

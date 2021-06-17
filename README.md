@@ -17,10 +17,6 @@ An Emacs major-mode for chess PGN files, powered by Python.
 
 ## Quickstart
 
-```bash
-$ pip install chess
-```
-
 ```elisp
 ;; maybe
 ;; (eval-after-load "pygn-mode"
@@ -142,13 +138,18 @@ emacs-chess
 <https://github.com/jwiegley/emacs-chess>  
 [Comparison to emacs-chess](doc/comparison_to_emacs_chess.md)  
 
+## License
+
+* pygn-mode: [BSD 2-Clause](LICENSE)
+* bundled [chess](https://pypi.org/project/chess/) library: [GPL-3+](lib/python/site-packages/chess.egg-info/LICENSE.txt)
+
 ## Compatibility and Requirements
 
 GNU Emacs 25.1+
 
 Python 3.7+
 
-Needed for board images and FENs: [chess](https://pypi.org/project/chess/)
+Needed for board images and FENs: [chess](https://pypi.org/project/chess/) (bundled version 1.6.1)
 
 Needed for engine evaluations: [uci-mode](https://github.com/dwcoates/uci-mode)
 
@@ -167,4 +168,18 @@ Programmatically:
 
 ``` elisp
 (pygn-mode-run-diagnostic) ; truthy iff diagnostic completed successfully.
+```
+
+### Upgrading the [chess](https://pypi.org/project/chess/) library
+
+To use a non-bundled version of the Python [chess](https://pypi.org/project/chess/) library:
+
+```bash
+$ pip install chess
+```
+
+```elisp
+;; can also use customize
+;; can also use set a system path
+(setq pygn-mode-pythonpath nil)
 ```
