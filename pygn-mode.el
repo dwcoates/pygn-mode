@@ -20,7 +20,7 @@
 ;;
 ;;     (require 'pygn-mode)
 ;;
-;;     M-x pygn-mode-dependency-check
+;;     M-x pygn-mode-run-diagnostic
 ;;
 ;; Explanation
 ;;
@@ -251,11 +251,8 @@
 (defvar pygn-mode-line-buffer-name "*pygn-mode-line*"
   "Buffer name used to display SAN lines.")
 
-(defvar pygn-mode-dependency-check-buffer-name "*pygn-mode-dependency-check*"
-  "Buffer name used to display a dependency check.")
-
 (defvar pygn-mode-diagnostic-output-buffer-name "*pygn-mode-diagnostic-output*"
-  "Buffer name used to display a dependency check.")
+  "Buffer name used to display results of a diagnostic check.")
 
 (defvar pygn-mode--server-process nil
   "Python-based server which powers many `pygn-mode' features.")
@@ -468,7 +465,7 @@ Optionally FORCE recreation if the server already exists."
                                        (expand-file-name "pygn_server.py" pygn-mode-script-directory)
                                        "-"))))
   (unless (string-match-p (regexp-quote  "Server started.") (pygn-mode--server-receive))
-    (error "Server for `pygn-mode' failed to start. Try running `pygn-mode-do-diagnostic'.")))
+    (error "Server for `pygn-mode' failed to start. Try running `pygn-mode-run-diagnostic'.")))
 
 (defun pygn-mode--server-kill ()
   "Stop the currently running `pygn-mode--server-process'."
@@ -1086,7 +1083,7 @@ Focus the game after motion."
 
 ;;;###autoload
 (cl-defun pygn-mode--run-diagnostic ()
-  "Open a buffer describing `pygn-mode' dependencies. "
+  "Open a buffer containing a `pygn-mode' dependency/configuration diagnostic."
   (let ((buf (get-buffer-create pygn-mode-diagnostic-output-buffer-name))
         (process-environment (cl-copy-list process-environment)))
     (with-current-buffer buf

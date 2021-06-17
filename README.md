@@ -35,7 +35,7 @@ $ pip install chess
 (require 'pygn-mode)
 ```
 
-<kbd>M-x</kbd> `pygn-mode-dependency-check`
+<kbd>M-x</kbd> `pygn-mode-run-diagnostic`
 
 ## pygn-mode
 
@@ -131,11 +131,6 @@ of each game starting with an `[Event "?"]` tagpair.
  * `pygn-mode-triple-window-layout-bottom` — arrange windows for engine evaluation
  * `pygn-mode-triple-window-layout-right` — arrange windows for engine evaluation
 
-### Diagnostic Commands
-
- * `pygn-mode-dependency-check` — check dependencies: Python, `chess` library,
-   and engine
-
 ## Minor Mode
 
 Enabling `pygn-mode-follow-minor-mode` causes a board rendering to be displayed
@@ -161,7 +156,8 @@ Uses if present: [nav-flash.el](http://github.com/rolandwalker/nav-flash)
 
 ### Requirements Diagnostic
 
-Running the diagnostic utility can be useful. 
+The diagnostic command will check dependencies: Python, `chess` library,
+and engine.
 
 Interactively: `M-x pygn-mode-run-diagnostic`
 
