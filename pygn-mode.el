@@ -39,7 +39,7 @@
 ;;
 ;; Customization
 ;;
-;;     M-x customize-group RET pygn-mode RET
+;;     M-x customize-group RET pygn RET
 ;;
 ;; See Also
 ;;
