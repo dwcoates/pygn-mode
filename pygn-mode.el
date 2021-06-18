@@ -7,7 +7,7 @@
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
 ;; Version: 0.5.0
 ;; Last-Updated: 26 Nov 2019
-;; Package-Requires: ((emacs "25.0") (uci-mode "0.5.0") (nav-flash "1.0.0") (ivy "0.10.0"))
+;; Package-Requires: ((emacs "25.1") (uci-mode "0.5.0") (nav-flash "1.0.0") (ivy "0.10.0"))
 ;; Keywords: data, games, chess
 ;;
 ;; Simplified BSD License
@@ -55,7 +55,7 @@
 ;;
 ;; Compatibility and Requirements
 ;;
-;;     GNU Emacs 25
+;;     GNU Emacs 25.1+
 ;;
 ;;     Python and the chess library are needed for numerous features such
 ;;     as SVG board images:
@@ -158,7 +158,7 @@
 ;;; Customizable variables
 
 ;;;###autoload
-(defgroup pygn-mode nil
+(defgroup pygn nil
   "A major-mode for chess PGN files, powered by Python."
   :version pygn-mode-version
   :prefix "pygn-mode-"
@@ -167,68 +167,68 @@
 
 (defcustom pygn-mode-python-executable "python"
   "Path to a Python 3.7+ interpreter."
-  :group 'pygn-mode
+  :group 'pygn
   :type 'string)
 
 (defcustom pygn-mode-pythonpath nil
   "A colon-delimited path to override the `$PYTHONPATH' environment variable."
-  :group 'pygn-mode
+  :group 'pygn
   :type 'string)
 
 (defcustom pygn-mode-board-size 400
   "Size for graphical board display, expressed as pixels-per-side."
-  :group 'pygn-mode
+  :group 'pygn
   :type 'int)
 
 (defcustom pygn-mode-flash-full-game nil
   "If non-nil, flash the entire PGN on game selection actions."
-  :group 'pygn-mode
+  :group 'pygn
   :type 'boolean)
 
 (defcustom pygn-mode-default-engine-depth 20
   "Default depth for engine analysis."
-  :group 'pygn-mode
+  :group 'pygn
   :type 'int)
 
 (defcustom pygn-mode-default-engine-time 15
   "Default seconds for engine analysis."
-  :group 'pygn-mode
+  :group 'pygn
   :type 'int)
 
 (defcustom pygn-mode-server-stderr-buffer-name nil
-  "Buffer name for server stderr output, nil to redirect stderr to null device"
-  :group 'pygn-mode
+  "Buffer name for server stderr output, nil to redirect stderr to null device."
+  :group 'pygn
   :type 'string)
 
 ;;;###autoload
-(defgroup pygn-mode-faces nil
+(defgroup pygn-faces nil
   "Faces used by pygn-mode."
-  :group 'pygn-mode)
+  :group 'pygn)
 
 (defface pygn-mode-tagpair-key-face
    '((t (:inherit font-lock-keyword-face)))
   "pygn-mode face for tagpair (header) keys."
-  :group 'pygn-mode-faces)
+  :group 'pygn-faces)
 
 (defface pygn-mode-nag-face
    '((t (:inherit font-lock-comment-face)))
   "pygn-mode face for Numeric Annotation Glyphs."
-  :group 'pygn-mode-faces)
+  :group 'pygn-faces)
 
 (defface pygn-mode-variation-face
    '((t (:foreground "Gray50")))
   "pygn-mode face for variations."
-  :group 'pygn-mode-faces)
+  :group 'pygn-faces)
 
 (defface pygn-mode-result-face
    '((t (:inherit font-lock-builtin-face)))
   "pygn-mode face for result codes."
-  :group 'pygn-mode-faces)
+  :group 'pygn-faces)
 
 (defface pygn-mode-tagpair-bracket-face
    '((t (:foreground "Gray50")))
   "pygn-mode face for tagpair square brackets."
-  :group 'pygn-mode-faces)
+  :group 'pygn-faces)
 
 ;;; Variables
 
@@ -402,7 +402,7 @@
 (defun pygn-mode--opts-to-argparse (opt-plist)
   "Convert OPT-PLIST into an options string consumable by Python's argparse.
 
-To produce a flag which takes no options, give a plist value of `t'."
+To produce a flag which takes no options, give a plist value of t."
   (let ((key-string nil)
         (val-string nil)
         (argparse-string ""))
@@ -442,6 +442,7 @@ To produce a flag which takes no options, give a plist value of `t'."
         (error "The Python interpreter at `pygn-mode-python-path' must have the Python chess library available")))))
 
 (defun pygn-mode--get-stderr-buffer ()
+  "Get or create the buffer to which to redirect the standard error."
   (when pygn-mode-server-stderr-buffer-name
     (get-buffer-create pygn-mode-server-stderr-buffer-name)))
 
@@ -453,7 +454,7 @@ Optionally FORCE recreation if the server already exists."
   (if force
       (pygn-mode--server-kill)
     (when (pygn-mode--server-running-p)
-      (error "The pygn-mode server process is already running. Use optional `force' to recreate")))
+      (error "The pygn-mode server process is already running.  Use optional `force' to recreate")))
   (message (format "Initializing pygn-mode server process%s." (if force " (forcing)" "")))
   (let ((process-environment (cl-copy-list process-environment)))
     (when pygn-mode-pythonpath
@@ -473,7 +474,7 @@ Optionally FORCE recreation if the server already exists."
                                        (expand-file-name "pygn_server.py" pygn-mode-script-directory)
                                        "-"))))
   (unless (string-match-p (regexp-quote  "Server started.") (pygn-mode--server-receive))
-    (error "Server for `pygn-mode' failed to start. Try running `pygn-mode-run-diagnostic'.")))
+    (error "Server for `pygn-mode' failed to start.  Try running `pygn-mode-run-diagnostic'")))
 
 (defun pygn-mode--server-kill ()
   "Stop the currently running `pygn-mode--server-process'."
@@ -492,7 +493,7 @@ in the source distribution for `pygn-mode'.
 :COMMAND should be a symbol such as :pgn-to-fen, which is a command
 known by the server.  :OPTIONS should be a plist such as (:pixels 400)
 in which the keys correspond to argparse arguments known by the server.
-:PAYLOAD-ID should be a symbol such as :pgn, identifying the type of the
+:PAYLOAD-TYPE should be a symbol such as :pgn, identifying the type of the
 data payload, and :PAYLOAD may contain arbitrary data."
   (unless (pygn-mode--server-running-p)
     (error "The pygn-mode server is not running -- cannot send a message"))
@@ -533,8 +534,7 @@ Respects the variables `pygn-mode--server-receive-every-seconds' and
       server-message)))
 
 (cl-defun pygn-mode--server-query (&key command options payload-type payload)
-  "Send a request to `pygn-mode--server-process', wait, and return the
-response.
+  "Send a request to `pygn-mode--server-process', wait, and return response.
 
 :COMMAND, :OPTIONS, :PAYLOAD-TYPE, and :PAYLOAD are as documented at
 `pygn-mode--server-send'."
@@ -561,12 +561,12 @@ not match the client."
       (unless (string-match
                "\\`:version\\s-+\\(\\S-+\\)\\s-+\\(.*\\)" response)
         (pygn-mode--server-start 'force)
-        (error "Bad response from `pygn-mode' server -- no :version. Attempted restart"))
+        (error "Bad response from `pygn-mode' server -- no :version.  Attempted restart"))
       (setq response-version (match-string 1 response))
       (setq response (match-string 2 response))
       (unless (equal response-version pygn-mode-version)
         (pygn-mode--server-start 'force)
-        (error "Bad response from `pygn-mode' server -- unexpected :version value: '%s'. Attempted restart" response-version))
+        (error "Bad response from `pygn-mode' server -- unexpected :version value: '%s'.  Attempted restart" response-version))
       (unless (string-match
                "\\`\\(:\\S-+\\)\\(.*\\)" response)
         (error "Bad response from `pygn-mode' server"))
@@ -854,10 +854,8 @@ Does not work for nested variations."
 FORMAT may be either 'svg or 'text."
   (let ((response (pygn-mode--server-query
                    :command      :pgn-to-board
-                   :options      `(
-                                   :pixels       ,pygn-mode-board-size
-                                   :board_format ,format
-                                  )
+                   :options      `(:pixels       ,pygn-mode-board-size
+                                   :board_format ,format)
                    :payload-type :pgn
                    :payload      pgn)))
     (cl-callf pygn-mode--parse-response response)
@@ -890,9 +888,11 @@ FORMAT may be either 'svg or 'text."
       (nav-flash-show beg end))))
 
 (defun pygn-mode-all-header-coordinates ()
-  "Return an alist of cells in the form (CONTENT . POS), where CONTENT
-contains strings from header tagpairs of games, and POS is the starting
-position of a game in the buffer.
+  "Find PGN headers for all games in the buffer.
+
+Returns an alist of cells in the form (CONTENT . POS), where CONTENT contains
+strings from header tagpairs of games, and POS is the starting position of a
+game in the buffer.
 
 For use in `pygn-mode-ivy-jump-to-game-by-any-header'."
   (let ((game-starts nil)
@@ -926,9 +926,11 @@ For use in `pygn-mode-ivy-jump-to-game-by-any-header'."
         (nreverse header-coordinates)))))
 
 (defun pygn-mode-fen-coordinates ()
-  "Return an alist of cells in the form (CONTENT . POS), where CONTENT
-contains strings from FEN header tagpairs of games, and POS is the starting
-position of a game in the buffer.
+  "Find PGN FEN headers for all games in the buffer.
+
+Returns an alist of cells in the form (CONTENT . POS), where CONTENT contains
+strings from FEN header tagpairs of games, and POS is the starting position
+of a game in the buffer.
 
 For use in `pygn-mode-ivy-jump-to-game-by-fen'."
   (let ((all-coordinates (pygn-mode-all-header-coordinates))
@@ -948,7 +950,10 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
 ;;; Font-lock
 
 (defun pygn-mode-after-change-function (beg end _)
-  "Help refontify multi-line variations during edits."
+  "Help refontify multi-line variations during edits.
+
+BEG and END define the boundaries of a region, in the style of
+`after-change-functions'."
   (let ((syn (syntax-ppss beg)))
     (if (> 0 (nth 0 syn))
         (progn
@@ -984,6 +989,10 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
 
 (defun pygn-mode-propertize-line-comments (start end)
   "Put text properties on beginnings and ends of line comments.
+
+START and END define the the start and end of the text to which
+`syntax-table' might need to be applied, as documented for
+`syntax-propertize-function'.
 
 Intended to be used as a `syntax-propertize-function'."
   (save-excursion
@@ -1023,7 +1032,7 @@ Intended to be used as a `syntax-propertize-function'."
 (define-derived-mode pygn-mode fundamental-mode "PyGN"
  "A major-mode for chess PGN files, powered by Python."
  :syntax-table pygn-mode-syntax-table
- :group 'pygn-mode
+ :group 'pygn
  (setq-local comment-start "{")
  (setq-local comment-end "}")
  (setq-local comment-continue " ")
@@ -1051,7 +1060,7 @@ Intended to be used as a `syntax-propertize-function'."
 ;;;###autoload
 (define-derived-mode pygn-board-mode special-mode "PyGN Board"
   "A major-mode for displaying chess boards."
-  :group 'pygn-mode
+  :group 'pygn
   :abbrev-table nil
   :syntax-table nil)
 
@@ -1066,7 +1075,7 @@ otherwise.  If called from Lisp, enable mode if ARG is omitted or nil.
 When turned on, cursor motion in a PyGN buffer causes automatic display of
 a board representation corresponding to the point.  The displayed board
 will respect variations."
-  :group 'pygn-mode
+  :group 'pygn
   :init-value nil
   :lighter " fol"
   (if pygn-mode-follow-minor-mode
@@ -1080,7 +1089,7 @@ will respect variations."
           (delete-window win))))))
 
 (defun pygn-mode-follow-mode-post-command-hook ()
-  "Driver for `pygn-mode-follow-minor-mode'.
+  "Driver for function `pygn-mode-follow-minor-mode'.
 
 Intended for use in `post-command-hook'."
   (pygn-mode-display-variation-board-at-pos (point)))
@@ -1096,7 +1105,6 @@ Focus the game after motion."
         (error "No next game")))
     (pygn-mode-focus-game-at-point)))
 
-;;;###autoload
 (cl-defun pygn-mode--run-diagnostic ()
   "Open a buffer containing a `pygn-mode' dependency/configuration diagnostic."
   (let ((buf (get-buffer-create pygn-mode-diagnostic-output-buffer-name))
@@ -1160,13 +1168,14 @@ Focus the game after motion."
 ;;; Interactive commands ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;###autoload
 (defun pygn-mode-run-diagnostic (&optional as-command)
   "Run a dependency/configuration diagnostic for `pygn-mode'.
 
-When called as an interactive command, display a buffer with diagnostic
-details.
+When called as an interactive command (when AS-COMMAND is non-nil), display
+a buffer with diagnostic details.
 
-When called noninteractively, the return value is truthy iff required
+When called noninteractively, the return value is non-nil iff required
 diagnostic tests were successful."
   (interactive "p")
   (if as-command
@@ -1294,7 +1303,7 @@ When called non-interactively, select the game containing POS."
 
 When called non-interactively, display the FEN corresponding to POS.
 
-With prefix-arg DO-COPY, copy the FEN to the kill ring, and to the system
+With `prefix-arg' DO-COPY, copy the FEN to the kill ring, and to the system
 clipboard when running a GUI Emacs."
   (interactive "d\nP")
   (let ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos pos))))
@@ -1407,6 +1416,8 @@ prompting for image size."
 
 (defun pygn-mode-mouse-display-variation-board (event)
   "Display the board corresponding to a mouse click in a separate buffer.
+
+The mouse click corresponds to EVENT.
 
 The board display respects variations."
   (interactive "@e")
