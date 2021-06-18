@@ -144,7 +144,7 @@ emacs-chess
 
 ## Compatibility and Requirements
 
-GNU Emacs 25+
+GNU Emacs 25.1+
 
 Python 3.7+
 
