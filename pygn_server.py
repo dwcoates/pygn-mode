@@ -59,7 +59,7 @@ def cleanup():
         except:
             pass
 
-def pgn_to_board_callback(game,board,last_move,args):
+def pgn_to_board_callback(_game,board,last_move,args):
     if args.board_format[0] == 'svg':
         svg = chess.svg.board(board=board,
                               lastmove=last_move,
@@ -79,16 +79,17 @@ def pgn_to_board_callback(game,board,last_move,args):
         return f':board-text {text}'
     else:
         print(f'Bad pgn-mode -board_format value: {args.board_format[0]}', file=sys.stderr)
+        return None
 
-def pgn_to_fen_callback(game,board,last_move,args):
+def pgn_to_fen_callback(_game,board,_last_move,_args):
     return f':fen {board.fen()}'
 
-def pgn_to_score_callback(game,board,last_move,args):
+def pgn_to_score_callback(_game,board,_last_move,args):
     engine = instantiate_engine(args.engine[0])
     uci_info = engine.analyse(board, chess.engine.Limit(depth=args.depth[0]))
     return f':score {uci_info["score"]}'
 
-def pgn_to_mainline_callback(game,board,last_move,args):
+def pgn_to_mainline_callback(game,_board,_last_move,_args):
     clean_exporter = chess.pgn.StringExporter(columns=None,
                                               headers=False,
                                               variations=False,
@@ -117,8 +118,8 @@ def listen():
             continue
 
         # Parse request.
-        match = re.compile('\A:version\s+(\S+)\s+(:\S+)(.*?)\s+--\s+(:\S+)\s+(\S.*)\n').search(input_str)
-        if (not match):
+        match = re.compile(r'\A:version\s+(\S+)\s+(:\S+)(.*?)\s+--\s+(:\S+)\s+(\S.*)\n').search(input_str)
+        if not match:
             print(f'Bad pgn-mode server request. Could not parse: {input_str}', file=sys.stderr)
             continue
         [req_version,
@@ -163,7 +164,8 @@ def listen():
         response = CALLBACKS[req_command](game,board,last_move,args)
 
         # Send response to client.
-        print(f':version {__version__} {response}')
+        if response:
+            print(f':version {__version__} {response}')
 
 ###
 ### argument processing
@@ -203,7 +205,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) > 1 and (sys.argv[1] == '-version' or sys.argv[1] == '--version'):
         print(__version__)
-        exit(0)
+        sys.exit(0)
 
     CALLBACKS = {
         ':pgn-to-fen': pgn_to_fen_callback,
