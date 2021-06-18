@@ -159,13 +159,12 @@ Uses if present: [nav-flash.el](http://github.com/rolandwalker/nav-flash)
 ### Requirements Diagnostic
 
 The diagnostic command will check dependencies: Python, `chess` library,
-and engine.
+and optional Emacs libraries.
 
-Interactively: `M-x pygn-mode-run-diagnostic`
+Interactively: <kbd>M-x</kbd> `pygn-mode-run-diagnostic`
 
 Programmatically:
 
 ``` elisp
-(pygn-mode-do-diagnostic) ;; truthy iff diagnostic completed successfully.
+(pygn-mode-run-diagnostic) ; truthy iff diagnostic completed successfully.
 ```
-
