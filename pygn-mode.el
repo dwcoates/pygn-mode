@@ -391,6 +391,14 @@
 
 ;;; Utility functions
 
+(defun pygn-mode--get-or-create-board-buffer ()
+  "Get or create the `pygn-mode' board buffer."
+  (let ((buf (get-buffer-create pygn-mode-board-buffer-name)))
+    (with-current-buffer buf
+      (unless (eq 'pygn-board-mode major-mode)
+        (pygn-board-mode)))
+    buf))
+
 (defun pygn-mode--opts-to-argparse (opt-plist)
   "Convert OPT-PLIST into an options string consumable by Python's argparse.
 
@@ -1040,6 +1048,13 @@ Intended to be used as a `syntax-propertize-function'."
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.[pP][gG][nN]\\'" . pygn-mode))
 
+;;;###autoload
+(define-derived-mode pygn-board-mode special-mode "PyGN Board"
+  "A major-mode for displaying chess boards."
+  :group 'pygn-mode
+  :abbrev-table nil
+  :syntax-table nil)
+
 ;;; Minor-mode definition
 
 (define-minor-mode pygn-mode-follow-minor-mode
@@ -1326,12 +1341,13 @@ When called non-interactively, display the FEN corresponding to POS."
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
   (let* ((svg-data (pygn-mode-pgn-to-board (pygn-mode-pgn-at-pos pos) 'svg))
-         (buf (get-buffer-create pygn-mode-board-buffer-name))
+         (buf (pygn-mode--get-or-create-board-buffer))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
-      (setq cursor-type nil)
-      (erase-buffer)
-      (insert-image (create-image svg-data 'svg t)))
+      (let ((buffer-read-only nil))
+        (setq cursor-type nil)
+        (erase-buffer)
+        (insert-image (create-image svg-data 'svg t))))
     (display-buffer buf '(display-buffer-reuse-window))
     (unless win
       (setq win (get-buffer-window buf))
@@ -1344,14 +1360,15 @@ When called non-interactively, display the board corresponding to POS."
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
   (let* ((text-data (pygn-mode-pgn-to-board (pygn-mode-pgn-at-pos pos) 'text))
-         (buf (get-buffer-create pygn-mode-board-buffer-name))
+         (buf (pygn-mode--get-or-create-board-buffer))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
-      (erase-buffer)
-      (insert (replace-regexp-in-string
-               "\\\\n" "\n"
-               text-data))
-      (goto-char (point-min)))
+      (let ((buffer-read-only nil))
+        (erase-buffer)
+        (insert (replace-regexp-in-string
+                 "\\\\n" "\n"
+                 text-data))
+        (goto-char (point-min))))
     (display-buffer buf '(display-buffer-reuse-window))
     (unless win
       (setq win (get-buffer-window buf))
@@ -1520,7 +1537,7 @@ Place the board and UCI windows below the PGN window."
   (split-window-vertically)
   (other-window 1)
   (switch-to-buffer
-   (get-buffer-create pygn-mode-board-buffer-name))
+   (pygn-mode--get-or-create-board-buffer))
   (split-window-horizontally)
   (when (> (point-max) (point-min))
     (let ((fit-window-to-buffer-horizontally t))
@@ -1543,7 +1560,7 @@ Place the board and UCI windows to the right of the PGN window."
   (split-window-horizontally)
   (other-window 1)
   (switch-to-buffer
-   (get-buffer-create pygn-mode-board-buffer-name))
+   (pygn-mode--get-or-create-board-buffer))
   (split-window-vertically)
   (when (> (point-max) (point-min))
     (let ((fit-window-to-buffer-horizontally t))
