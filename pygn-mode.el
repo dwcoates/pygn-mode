@@ -1130,6 +1130,13 @@ Focus the game after motion."
           (format
            "[ ] Bad. The pygn-mode-script-directory ('%s') is bad or does not contain working server script (pygn_server.py).\n\n" pygn-mode-script-directory))
          (cl-return-from pygn-mode--run-diagnostic nil)))
+      (dolist (melpa-lib '(uci-mode nav-flash ivy))
+        (if (featurep melpa-lib)
+            (insert (format "[x] Good.  The `%s' library is available.\n\n" melpa-lib))
+          ;; else
+          (insert
+           (format
+            "[ ] Bad but not a requirement.  The `%s' library is not available.  Try installing it from MELPA.\n\n" melpa-lib))))
       (insert (format "------------------------------------\n\n"))
       (insert (format "All pygn-mode diagnostics completed successfully.\n"))))
   (cl-return-from pygn-mode--run-diagnostic t))
