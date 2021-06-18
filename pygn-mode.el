@@ -1,12 +1,12 @@
 ;;; pygn-mode.el --- Major-mode for chess PGN files, powered by Python -*- lexical-binding: t -*-
 ;;
-;; Copyright (c) 2019 Dodge Coates and Roland Walker
+;; Copyright (c) 2019-2021 Dodge Coates and Roland Walker
 ;;
 ;; Author: Dodge Coates and Roland Walker
 ;; Homepage: https://github.com/dwcoates/pygn-mode
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
-;; Version: 0.5.0
-;; Last-Updated: 26 Nov 2019
+;; Version: 0.5.1
+;; Last-Updated: 18 Jun 2021
 ;; Package-Requires: ((emacs "25.1") (uci-mode "0.5.0") (nav-flash "1.0.0") (ivy "0.10.0"))
 ;; Keywords: data, games, chess
 ;;
@@ -129,7 +129,7 @@
 ;;; Code:
 ;;
 
-(defconst pygn-mode-version "0.5.0")
+(defconst pygn-mode-version "0.5.1")
 
 ;;; Imports
 
