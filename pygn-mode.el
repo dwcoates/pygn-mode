@@ -1125,7 +1125,7 @@ Focus the game after motion."
       (let ((server-script-path (expand-file-name "pygn_server.py" pygn-mode-script-directory)))
         (if (and (file-exists-p server-script-path)
                  (zerop (call-process pygn-mode-python-executable  nil nil nil server-script-path "-version")))
-           (insert (format "[x] Good. The pygn-mode-script-directory ('%s') is good and server script is callable.\n\n" pygn-mode-script-directory))
+           (insert (format "[x] Good. The pygn-mode-script-directory ('%s') is found and the server script is callable.\n\n" pygn-mode-script-directory))
          (insert
           (format
            "[ ] Bad. The pygn-mode-script-directory ('%s') is bad or does not contain working server script (pygn_server.py).\n\n" pygn-mode-script-directory))
@@ -1138,7 +1138,7 @@ Focus the game after motion."
            (format
             "[ ] Bad but not a requirement.  The `%s' library is not available.  Try installing it from MELPA.\n\n" melpa-lib))))
       (insert (format "------------------------------------\n\n"))
-      (insert (format "All pygn-mode diagnostics completed successfully.\n"))))
+      (insert (format "All pygn-mode required diagnostics completed successfully.\n"))))
   (cl-return-from pygn-mode--run-diagnostic t))
 
 (defun pygn-mode-do-diagnostic ()
