@@ -1156,27 +1156,29 @@ Focus the game after motion."
       (insert (format "All pygn-mode required diagnostics completed successfully.\n"))))
   (cl-return-from pygn-mode--run-diagnostic t))
 
-(defun pygn-mode-do-diagnostic ()
-  "Run a dependency/configuration diagnostic for pygn-mode.
-
-Return value is truthy iff diagnostics passed successfully.
-
-Check `pygn-mode-diagnostic-output-buffer-name' buffer for diagnostics details."
-  (if (pygn-mode--run-diagnostic)
-      (or (message "pygn-mode diagnostics passed.") t)
-    (message "WARN: pygn-mode diagnostics failed (see '%s' buffer for details)"
-             pygn-mode-diagnostic-output-buffer-name)
-    nil))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Interactive commands ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun pygn-mode-run-diagnostic ()
-  "Run a dependency/configuration diagnostic for pygn-mode."
-  (interactive)
-  (pygn-mode--run-diagnostic)
-  (display-buffer (get-buffer pygn-mode-diagnostic-output-buffer-name) '(display-buffer-reuse-window)))
+(defun pygn-mode-run-diagnostic (&optional as-command)
+  "Run a dependency/configuration diagnostic for `pygn-mode'.
+
+When called as an interactive command, display a buffer with diagnostic
+details.
+
+When called noninteractively, the return value is truthy iff required
+diagnostic tests were successful."
+  (interactive "p")
+  (if as-command
+      (progn
+        (pygn-mode--run-diagnostic)
+        (display-buffer (get-buffer pygn-mode-diagnostic-output-buffer-name) '(display-buffer-reuse-window)))
+    ;; else
+    (if (pygn-mode--run-diagnostic)
+        (or (message "pygn-mode diagnostics passed.") t)
+      (message "WARN: pygn-mode diagnostics failed (see '%s' buffer for details)"
+               pygn-mode-diagnostic-output-buffer-name)
+      nil)))
 
 (defun pygn-mode-next-game (arg)
   "Advance to the next game in a multi-game PGN buffer.
