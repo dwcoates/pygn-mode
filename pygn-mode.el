@@ -7,7 +7,7 @@
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
 ;; Version: 0.5.1
 ;; Last-Updated: 18 Jun 2021
-;; Package-Requires: ((emacs "25.1") (uci-mode "0.5.0") (nav-flash "1.0.0") (ivy "0.10.0"))
+;; Package-Requires: ((emacs "25.1") (uci-mode "0.5.4") (nav-flash "1.0.0") (ivy "0.10.0"))
 ;; Keywords: data, games, chess
 ;;
 ;; Simplified BSD License
