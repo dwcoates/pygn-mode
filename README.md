@@ -13,6 +13,7 @@ An Emacs major-mode for chess PGN files, powered by Python.
  * [Interactive Commands](#interactive-commands)
  * [Minor Mode](#minor-mode)
  * [Prior Art](#prior-art)
+ * [License](#license)
  * [Compatibility and Requirements](#compatibility-and-requirements)
 
 ## Quickstart
