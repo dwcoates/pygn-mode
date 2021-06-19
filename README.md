@@ -13,6 +13,7 @@ An Emacs major-mode for chess PGN files, powered by Python.
  * [Interactive Commands](#interactive-commands)
  * [Minor Mode](#minor-mode)
  * [Prior Art](#prior-art)
+ * [License](#license)
  * [Compatibility and Requirements](#compatibility-and-requirements)
 
 ## Quickstart
@@ -41,8 +42,8 @@ Provides
    `{comments}` and parenthesized `(variations)`.
  * customizable faces
  * navigation and selection commands
- * computation of FEN at point (requires [chess](https://pypi.org/project/chess/) library)
- * computation and display of board at point (requires [chess](https://pypi.org/project/chess/))
+ * computation of FEN at point (using the [chess](https://pypi.org/project/chess/) library)
+ * computation and display of board at point (using [chess](https://pypi.org/project/chess/))
  * evaluation of board at point (requires [uci-mode](https://github.com/dwcoates/uci-mode))
 
 ## Interactive Commands

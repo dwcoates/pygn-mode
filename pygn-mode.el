@@ -60,6 +60,9 @@
 ;;
 ;;         https://pypi.org/project/chess/
 ;;
+;;     A version of the Python chess library is bundled with this package.
+;;     Note that the chess library has its own license (GPL3+).
+;;
 ;; Bugs
 ;;
 ;;     `pygn-mode-after-change-function' should be made faster
