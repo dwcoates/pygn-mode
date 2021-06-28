@@ -1,7 +1,7 @@
 ;;; pygn-mode.el --- Major-mode for chess PGN files, powered by Python -*- lexical-binding: t -*-
-;;
+
 ;; Copyright (c) 2019-2021 Dodge Coates and Roland Walker
-;;
+
 ;; Author: Dodge Coates and Roland Walker
 ;; Homepage: https://github.com/dwcoates/pygn-mode
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
@@ -9,106 +9,24 @@
 ;; Last-Updated: 18 Jun 2021
 ;; Package-Requires: ((emacs "25.1") (uci-mode "0.5.4") (nav-flash "1.0.0") (ivy "0.10.0"))
 ;; Keywords: data, games, chess
-;;
-;; Simplified BSD License
-;;
-;;; Commentary:
-;;
-;; Quickstart
-;;
-;;     (require 'pygn-mode)
-;;
-;;     M-x pygn-mode-run-diagnostic
-;;
-;; Explanation
-;;
-;;     Pygn-mode is a major-mode for viewing and editing chess PGN files.
-;;     Directly editing PGN files is interesting for programmers who are
-;;     developing chess engines, or advanced players who are doing deep
-;;     analysis on games.  This mode is not useful for simply playing chess.
-;;
-;; Bindings
-;;
-;;     No keys are bound by default.  Consider
-;;
-;;         (eval-after-load "pygn-mode"
-;;           (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move)
-;;           (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move))
-;;
-;; Customization
-;;
-;;     M-x customize-group RET pygn RET
-;;
-;; See Also
-;;
-;;     http://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm
-;;
-;;     https://github.com/dwcoates/uci-mode
-;;
-;; Prior Art
-;;
-;;     https://github.com/jwiegley/emacs-chess
-;;
-;; Notes
-;;
-;; Compatibility and Requirements
-;;
-;;     GNU Emacs 25.1+
-;;
-;;     Python and the chess library are needed for numerous features such
-;;     as SVG board images:
-;;
-;;         https://pypi.org/project/chess/
-;;
-;;     A version of the Python chess library is bundled with this package.
-;;     Note that the chess library has its own license (GPL3+).
-;;
-;; Bugs
-;;
-;;     `pygn-mode-after-change-function' should be made faster
-;;
-;;     Bracketed {comments} inside variations can't contain close-parenthesis
-;;
-;;     No support for recursive variations
-;;
-;; TODO
-;;
-;;     Make forward-exit and backward-exit defuns robust against %-escaped lines
-;;     Make forward-exit and backward-exit defuns robust against semicolon comments
-;;
-;;     Extensive ert test coverage of
-;;      - pygn-mode-pgn-at-pos
-;;      - pygn-mode-pgn-at-pos-as-if-variation
-;;
-;;     pygn-mode-go-searchmoves which defaults to searching move under point
-;;
-;;     Flash current move on selection
-;;
-;; IDEA
-;;
-;;     UCI moves to pgn: UCI position command arguments to pgn and/or graphical display
-;;
-;;     count games in current file? Display in modeline?
-;;
-;;     evil text objects?
-;;
+
 ;;; License
-;;
+
 ;; Simplified BSD License:
-;;
+
 ;; Redistribution and use in source and binary forms, with or
 ;; without modification, are permitted provided that the following
 ;; conditions are met:
-;;
+
 ;;   1. Redistributions of source code must retain the above
 ;;      copyright notice, this list of conditions and the following
 ;;      disclaimer.
-;;
+
 ;;   2. Redistributions in binary form must reproduce the above
 ;;      copyright notice, this list of conditions and the following
 ;;      disclaimer in the documentation and/or other materials
 ;;      provided with the distribution.
-;;
+
 ;; This software is provided by the authors "AS IS" and any express
 ;; or implied warranties, including, but not limited to, the implied
 ;; warranties of merchantability and fitness for a particular
@@ -121,14 +39,95 @@
 ;; liability, or tort (including negligence or otherwise) arising in
 ;; any way out of the use of this software, even if advised of the
 ;; possibility of such damage.
-;;
+
 ;; The views and conclusions contained in the software and
 ;; documentation are those of the authors and should not be
 ;; interpreted as representing official policies, either expressed
 ;; or implied, of the authors.
-;;
+
+;;; Internal notes
+
+;; Bugs
+
+;;     `pygn-mode-after-change-function' should be made faster
+
+;;     Bracketed {comments} inside variations can't contain close-parenthesis
+
+;;     No support for recursive variations
+
+;; TODO
+
+;;     Make forward-exit and backward-exit defuns robust against %-escaped lines
+;;     Make forward-exit and backward-exit defuns robust against semicolon comments
+
+;;     Extensive ert test coverage of
+;;      - pygn-mode-pgn-at-pos
+;;      - pygn-mode-pgn-at-pos-as-if-variation
+
+;;     pygn-mode-go-searchmoves which defaults to searching move under point
+
+;;     Flash current move on selection
+
+;; IDEA
+
+;;     UCI moves to pgn: UCI position command arguments to pgn and/or graphical display
+
+;;     count games in current file? Display in modeline?
+
+;;     evil text objects?
+
+;;; Commentary:
+
+;; Quickstart
+
+;;     (require 'pygn-mode)
+
+;;     M-x pygn-mode-run-diagnostic
+
+;; Explanation
+
+;;     Pygn-mode is a major-mode for viewing and editing chess PGN files.
+;;     Directly editing PGN files is interesting for programmers who are
+;;     developing chess engines, or advanced players who are doing deep
+;;     analysis on games.  This mode is not useful for simply playing chess.
+
+;; Bindings
+
+;;     No keys are bound by default.  Consider
+
+;;         (eval-after-load "pygn-mode"
+;;           (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move)
+;;           (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move))
+
+;; Customization
+
+;;     M-x customize-group RET pygn RET
+
+;; See Also
+
+;;     http://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm
+
+;;     https://github.com/dwcoates/uci-mode
+
+;; Prior Art
+
+;;     https://github.com/jwiegley/emacs-chess
+
+;; Notes
+
+;; Compatibility and Requirements
+
+;;     GNU Emacs 25.1+
+
+;;     Python and the chess library are needed for numerous features such
+;;     as SVG board images:
+
+;;         https://pypi.org/project/chess/
+
+;;     A version of the Python chess library is bundled with this package.
+;;     Note that the chess library has its own license (GPL3+).
+
 ;;; Code:
-;;
 
 (defconst pygn-mode-version "0.5.1")
 
@@ -465,7 +464,7 @@ Optionally FORCE recreation if the server already exists."
       (pygn-mode--server-kill)
     (when (pygn-mode--server-running-p)
       (error "The pygn-mode server process is already running.  Use optional `force' to recreate")))
-  (message (format "Initializing pygn-mode server process%s." (if force " (forcing)" "")))
+  (message "Initializing pygn-mode server process%s." (if force " (forcing)" ""))
   (let ((process-environment (cl-copy-list process-environment)))
     (when pygn-mode-pythonpath
       (pygn-mode--set-python-path))
@@ -511,7 +510,7 @@ data payload, and :PAYLOAD may contain arbitrary data."
   (setq payload (replace-regexp-in-string "[\n\r]*$" "\n" payload))
   (process-send-string
    pygn-mode--server-process
-   (mapconcat 'identity
+   (mapconcat #'identity
               (list
                (symbol-name :version)
                pygn-mode-version
@@ -797,8 +796,9 @@ POS defaults to the point."
        (point)))))
 
 (defun pygn-mode-pgn-at-pos-as-if-variation (pos)
-  "Return a single-game PGN string as if a variation had been played,
-inclusive of any move at POS.
+  "Return a single-game PGN string as if a variation had been played.
+
+Inclusive of any move at POS.
 
 Does not work for nested variations."
   (if (not (pygn-mode-inside-variation-p pos))
@@ -947,7 +947,7 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
         (fen-coordinates nil)
         (fen nil))
     (cl-loop for cell in (cl-remove-if-not
-                          #'(lambda (x) (cl-search "[FEN " (car x)))
+                          (lambda (x) (cl-search "[FEN " (car x)))
                           all-coordinates)
              do (progn
                   (setq fen
@@ -1054,7 +1054,7 @@ Intended to be used as a `syntax-propertize-function'."
  (setq-local parse-sexp-ignore-comments t)
  (setq-local font-lock-multiline t)
  (setq-local font-lock-extend-after-change-region-function 'pygn-mode-after-change-function)
- (add-hook 'font-lock-extend-region-functions 'pygn-mode-font-lock-extend-region t t)
+ (add-hook 'font-lock-extend-region-functions #'pygn-mode-font-lock-extend-region t t)
  (font-lock-ensure)
  (let ((map (make-sparse-keymap)))
    (set-keymap-parent map (default-value 'mode-line-major-mode-keymap))
@@ -1111,7 +1111,7 @@ Focus the game after motion."
   (save-match-data
     (let ((next-game (and (re-search-forward "^\\[Event " nil t arg)
                           (goto-char (line-beginning-position)))))
-      (when (not next-game)
+      (unless next-game
         (error "No next game")))
     (pygn-mode-focus-game-at-point)))
 
