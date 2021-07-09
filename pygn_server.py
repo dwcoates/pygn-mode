@@ -63,7 +63,8 @@ def pgn_to_board_callback(_game,board,last_move,args):
     if args.board_format[0] == 'svg':
         svg = chess.svg.board(board=board,
                               lastmove=last_move,
-                              size=args.pixels[0])
+                              size=args.pixels[0],
+                              flipped=args.flipped)
         return f':board-svg {svg}'
     elif args.board_format[0] == 'text':
         text = board.unicode(borders=True)
@@ -194,6 +195,9 @@ def generate_argparser():
                            type=int,
                            default=[10],
                            help='set depth for depth-limited to UCI evaluations. Default is 10.')
+    argparser.add_argument('-flipped', '--flipped',
+                           action='store_true',
+                           help='display board flipped (Black perspective).')
     return argparser
 
 ###

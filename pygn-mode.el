@@ -189,6 +189,11 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   :group 'pygn
   :type 'int)
 
+(defcustom pygn-mode-board-flipped nil
+  "If non-nil, display the board flipped."
+  :group 'pygn-mode
+  :type 'boolean)
+
 (defcustom pygn-mode-flash-full-game nil
   "If non-nil, flash the entire PGN on game selection actions."
   :group 'pygn
@@ -420,16 +425,18 @@ To produce a flag which takes no options, give a plist value of t."
                   (setq key-string
                         (replace-regexp-in-string
                          "^:" "-" (symbol-name key)))
-                  (if (eq value t)
-                      (setq argparse-string (concat
-                                             argparse-string
-                                             " " key-string))
-                    ;; else
-                    (setq val-string (shell-quote-argument
-                                      (format "%s" value)))
+                  (cond
+                   ((eq value t)
                     (setq argparse-string (concat
                                            argparse-string
-                                           (format " %s=%s" key-string val-string))))))
+                                           " " key-string)))
+                   ;; if option is nil then we just don't send the flag.
+                   ((not (eq value nil))
+                    (let ((val-string (shell-quote-argument
+                                       (format "%s" value))))
+                      (setq argparse-string (concat
+                                             argparse-string
+                                             (format " %s=%s" key-string val-string))))))))
     argparse-string))
 
 (defun pygn-mode--set-python-path ()
@@ -865,7 +872,8 @@ FORMAT may be either 'svg or 'text."
   (let ((response (pygn-mode--server-query
                    :command      :pgn-to-board
                    :options      `(:pixels       ,pygn-mode-board-size
-                                   :board_format ,format)
+                                   :board_format ,format,
+                                   :flipped      ,pygn-mode-board-flipped)
                    :payload-type :pgn
                    :payload      pgn)))
     (cl-callf pygn-mode--parse-response response)
@@ -1323,6 +1331,11 @@ clipboard when running a GUI Emacs."
                  (display-graphic-p))
         (gui-set-selection 'CLIPBOARD fen)))
     (message "%s%s" fen (if do-copy (propertize "\t(copied)" 'face '(:foreground "grey33")) ""))))
+
+(defun pygn-mode-flip-board ()
+  "Flip the board display."
+  (interactive)
+  (setq pygn-mode-board-flipped (not pygn-mode-board-flipped)))
 
 (defun pygn-mode-display-fen-at-pos (pos)
   "Display the FEN corresponding to the point in a separate buffer.
