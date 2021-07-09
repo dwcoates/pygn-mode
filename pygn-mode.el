@@ -1239,8 +1239,7 @@ With numeric prefix ARG, advance ARG moves forward."
           (re-search-forward "\n\n" nil t)
           (forward-char -1))
         (dotimes (_ arg)
-          (re-search-forward pygn-mode--strict-legal-move-pat limit t)
-          (forward-char -1))))))
+          (re-search-forward pygn-mode--strict-legal-move-pat limit t))))))
 
 (defun pygn-mode-previous-move (arg)
   "Move back to the previous player move in a PGN game.
