@@ -648,7 +648,7 @@ POS defaults to the point."
 Leading move numbers, punctuation, and spaces are allowed, and ignored."
   (let ((inhibit-changing-match-data t))
     (and (looking-at-p pygn-mode--relaxed-legal-move-pat)
-         (not (looking-back "[A-Za-z]" 1)))))
+         (not (looking-back "[a-h]" 1)))))
 
 (defun pygn-mode-looking-at-strict-legal-move ()
   "Whether the point is looking at a legal SAN chess move.
@@ -657,7 +657,7 @@ Leading move numbers, punctuation, and spaces are allowed, and ignored."
 not allowed on the SAN move."
   (let ((inhibit-changing-match-data t))
     (and (looking-at-p pygn-mode--strict-legal-move-pat)
-         (not (looking-back "[A-Za-z]" 1)))))
+         (not (looking-back "[a-h]" 1)))))
 
 (defun pygn-mode-looking-back-strict-legal-move ()
   "Whether the point is looking back at a legal SAN chess move.
