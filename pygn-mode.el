@@ -872,7 +872,7 @@ FORMAT may be either 'svg or 'text."
   (let ((response (pygn-mode--server-query
                    :command      :pgn-to-board
                    :options      `(:pixels       ,pygn-mode-board-size
-                                   :board_format ,format,
+                                   :board_format ,format
                                    :flipped      ,pygn-mode-board-flipped)
                    :payload-type :pgn
                    :payload      pgn)))
@@ -1335,7 +1335,8 @@ clipboard when running a GUI Emacs."
 (defun pygn-mode-flip-board ()
   "Flip the board display."
   (interactive)
-  (setq pygn-mode-board-flipped (not pygn-mode-board-flipped)))
+  (setq pygn-mode-board-flipped (not pygn-mode-board-flipped))
+  (pygn-mode-display-gui-board-at-pos (point)))
 
 (defun pygn-mode-display-fen-at-pos (pos)
   "Display the FEN corresponding to the point in a separate buffer.
