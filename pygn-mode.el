@@ -279,11 +279,11 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   "The maximum amount of time `pygn-mode--server-receive' should check the server for output when polling.")
 
 (defvar pygn-mode--strict-legal-move-pat
-  "\\b\\(?:[RNBQK]\\(?:[1-8a-h]?x?\\)?[a-h][1-8]\\|\\(?:[a-h]x?\\)?[a-h][1-8]\\(=[RNBQ]\\)?\\|O-O\\(?:-O\\)?\\)\\(?:[+#?!]+\\)?"
+  "\\<\\(?:[RNBQK][a-h1-8]?x?[a-h][1-8]\\|[a-h]\\(?:x[a-h]\\)?[1-8]\\(?:=[RNBQ]\\)?\\|O-O\\|O-O-O\\)\\(?:\\+\\+?\\|#\\)?"
   "Regular expression strictly matching a legal SAN move.")
 
 (defvar pygn-mode--relaxed-legal-move-pat
-  (concat "\\(?:[ \t]*[0-9]*[.…\s-]*\\)?" pygn-mode--strict-legal-move-pat)
+  (concat "[ \t]*[0-9]*[.…\s-]*" pygn-mode--strict-legal-move-pat)
   "Regular expression matching a legal SAN move with leading move numbers and whitespace.")
 
 ;;; Syntax table
@@ -1234,12 +1234,31 @@ With numeric prefix ARG, advance ARG moves forward."
     (save-match-data
       (narrow-to-region (pygn-mode-game-start-position)
                         (pygn-mode-game-end-position))
-      (let ((limit (pygn-mode-game-end-position)))
+      (let ((last-point -1)
+            (start (point))
+            (thumb (point)))
         (when (pygn-mode-inside-header-p)
           (re-search-forward "\n\n" nil t)
           (forward-char -1))
         (dotimes (_ arg)
-          (re-search-forward pygn-mode--strict-legal-move-pat limit t))))))
+          (when (pygn-mode-looking-at-relaxed-legal-move)
+            (setq thumb (point))
+            (skip-chars-forward "0-9.…\s-")
+            (forward-char 1))
+          (while (and (not (= (point) last-point))
+                      (or (not (pygn-mode-looking-at-relaxed-legal-move))
+                          (pygn-mode-inside-variation-or-comment-p)))
+            (setq last-point (point))
+            (cond
+             ((pygn-mode-inside-variation-or-comment-p)
+              (pygn-mode-forward-exit-variations-and-comments))
+             (t
+              (forward-sexp 1)))))
+        (skip-chars-forward "0-9.…\s-")
+        (unless (pygn-mode-looking-at-relaxed-legal-move)
+          (goto-char thumb)
+          (when (= thumb start)
+            (error "No more moves")))))))
 
 (defun pygn-mode-previous-move (arg)
   "Move back to the previous player move in a PGN game.
@@ -1255,9 +1274,30 @@ With numeric prefix ARG, move ARG moves backward."
     (save-match-data
       (narrow-to-region (pygn-mode-game-start-position)
                         (pygn-mode-game-end-position))
-      (let ((limit (pygn-mode-game-start-position)))
+      (let ((last-point -1)
+            (start (point))
+            (thumb (point)))
+        (when (pygn-mode-inside-header-p)
+          (error "No more moves"))
         (dotimes (_ arg)
-          (re-search-backward pygn-mode--strict-legal-move-pat limit t))))))
+          (when (pygn-mode-looking-at-relaxed-legal-move)
+            (setq thumb (point))
+            (skip-chars-backward "0-9.…\s-")
+            (backward-char 1))
+          (while (and (not (= (point) last-point))
+                      (or (not (pygn-mode-looking-at-relaxed-legal-move))
+                          (pygn-mode-inside-variation-or-comment-p)))
+            (setq last-point (point))
+            (cond
+              ((pygn-mode-inside-variation-or-comment-p)
+               (pygn-mode-backward-exit-variations-and-comments))
+              (t
+               (skip-chars-backward "0-9.…\s-")
+               (forward-sexp -1)))))
+        (unless (pygn-mode-looking-at-relaxed-legal-move)
+          (goto-char thumb)
+          (when (= thumb start)
+            (error "No more moves")))))))
 
 (defun pygn-mode-select-game (pos)
   "Select current game in a multi-game PGN buffer.
