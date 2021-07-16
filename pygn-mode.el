@@ -413,7 +413,6 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
 
 To produce a flag which takes no options, give a plist value of t."
   (let ((key-string nil)
-        (val-string nil)
         (argparse-string ""))
     (cl-loop for (key value) on opt-plist by (function cddr)
              do (progn
