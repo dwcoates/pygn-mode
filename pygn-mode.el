@@ -279,7 +279,7 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   "The maximum amount of time `pygn-mode--server-receive' should check the server for output when polling.")
 
 (defvar pygn-mode--strict-legal-move-pat
-  "\\<\\(?:[RNBQK][a-h1-8]?x?[a-h][1-8]\\|[a-h]\\(?:x[a-h]\\)?[1-8]\\(?:=[RNBQ]\\)?\\|O-O\\|O-O-O\\)\\(?:\\+\\+?\\|#\\)?"
+  "\\<\\(?:[RNBQK][a-h1-8]?x?[a-h][1-8]\\|[a-h]\\(?:x[a-h]\\)?[1-8]\\(?:=[RNBQ]\\)?\\|O\\(?:-O\\)\\{1,2\\}\\)\\(?:\\+\\+?\\|#\\)?"
   "Regular expression strictly matching a legal SAN move.")
 
 (defvar pygn-mode--relaxed-legal-move-pat
