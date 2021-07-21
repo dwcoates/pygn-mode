@@ -284,7 +284,7 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   "The maximum amount of time `pygn-mode--server-receive' should check the server for output when polling.")
 
 (defvar pygn-mode--strict-legal-move-pat
-  "\\<\\([RNBQK][a-h]?[1-8]?x?[a-h][1-8]\\|[a-h]x?[1-8]=?[RNBQ]?\\|O-O\\|O-O-O\\)\\(\\+\\+?\\|#\\)?"
+  "\\<\\(?:[RNBQK][a-h1-8]?x?[a-h][1-8]\\|[a-h]\\(?:x[a-h]\\)?[1-8]\\(?:=[RNBQ]\\)?\\|O\\(?:-O\\)\\{1,2\\}\\)\\(?:\\+\\+?\\|#\\)?"
   "Regular expression strictly matching a legal SAN move.")
 
 (defvar pygn-mode--relaxed-legal-move-pat
@@ -418,7 +418,6 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
 
 To produce a flag which takes no options, give a plist value of t."
   (let ((key-string nil)
-        (val-string nil)
         (argparse-string ""))
     (cl-loop for (key value) on opt-plist by (function cddr)
              do (progn
@@ -655,7 +654,7 @@ POS defaults to the point."
 Leading move numbers, punctuation, and spaces are allowed, and ignored."
   (let ((inhibit-changing-match-data t))
     (and (looking-at-p pygn-mode--relaxed-legal-move-pat)
-         (not (looking-back "[A-Za-z]" 1)))))
+         (not (looking-back "[a-h]" 1)))))
 
 (defun pygn-mode-looking-at-strict-legal-move ()
   "Whether the point is looking at a legal SAN chess move.
@@ -664,7 +663,7 @@ Leading move numbers, punctuation, and spaces are allowed, and ignored."
 not allowed on the SAN move."
   (let ((inhibit-changing-match-data t))
     (and (looking-at-p pygn-mode--strict-legal-move-pat)
-         (not (looking-back "[A-Za-z]" 1)))))
+         (not (looking-back "[a-h]" 1)))))
 
 (defun pygn-mode-looking-back-strict-legal-move ()
   "Whether the point is looking back at a legal SAN chess move.
