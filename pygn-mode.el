@@ -780,15 +780,19 @@ POS defaults to the point."
     (and (not (pygn-mode-inside-variation-or-comment-p (line-beginning-position)))
          (eq ?\[ (char-after (line-beginning-position))))))
 
+;; Unlike some other defuns, the node returned here does not represent the
+;; separator, because the separator is whitespace, and there is no such node.
 (defun pygn-mode-inside-separator-p (&optional pos)
   "Whether POS is inside a PGN separator.
 
 Separators are empty lines after tagpair headers or after games.
 
 POS defaults to the point."
-  (save-excursion
-    (goto-char (or pos (point)))
-    (looking-at-p "^$")))
+  (when-let ((node (pygn-mode--true-containing-node nil pos))
+             (type (tsc-node-type node)))
+    (when (and (memq type '(game series_of_games))
+               (not (tree-sitter-node-at-point 'result_code)))
+      node)))
 
 (defun pygn-mode-looking-at-result-code ()
   "Whether the point is looking at a PGN movetext result code."
