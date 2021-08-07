@@ -652,20 +652,64 @@ not match the client."
        (replace-regexp-in-string
         "\\`\s-*" "" (match-string 2 response))))))
 
-(defun pygn-mode-inside-comment-p (&optional pos)
-  "Whether POS is inside a PGN comment.
+(defun pygn-mode-inside-movetext-comment-p (&optional pos)
+  "Whether POS is inside a PGN movetext comment.
+
+Movetext comments are any of:
+ * inline comments surrounded by curly brackets
+ * rest-of-line comments introduced by semicolon, within movetext
+ * full-line \"escapes\" introduced by the percent symbol, within movetext
+
+Game comments are not:
+ * standalone annotations
+ * any comments outside movetext
 
 POS defaults to the point."
-  (nth 4 (save-excursion (syntax-ppss pos))))
-
-(defun pygn-mode-inside-escaped-line-p (&optional pos)
-  "Whether POS is inside a PGN line-comment.
-
-POS defaults to the point."
+  (cl-callf or pos (point))
   (save-excursion
-    (goto-char (or pos (point)))
-    (and (nth 4 (syntax-ppss pos))
-         (eq ?\% (char-after (line-beginning-position))))))
+    (goto-char pos)
+    (when (tree-sitter-node-at-point 'movetext)
+      (or (pygn-mode-inside-inline-comment-p)
+          (pygn-mode-inside-rest-of-line-comment-p)
+          (pygn-mode-inside-escaped-line-comment-p)))))
+
+(defun pygn-mode-inside-inline-comment-p (&optional pos)
+  "Whether POS is inside an inline PGN comment.
+
+POS defaults to the point."
+  (cl-callf or pos (point))
+  (save-excursion
+    (goto-char pos)
+    (unless (and (looking-at-p "\\s-")
+                 (eq 'inline_comment_delimiter_open
+                     (tsc-node-type (tree-sitter-node-at-point))))
+      (tree-sitter-node-at-point 'inline_comment))))
+
+(defun pygn-mode-inside-rest-of-line-comment-p (&optional pos)
+  "Whether POS is inside a rest-of-line PGN comment.
+
+POS defaults to the point."
+  (cl-callf or pos (point))
+  (save-excursion
+    (goto-char pos)
+    (unless (and (looking-at-p "\\s-")
+                 (eq 'rest_of_line_comment_delimiter_open
+                     (tsc-node-type (tree-sitter-node-at-point))))
+      (and (tree-sitter-node-at-point 'rest_of_line_comment)
+           (not (eq ?\% (char-after (line-beginning-position))))))))
+
+(defun pygn-mode-inside-escaped-line-comment-p (&optional pos)
+  "Whether POS is inside a rest-of-line PGN comment.
+
+POS defaults to the point."
+  (cl-callf or pos (point))
+  (save-excursion
+    (goto-char pos)
+    (unless (and (looking-at-p "\\s-")
+                 (eq 'rest_of_line_comment_delimiter_open
+                     (tsc-node-type (tree-sitter-node-at-point))))
+      (and (tree-sitter-node-at-point 'rest_of_line_comment)
+           (eq ?\% (char-after (line-beginning-position)))))))
 
 (defun pygn-mode-inside-variation-p (&optional pos)
   "Whether POS is inside a PGN variation.
@@ -680,7 +724,7 @@ POS defaults to the point."
   "Whether POS is inside a PGN comment or a variation.
 
 POS defaults to the point."
-  (or (pygn-mode-inside-comment-p pos)
+  (or (pygn-mode-inside-movetext-comment-p pos)
       (pygn-mode-inside-variation-p pos)))
 
 (defun pygn-mode-inside-header-p (&optional pos)
@@ -880,7 +924,7 @@ Does not work for nested variations."
            ;; crudely truncate at pos
            ;; and depend on Python chess library to clean up trailing garbage
            t)
-          ((pygn-mode-inside-comment-p)
+          ((pygn-mode-inside-movetext-comment-p)
            ;; crudely truncate at pos
            ;; and depend on Python chess library to clean up trailing garbage
            t)
