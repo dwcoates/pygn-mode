@@ -141,6 +141,7 @@
 ;;; Declarations
 
 (eval-when-compile
+  (require 'subr-x)
   (defvar nav-flash-delay)
   (defvar uci-mode-engine-buffer)
   (defvar uci-mode-engine-buffer-name))
@@ -360,8 +361,8 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
     (with-syntax-table st
       (modify-syntax-entry ?{ "<")
       (modify-syntax-entry ?} ">")
-      (modify-syntax-entry ?\; "< b")
-      (modify-syntax-entry ?\n "> b")
+      (modify-syntax-entry ?\n "-")
+      (modify-syntax-entry ?\r "-")
       (modify-syntax-entry ?\\ "\\")
       (modify-syntax-entry ?\" "\"")
       (modify-syntax-entry ?| "w")
@@ -652,6 +653,93 @@ not match the client."
        (replace-regexp-in-string
         "\\`\s-*" "" (match-string 2 response))))))
 
+;; would be nicer if multi-type were chosen by how far up we must go in the
+;; syntax tree to find a node of the type, instead of the latest-starting by
+;; buffer position.
+(cl-defun pygn-mode--true-containing-node (&optional type pos)
+  "Return the node of type TYPE which contains POS, adjusting whitespace.
+
+TYPE defaults to the nearest containing node.  If TYPE is a symbol, find
+the first containing node of that type.  If TYPE is a list of symbols,
+find the latest-starting containing node of any of the given types.
+
+POS defaults to the point.
+
+If a node has leading or trailing whitespace, and POS is in that
+whitespace, ignore the result, and consult the parent node.
+
+Also respect narrowing.
+
+If TYPE is unset, and an appropriate containing node is not
+found, return the root node."
+  (cl-callf or pos (point))
+  (save-excursion
+    (goto-char pos)
+    (let ((best-first -1)
+          (best-node nil))
+      (dolist (tp (if (listp type) (or type '(nil)) (list type)))
+        (let ((node (tree-sitter-node-at-point tp))
+              (first nil)
+              (last nil))
+          (while node
+            (setq first (pygn-mode--true-node-first-position node))
+            (setq last (pygn-mode--true-node-last-position node))
+            (cond
+              ((and (>= pos first)
+                    (<= pos last)
+                    (> first best-first))
+               (setq best-first first)
+               (setq best-node node)
+               (setq node nil))
+              (tp
+               (setq node nil))
+              (t
+               (setq node (tsc-get-parent node)))))))
+      (if best-node
+          best-node
+        (unless type
+          (tsc-root-node tree-sitter-tree))))))
+
+(defun pygn-mode--true-node-first-position (node)
+  "Return the true first position within NODE, adjusting whitespace.
+
+Also respect narrowing."
+  (let ((first (max (point-min) (tsc-node-start-position node))))
+    (cond
+      ((eq node (tsc-root-node tree-sitter-tree))
+       (setq first (point-min)))
+      (t
+       (save-excursion
+         (goto-char first)
+         (skip-syntax-forward "-")
+         (setq first (point)))))
+    first))
+
+(defun pygn-mode--true-node-last-position (node)
+  "Return the true last position within NODE, adjusting whitespace.
+
+Also respect narrowing."
+  (let ((last (min (point-max) (tsc-node-end-position node))))
+    (cond
+      ((eq node (tsc-root-node tree-sitter-tree))
+       (setq last (point-max)))
+      (t
+       (save-excursion
+         (goto-char last)
+         (skip-syntax-backward "-")
+         (while (and (> (point) (point-min))
+                     (looking-at-p "\\s-"))
+           (forward-char -1))
+         (setq last (point)))))
+    last))
+
+(defun pygn-mode--true-node-after-position (node)
+  "Return the true first position after NODE, adjusting whitespace.
+
+Also respect narrowing."
+  (let ((last (pygn-mode--true-node-last-position node)))
+    (min (point-max) (1+ last))))
+
 (defun pygn-mode-inside-comment-p (&optional pos)
   "Whether POS is inside a PGN comment.
 
@@ -741,32 +829,20 @@ not examined on the SAN move."
 (defun pygn-mode-game-start-position (&optional pos)
   "Start position for the PGN game which contains position POS.
 
+If POS is not within a game, returns nil.
+
 POS defaults to the point."
-  (cl-callf or pos (point))
-  (save-excursion
-    (goto-char pos)
-    (unless (looking-at-p "\\[Event ")
-      (let ((inhibit-changing-match-data t))
-        (re-search-backward "^\\[Event " nil t)))
-    (forward-line 0)
-    (point)))
+  (when-let ((game-node (pygn-mode--true-containing-node 'game pos)))
+    (pygn-mode--true-node-first-position game-node)))
 
 (defun pygn-mode-game-end-position (&optional pos)
   "End position for the PGN game which contains position POS.
 
+If POS is not within a game, returns nil.
+
 POS defaults to the point."
-  (cl-callf or pos (point))
-  (save-excursion
-    (save-match-data
-      (goto-char pos)
-      (goto-char (line-end-position))
-      (if (re-search-forward "^\\[Event " nil t)
-          (forward-line 0)
-        ;; else
-        (goto-char (point-max)))
-      (re-search-backward "\\S-" nil t)
-      (forward-line 1)
-      (point))))
+  (when-let ((game-node (pygn-mode--true-containing-node 'game pos)))
+    (pygn-mode--true-node-after-position game-node)))
 
 ;; todo maybe shouldn't consult looking-at here, but it works well for the
 ;; purpose of pygn-mode-next-move
