@@ -759,10 +759,8 @@ POS defaults to the point."
   "Whether POS is inside a PGN variation.
 
 POS defaults to the point."
-  (let ((syn (save-excursion (syntax-ppss pos))))
-    (when (and (> (nth 0 syn) 0)
-               (eq ?\( (char-after (nth 1 syn))))
-      (nth 0 syn))))
+  (when-let ((variation-node (pygn-mode--true-containing-node 'variation pos)))
+    variation-node))
 
 (defun pygn-mode-inside-variation-or-comment-p (&optional pos)
   "Whether POS is inside a PGN comment or a variation.
