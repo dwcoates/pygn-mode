@@ -792,7 +792,8 @@ POS defaults to the point."
 
 (defun pygn-mode-looking-at-result-code ()
   "Whether the point is looking at a PGN movetext result code."
-  (looking-at-p "\\(?:1-0\\|0-1\\|1/2-1/2\\|\\*\\)\\s-*$"))
+  (when-let ((result-node (pygn-mode--true-containing-node 'result_code)))
+    result-node))
 
 (defun pygn-mode-looking-at-suffix-annotation ()
   "Whether the point is looking at a SAN suffix annotation."
