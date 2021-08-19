@@ -48,6 +48,29 @@
     (pygn-mode-next-move)
     (should (= (point) 186))))
 
+;;; pygn-mode-previous-move
+
+(ert-deftest pygn-mode-previous-move-01 nil
+  (with-temp-buffer
+    (insert-file-contents
+     (expand-file-name "test-01.pgn" pygn-mode-test-input-directory))
+    (pygn-mode)
+    (goto-char (point-min))
+    (pygn-mode-next-move)
+    (pygn-mode-next-move)
+    (pygn-mode-previous-move)
+    (should (= (point) 181))
+    (should (looking-at-p "Qe8\\+\\>"))))
+
+(ert-deftest pygn-mode-previous-move-02 nil
+  (with-temp-buffer
+    (insert-file-contents
+     (expand-file-name "test-01.pgn" pygn-mode-test-input-directory))
+    (pygn-mode)
+    (goto-char (point-min))
+    (pygn-mode-next-move)
+    (should-error (pygn-mode-previous-move))))
+
 ;;
 ;; Emacs
 ;;
