@@ -1207,7 +1207,7 @@ POS defaults to the point."
         (t
          ;; this fallback logic is probably too subtle because it sometimes rests
          ;; on the previous word, and sometimes successfully searches forward.
-         ;; todo continue making the conditions more explicit and descriptiive
+         ;; todo continue making the conditions more explicit and descriptive
          (let ((word-bound (save-excursion (forward-word-strictly 1) (point)))
                (game-bound (pygn-mode-game-end-position)))
            (forward-word-strictly -1)
