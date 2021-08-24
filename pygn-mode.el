@@ -5,9 +5,9 @@
 ;; Author: Dodge Coates and Roland Walker
 ;; Homepage: https://github.com/dwcoates/pygn-mode
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
-;; Version: 0.5.1
-;; Last-Updated: 18 Jun 2021
-;; Package-Requires: ((emacs "25.1") (uci-mode "0.5.4") (nav-flash "1.0.0") (ivy "0.10.0"))
+;; Version: 0.6.0
+;; Last-Updated: 06 Aug 2021
+;; Package-Requires: ((emacs "26.1") (tree-sitter "0.15.1") (tree-sitter-langs "0.10.1") (uci-mode "0.5.4") (nav-flash "1.0.0") (ivy "0.10.0"))
 ;; Keywords: data, games, chess
 
 ;;; License
@@ -48,12 +48,6 @@
 ;;; Internal notes
 
 ;; Bugs
-
-;;     `pygn-mode-after-change-function' should be made faster
-
-;;     Bracketed {comments} inside variations can't contain close-parenthesis
-
-;;     No support for recursive variations
 
 ;; TODO
 
@@ -117,7 +111,9 @@
 
 ;; Compatibility and Requirements
 
-;;     GNU Emacs 25.1+
+;;     GNU Emacs 26.1+, compiled with dynamic module support
+
+;;     tree-sitter.el and tree-sitter-langs.el
 
 ;;     Python and the chess library are needed for numerous features such
 ;;     as SVG board images:
@@ -129,7 +125,7 @@
 
 ;;; Code:
 
-(defconst pygn-mode-version "0.5.1")
+(defconst pygn-mode-version "0.6.0")
 
 ;;; Imports
 
@@ -138,12 +134,13 @@
 (require 'uci-mode nil t)
 (require 'nav-flash nil t)
 (require 'ivy nil t)
+(require 'tree-sitter)
+(require 'tree-sitter-hl)
+(require 'tree-sitter-langs)
 
 ;;; Declarations
 
 (eval-when-compile
-  (defvar font-lock-beg)
-  (defvar font-lock-end)
   (defvar nav-flash-delay)
   (defvar uci-mode-engine-buffer)
   (defvar uci-mode-engine-buffer-name))
@@ -220,29 +217,94 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   :group 'pygn)
 
 (defface pygn-mode-tagpair-key-face
-   '((t (:inherit font-lock-keyword-face)))
+  '((t (:inherit font-lock-keyword-face)))
   "pygn-mode face for tagpair (header) keys."
   :group 'pygn-faces)
 
-(defface pygn-mode-nag-face
-   '((t (:inherit font-lock-comment-face)))
-  "pygn-mode face for Numeric Annotation Glyphs."
-  :group 'pygn-faces)
-
-(defface pygn-mode-variation-face
-   '((t (:foreground "Gray50")))
-  "pygn-mode face for variations."
-  :group 'pygn-faces)
-
-(defface pygn-mode-result-face
-   '((t (:inherit font-lock-builtin-face)))
-  "pygn-mode face for result codes."
+(defface pygn-mode-tagpair-value-face
+  '((t (:inherit font-lock-string-face)))
+  "pygn-mode face for tagpair (header) values."
   :group 'pygn-faces)
 
 (defface pygn-mode-tagpair-bracket-face
    '((t (:foreground "Gray50")))
-  "pygn-mode face for tagpair square brackets."
+  "pygn-mode face for tagpair (header) square brackets."
   :group 'pygn-faces)
+
+(defface pygn-mode-annotation-face
+  '((t (:inherit font-lock-comment-face)))
+  "pygn-mode face for annotation symbols."
+  :group 'pygn-faces)
+
+(defface pygn-mode-inline-comment-face
+  '((t (:inherit font-lock-comment-face)))
+  "pygn-mode face for inline comments."
+  :group 'pygn-faces)
+
+(defface pygn-mode-rest-of-line-comment-face
+  '((t (:inherit font-lock-comment-face)))
+  "pygn-mode face for rest-of-line comments."
+  :group 'pygn-faces)
+
+(defface pygn-mode-twic-section-comment-face
+  '((t (:inherit font-lock-comment-face)))
+  "pygn-mode face for TWIC-style section comments."
+  :group 'pygn-faces)
+
+(defface pygn-mode-move-face
+  '((t (:inherit default)))
+  "pygn-mode face for moves."
+  :group 'pygn-faces)
+
+(defface pygn-mode-move-number-face
+  '((t (:inherit default)))
+  "pygn-mode face for move numbers."
+  :group 'pygn-faces)
+
+(defface pygn-mode-variation-move-face
+  '((t (:foreground "Gray50")))
+  "pygn-mode face for variation moves."
+  :group 'pygn-faces)
+
+(defface pygn-mode-variation-move-number-face
+  '((t (:foreground "Gray50")))
+  "pygn-mode face for variation move numbers."
+  :group 'pygn-faces)
+
+(defface pygn-mode-variation-delimiter-face
+  '((t (:foreground "Gray50")))
+  "pygn-mode face for variation delimiters."
+  :group 'pygn-faces)
+
+(defface pygn-mode-variation-annotation-face
+  '((t (:inherit font-lock-comment-face)))
+  "pygn-mode face for annotation symbols within variations."
+  :group 'pygn-faces)
+
+(defface pygn-mode-variation-inline-comment-face
+  '((t (:inherit font-lock-comment-face)))
+  "pygn-mode face for inline comments within variations."
+  :group 'pygn-faces)
+
+(defface pygn-mode-variation-rest-of-line-comment-face
+  '((t (:inherit font-lock-comment-face)))
+  "pygn-mode face for rest-of-line comments within variations."
+  :group 'pygn-faces)
+
+(defface pygn-mode-result-face
+  '((t (:inherit font-lock-builtin-face)))
+  "pygn-mode face for result codes."
+  :group 'pygn-faces)
+
+(defface pygn-mode-invalid-face
+  '((t (:inherit font-lock-warning-face)))
+  "pygn-mode face for spans of text which are not valid PGN."
+  :group 'pygn-faces)
+
+(define-obsolete-face-alias
+  'pygn-mode-nag-face
+  'pygn-mode-annotation-face
+  "0.6.0")
 
 ;;; Variables
 
@@ -966,110 +1028,73 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
 
 ;;; Font-lock
 
-(defun pygn-mode-after-change-function (beg end _)
-  "Help refontify multi-line variations during edits.
+(defvar pygn-mode-tree-sitter-patterns
+  [
+   (tagpair_delimiter_open) @tagpair-bracket
+   (tagpair_delimiter_close) @tagpair-bracket
+   (tagpair_key) @tagpair-key
+   (tagpair tagpair_value_delimiter: (double_quote) @tagpair-value)
+   (tagpair_value_contents) @tagpair-value
 
-BEG and END define the boundaries of a region, in the style of
-`after-change-functions'."
-  (let ((syn (syntax-ppss beg)))
-    (if (> 0 (nth 0 syn))
-        (progn
-          (setq beg (max (point-min) (- (nth 1 (syntax-ppss)) 1)))
-          (setq end (save-excursion
-                      (goto-char beg)
-                      (forward-list 1)
-                      (point))))
-      ;; else guess
-      (setq beg (save-excursion
-                  (goto-char beg)
-                  (forward-line -1)
-                  (point)))
-      (setq end (save-excursion
-                  (goto-char end)
-                  (forward-line 2)
-                  (point))))
-    (cons beg end)))
+   (variation_delimiter_open) @variation-delimiter
+   (variation_delimiter_close) @variation-delimiter
+   (variation_movetext variation_move_number: (move_number) @variation-move-number)
+   (variation_movetext variation_san_move: (san_move) @variation-move)
+   (variation_movetext variation_annotation: (annotation) @variation-annotation)
+   (variation_movetext variation_comment: (inline_comment) @variation-inline-comment)
+   (variation_movetext variation_comment: (rest_of_line_comment) @variation-rest-of-line-comment)
 
-(defun pygn-mode-font-lock-extend-region ()
-  "Extend the search region to help fontify multi-line variations."
-  (let ((syn (syntax-ppss font-lock-beg))
-        (initial-beg font-lock-beg)
-        (initial-end font-lock-end))
-    (when (> 0 (nth 0 syn))
-      (save-excursion
-        (goto-char (nth 1 syn))
-        (setq font-lock-beg (point))
-        (forward-list 1)
-        (setq font-lock-end (point)))
-      (or (/= initial-beg font-lock-beg)
-          (/= initial-end font-lock-end)))))
+   (inline_comment) @inline-comment
+   (rest_of_line_comment) @rest-of-line-comment
+   (old_style_twic_section_comment) @twic-section-comment
 
-(defun pygn-mode-propertize-line-comments (start end)
-  "Put text properties on beginnings and ends of line comments.
+   (movetext (move_number) @move-number)
+   (movetext (san_move) @move)
 
-START and END define the the start and end of the text to which
-`syntax-table' might need to be applied, as documented for
-`syntax-propertize-function'.
+   (annotation) @annotation
 
-Intended to be used as a `syntax-propertize-function'."
-  (save-excursion
-    (save-match-data
-      (goto-char start)
-      (while (re-search-forward "^\\(%\\)[^\n]*\\(\n\\)" end t)
-        (put-text-property (match-beginning 1) (match-end 1)
-                           'syntax-table (string-to-syntax "!"))
-        (put-text-property (match-beginning 2) (match-end 2)
-                           'syntax-table (string-to-syntax "!"))))))
+   (result_code) @result
 
-(font-lock-add-keywords
- 'pygn-mode
- '(
-   ;; tagpair keys. values are handled by the syntax table
-   ("^\\[\\(\\S-+\\)\\s-+\"[^\n]*\"\\]" 1 'pygn-mode-tagpair-key-face)
-   ;; tagpair open-brackets
-   ("^\\[" . 'pygn-mode-tagpair-bracket-face)
-   ;; tagpair close-brackets
-   ("\\]\\s-*$" . 'pygn-mode-tagpair-bracket-face)
-   ;; numeric NAGs
-   ("\\<$[0-9]+" . 'pygn-mode-nag-face)
-   ;; unicode NAGs and annotations
-   ("±\\|–\\|‼\\|⁇\\|⁈\\|⁉\\|↑\\|→\\|⇆\\|⇔\\|⇗\\|∆\\|−\\|∓\\|∞\\|⊥\\|⌓\\|□\\|✕\\|⟪\\|⟫\\|⟳\\|⨀\\|⩱\\|⩲" . 'pygn-mode-nag-face)
-   ;; NAGs preceded by space
-   ("\\s-\\(\\+-?\\|-\\|=\\)" 1 'pygn-mode-nag-face)
-   ;; annotations not preceded by space
-   ("\\?\\|!" . 'pygn-mode-nag-face)
-   ;; result codes
-   ("\\(1\\s-*-\\s-*0\\|0\\s-*-\\s-*1\\|1/2\\s-*-\\s-*1/2\\|\\*\\)\\s-*$" 1 'pygn-mode-result-face)
-   ;; variation text. append or keep is very important here.
-   ("([^()]*?)" 0 'pygn-mode-variation-face append)))
+   (ERROR) @invalid
+   ]
+  "A tree-sitter \"query\" which defines syntax highlighting for pygn-mode.")
+
+(defun pygn-mode--capture-face-mapper (capture-name)
+  "Return the default face used to highlight CAPTURE-NAME."
+  (intern (format "pygn-mode-%s-face" capture-name)))
 
 ;;; Major-mode definition
 
 ;;;###autoload
 (define-derived-mode pygn-mode fundamental-mode "PyGN"
- "A major-mode for chess PGN files, powered by Python."
- :syntax-table pygn-mode-syntax-table
- :group 'pygn
- (setq-local comment-start "{")
- (setq-local comment-end "}")
- (setq-local comment-continue " ")
- (setq-local comment-multi-line t)
- (setq-local comment-style 'plain)
- (setq-local comment-use-syntax t)
- (setq-local syntax-propertize-function 'pygn-mode-propertize-line-comments)
- (setq-local parse-sexp-lookup-properties t)
- (setq-local parse-sexp-ignore-comments t)
- (setq-local font-lock-multiline t)
- (setq-local font-lock-extend-after-change-region-function 'pygn-mode-after-change-function)
- (add-hook 'font-lock-extend-region-functions #'pygn-mode-font-lock-extend-region t t)
- (font-lock-ensure)
- (let ((map (make-sparse-keymap)))
-   (set-keymap-parent map (default-value 'mode-line-major-mode-keymap))
-   (define-key map (kbd "<mode-line> <mouse-4>")    'pygn-mode-previous-move)
-   (define-key map (kbd "<mode-line> <mouse-5>")    'pygn-mode-next-move)
-   (define-key map (kbd "<mode-line> <wheel-up>")   'pygn-mode-previous-move)
-   (define-key map (kbd "<mode-line> <wheel-down>") 'pygn-mode-next-move)
-   (setq-local mode-line-major-mode-keymap map)))
+  "A major-mode for chess PGN files, powered by Python."
+  :syntax-table pygn-mode-syntax-table
+  :group 'pygn
+
+  ;; https://github.com/ubolonton/emacs-tree-sitter/issues/84
+  (unless font-lock-defaults
+    (setq font-lock-defaults '(nil)))
+  (setq-local tree-sitter-hl-default-patterns pygn-mode-tree-sitter-patterns)
+  (setq-local tree-sitter-hl-face-mapping-function #'pygn-mode--capture-face-mapper)
+
+  (setq-local comment-start "{")
+  (setq-local comment-end "}")
+  (setq-local comment-continue " ")
+  (setq-local comment-multi-line t)
+  (setq-local comment-style 'plain)
+  (setq-local comment-use-syntax t)
+  (setq-local parse-sexp-lookup-properties t)
+  (setq-local parse-sexp-ignore-comments t)
+
+  (tree-sitter-hl-mode)
+
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map (default-value 'mode-line-major-mode-keymap))
+    (define-key map (kbd "<mode-line> <mouse-4>")    'pygn-mode-previous-move)
+    (define-key map (kbd "<mode-line> <mouse-5>")    'pygn-mode-next-move)
+    (define-key map (kbd "<mode-line> <wheel-up>")   'pygn-mode-previous-move)
+    (define-key map (kbd "<mode-line> <wheel-down>") 'pygn-mode-next-move)
+    (setq-local mode-line-major-mode-keymap map)))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.[pP][gG][nN]\\'" . pygn-mode))

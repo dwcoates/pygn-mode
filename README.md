@@ -38,7 +38,7 @@ An Emacs major-mode for chess PGN files, powered by Python.
 
 Provides
 
- * syntax highlighting via `font-lock`, including highlighting of bracketed
+ * syntax highlighting via [tree-sitter](https://github.com/emacs-tree-sitter), including highlighting of bracketed
    `{comments}` and parenthesized `(variations)`.
  * customizable faces
  * navigation and selection commands
@@ -146,7 +146,9 @@ emacs-chess
 
 ## Compatibility and Requirements
 
-GNU Emacs 25.1+
+GNU Emacs 26.1+, compiled with dynamic module support
+
+[tree-sitter.el](https://github.com/emacs-tree-sitter/elisp-tree-sitter) and [tree-sitter-langs.el](https://github.com/emacs-tree-sitter/tree-sitter-langs)
 
 Python 3.7+
 

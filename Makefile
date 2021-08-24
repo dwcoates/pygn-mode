@@ -1,4 +1,8 @@
-EMACS := emacs
+ifneq ($(CASK),)
+ EMACS := $(CASK) emacs
+else
+ EMACS := emacs
+endif
 
 EMACS_CLEAN := -Q
 EMACS_BATCH := $(EMACS_CLEAN) --batch
@@ -34,14 +38,13 @@ test-tests :
 test-prep : build test-autoloads test-tests
 
 test-batch :
-	@cd '$(TEST_DIR)'                                 && \
-	(for test_lib in *-test.el; do                       \
-	   $(EMACS) $(EMACS_BATCH) -L . -L ..                \
-	   -l "$$test_lib" --eval                            \
-	    "(progn                                          \
-	      (fset 'ert--print-backtrace 'ignore)           \
-	      (ert-run-tests-batch-and-exit '(and \"$(TESTS)\" (not (tag :interactive)))))" || exit 1; \
-	done)
+	for test_lib in $(TEST_DIR)/*-test.el; do           \
+	  $(EMACS) $(EMACS_BATCH) -L $(TEST_DIR) -L .       \
+	  -l "$$test_lib" --eval                            \
+	   "(progn                                          \
+	     (fset 'ert--print-backtrace 'ignore)           \
+	     (ert-run-tests-batch-and-exit '(and \"$(TESTS)\" (not (tag :interactive)))))" || exit 1; \
+	done
 
 test : test-prep test-batch
 
