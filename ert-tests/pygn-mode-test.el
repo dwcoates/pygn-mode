@@ -20,12 +20,12 @@
 ;; several other input files. How to organize that with clarity not clutter?
 (ert-deftest pygn-mode-pgn-at-pos-01 nil
   (with-temp-buffer
-    (insert-file-contents-literally
+    (insert-file-contents
      (expand-file-name "test-01.pgn" pygn-mode-test-input-directory))
-    (goto-char (point-min))
-  (should (equal
-           "[Event \"?\"]\n"
-           (pygn-mode-pgn-at-pos (point))))))
+    (pygn-mode)
+    (should (equal
+             "[Event \"?\"]\n"
+             (pygn-mode-pgn-at-pos (point-min))))))
 
 ;;
 ;; Emacs
