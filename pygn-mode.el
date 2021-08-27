@@ -740,20 +740,51 @@ Also respect narrowing."
   (let ((last (pygn-mode--true-node-last-position node)))
     (min (point-max) (1+ last))))
 
-(defun pygn-mode-inside-comment-p (&optional pos)
-  "Whether POS is inside a PGN comment.
+(defun pygn-mode-inside-movetext-comment-p (&optional pos)
+  "Whether POS is inside a PGN movetext comment.
+
+Movetext comments are any of:
+ * inline comments surrounded by curly brackets
+ * rest-of-line comments introduced by semicolon, within movetext
+ * full-line \"escapes\" introduced by the percent symbol, within movetext
+
+Game comments are not:
+ * standalone annotations
+ * any comments outside movetext
 
 POS defaults to the point."
-  (nth 4 (save-excursion (syntax-ppss pos))))
+  (when (pygn-mode--true-containing-node 'movetext pos)
+    (or (pygn-mode-inside-inline-comment-p pos)
+        (pygn-mode-inside-rest-of-line-comment-p pos)
+        (pygn-mode-inside-escaped-line-comment-p pos))))
 
-(defun pygn-mode-inside-escaped-line-p (&optional pos)
-  "Whether POS is inside a PGN line-comment.
+(defun pygn-mode-inside-inline-comment-p (&optional pos)
+  "Whether POS is inside an inline PGN comment.
 
 POS defaults to the point."
-  (save-excursion
-    (goto-char (or pos (point)))
-    (and (nth 4 (syntax-ppss pos))
-         (eq ?\% (char-after (line-beginning-position))))))
+  (pygn-mode--true-containing-node 'inline_comment pos))
+
+(defun pygn-mode-inside-rest-of-line-comment-p (&optional pos)
+  "Whether POS is inside a rest-of-line PGN comment.
+
+POS defaults to the point."
+  (when-let ((comment-node (pygn-mode--true-containing-node 'rest_of_line_comment pos))
+             (first-pos (pygn-mode--true-node-first-position comment-node))
+             (comment-delimiter (char-after first-pos)))
+    (when (eq ?\; comment-delimiter)
+      comment-node)))
+
+;; buglet: the spec only permits % at line-beginning-position, but the current
+;; grammar permits it at any position.
+(defun pygn-mode-inside-escaped-line-comment-p (&optional pos)
+  "Whether POS is inside a rest-of-line PGN comment.
+
+POS defaults to the point."
+  (when-let ((comment-node (pygn-mode--true-containing-node 'rest_of_line_comment pos))
+             (first-pos (pygn-mode--true-node-first-position comment-node))
+             (comment-delimiter (char-after first-pos)))
+    (when (eq ?\% comment-delimiter)
+      comment-node)))
 
 (defun pygn-mode-inside-variation-p (&optional pos)
   "Whether POS is inside a PGN variation.
@@ -766,7 +797,7 @@ POS defaults to the point."
   "Whether POS is inside a PGN comment or a variation.
 
 POS defaults to the point."
-  (or (pygn-mode-inside-comment-p pos)
+  (or (pygn-mode-inside-movetext-comment-p pos)
       (pygn-mode-inside-variation-p pos)))
 
 (defun pygn-mode-inside-header-p (&optional pos)
@@ -937,7 +968,7 @@ Does not work for nested variations."
            ;; crudely truncate at pos
            ;; and depend on Python chess library to clean up trailing garbage
            t)
-          ((pygn-mode-inside-comment-p)
+          ((pygn-mode-inside-movetext-comment-p)
            ;; crudely truncate at pos
            ;; and depend on Python chess library to clean up trailing garbage
            t)
