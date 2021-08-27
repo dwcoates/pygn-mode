@@ -759,10 +759,8 @@ POS defaults to the point."
   "Whether POS is inside a PGN variation.
 
 POS defaults to the point."
-  (let ((syn (save-excursion (syntax-ppss pos))))
-    (when (and (> (nth 0 syn) 0)
-               (eq ?\( (char-after (nth 1 syn))))
-      (nth 0 syn))))
+  (when-let ((variation-node (pygn-mode--true-containing-node 'variation pos)))
+    variation-node))
 
 (defun pygn-mode-inside-variation-or-comment-p (&optional pos)
   "Whether POS is inside a PGN comment or a variation.
@@ -843,31 +841,6 @@ If POS is not within a game, returns nil.
 POS defaults to the point."
   (when-let ((game-node (pygn-mode--true-containing-node 'game pos)))
     (pygn-mode--true-node-after-position game-node)))
-
-;; todo maybe shouldn't consult looking-at here, but it works well for the
-;; purpose of pygn-mode-next-move
-(defun pygn-mode-forward-exit-variations-and-comments ()
-  "However deep in nested variations and comments, exit and skip forward."
-  (while (or (> (nth 0 (syntax-ppss)) 0)
-             (nth 4 (syntax-ppss))
-             (looking-at-p "\\s-*(")
-             (looking-at-p "\\s-*{"))
-    (cond
-      ((> (nth 0 (syntax-ppss)) 0)
-       (up-list (nth 0 (syntax-ppss))))
-      ((nth 4 (syntax-ppss))
-       (skip-syntax-forward "^>")
-       (forward-char 1))
-      ((looking-at-p "\\s-*(")
-       (skip-syntax-forward "-")
-       (forward-char 1))
-      ((looking-at-p "\\s-*{")
-       (skip-syntax-forward "-")
-       (forward-char 1)))
-    (skip-syntax-forward "-")
-    (when (looking-at-p "$")
-      (forward-line 1)
-      (skip-syntax-forward "-"))))
 
 ;; todo maybe shouldn't consult looking-back here, but it works well for the
 ;; purpose of pygn-mode-previous-move
@@ -1328,6 +1301,10 @@ With numeric prefix ARG, move back ARG games."
       (re-search-backward "^\\[Event " nil t))
     (pygn-mode--next-game-driver (* arg -1))))
 
+;; when tree-sitter-node-at-point is used instead of pygn-mode--true-containing-node,
+;; that is intentional, for one of two related reasons: tree-sitter-node-at-point
+;; will return a leaf node even on whitespace, and/or we may plan to call
+;; tsc-get-next-sibling-node on the return value.
 (defun pygn-mode-next-move (arg)
   "Advance to the next player move in a PGN game.
 
@@ -1339,34 +1316,43 @@ With numeric prefix ARG, advance ARG moves forward."
   (interactive "p")
   (cl-callf or arg 1)
   (save-restriction
-    (save-match-data
-      (narrow-to-region (pygn-mode-game-start-position)
-                        (pygn-mode-game-end-position))
-      (let ((last-point -1)
-            (start (point))
+    (when (eq 'series_of_games (tsc-node-type (pygn-mode--true-containing-node)))
+      (skip-syntax-forward "-"))
+    (narrow-to-region (or (pygn-mode-game-start-position) (point))
+                      (or (pygn-mode-game-end-position) (point)))
+    (when-let ((header-node (pygn-mode--true-containing-node 'header)))
+      (goto-char (pygn-mode--true-node-after-position header-node)))
+    (when (tree-sitter-node-at-point 'result_code)
+      (error "No more moves"))
+    ;; this is not great because it might leave a moved point if we fail
+    (while (and (not (pygn-mode--true-containing-node 'movetext))
+                (< (point) (point-max)))
+      (forward-char 1))
+    (dotimes (_ arg)
+      (let ((node (tree-sitter-node-at-point))
             (thumb (point)))
-        (when (pygn-mode-inside-header-p)
-          (re-search-forward "\n\n" nil t)
-          (forward-char -1))
-        (dotimes (_ arg)
-          (when (pygn-mode-looking-at-relaxed-legal-move)
-            (setq thumb (point))
-            (skip-chars-forward "0-9.…\s-")
-            (forward-char 1))
-          (while (and (not (= (point) last-point))
-                      (or (not (pygn-mode-looking-at-relaxed-legal-move))
-                          (pygn-mode-inside-variation-or-comment-p)))
-            (setq last-point (point))
-            (cond
-             ((pygn-mode-inside-variation-or-comment-p)
-              (pygn-mode-forward-exit-variations-and-comments))
-             (t
-              (forward-sexp 1)))))
-        (skip-chars-forward "0-9.…\s-")
-        (unless (pygn-mode-looking-at-relaxed-legal-move)
-          (goto-char thumb)
-          (when (= thumb start)
-            (error "No more moves")))))))
+        (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
+          (goto-char (pygn-mode--true-node-after-position move-node)))
+        (while (not (pygn-mode--true-containing-node '(san_move lan_move)))
+          (setq node (tree-sitter-node-at-point))
+          (cond
+            ((>= (pygn-mode--true-node-last-position node)
+                 (point-max))
+             (goto-char thumb)
+             (error "No more moves"))
+            ((pygn-mode--true-containing-node
+              '(variation inline_comment rest_of_line_comment))
+             (goto-char (pygn-mode--true-node-after-position
+                         (pygn-mode--true-containing-node
+                          '(variation inline_comment rest_of_line_comment)))))
+            ((looking-at-p "\\s-")
+             (skip-syntax-forward "-"))
+            (t
+             (setq node (tsc-get-next-sibling node))
+             (if node
+                 (goto-char (pygn-mode--true-node-first-position node))
+               (forward-char 1)))))
+        (skip-syntax-forward "-")))))
 
 (defun pygn-mode-previous-move (arg)
   "Move back to the previous player move in a PGN game.
