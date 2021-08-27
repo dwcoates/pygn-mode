@@ -797,7 +797,12 @@ POS defaults to the point."
 
 (defun pygn-mode-looking-at-suffix-annotation ()
   "Whether the point is looking at a SAN suffix annotation."
-  (looking-at-p "\\(?:‼\\|⁇\\|⁈\\|⁉\\|!\\|\\?\\|!!\\|!\\?\\|\\?!\\|\\?\\?\\)\\>"))
+  (when-let ((annotation-node (pygn-mode--true-containing-node 'annotation)))
+    (save-excursion
+      (goto-char (pygn-mode--true-node-first-position annotation-node))
+      (forward-char -1)
+      (when (pygn-mode--true-containing-node '(san_move lan_move))
+        annotation-node))))
 
 (defun pygn-mode-looking-at-relaxed-legal-move ()
   "Whether the point is looking at a legal SAN chess move.
