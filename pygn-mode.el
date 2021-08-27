@@ -773,10 +773,8 @@ POS defaults to the point."
   "Whether POS is inside a PGN header.
 
 POS defaults to the point."
-  (save-excursion
-    (goto-char (or pos (point)))
-    (and (not (pygn-mode-inside-variation-or-comment-p (line-beginning-position)))
-         (eq ?\[ (char-after (line-beginning-position))))))
+  (when-let ((header-node (pygn-mode--true-containing-node 'header pos)))
+    header-node))
 
 ;; Unlike some other defuns, the node returned here does not represent the
 ;; separator, because the separator is whitespace, and there is no such node.
