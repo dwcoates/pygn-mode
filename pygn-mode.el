@@ -1031,35 +1031,32 @@ strings from header tagpairs of games, and POS is the starting position of a
 game in the buffer.
 
 For use in `pygn-mode-ivy-jump-to-game-by-any-header'."
-  (let ((game-starts nil)
-        (game-bounds nil)
-        (header-coordinates nil)
-        (element nil))
-    (save-excursion
-      (save-restriction
-        (goto-char (point-min))
-        (while (re-search-forward "^\\[Event " nil t)
-          (push (line-beginning-position) game-starts))
-        (setq game-starts (nreverse game-starts))
-        (while (setq element (pop game-starts))
-          (push (cons element (1- (or (car game-starts) (point-max)))) game-bounds))
-        (setq game-bounds (nreverse game-bounds))
-        (cl-loop for cell in game-bounds
-              do (progn
-                   (narrow-to-region (car cell) (cdr cell))
-                   (goto-char (point-min))
-                   (re-search-forward "\n[ \t\r]*\n" nil t)
-                   (push (cons
+  (let* ((header-coordinates nil)
+         (root-node (tsc-root-node tree-sitter-tree))
+         (max-count (tsc-count-children root-node))
+         (index 0)
+         (game-node nil)
+         (header-node nil))
+    (while (< index max-count)
+      (setq game-node (tsc-get-nth-child root-node index))
+      (cl-incf index)
+      (when (and game-node (eq 'game (tsc-node-type game-node)))
+        (save-excursion
+          (goto-char (tsc-node-start-position game-node))
+          (setq header-node (tree-sitter-node-at-point 'header))
+          (when header-node
+            (push (cons (replace-regexp-in-string
+                         "\\`\\s-+" ""
+                         (replace-regexp-in-string
+                          "\\s-+\\'" ""
                           (replace-regexp-in-string
-                           "\\`\\s-+" ""
+                           "[\r\n]" " "
                            (replace-regexp-in-string
-                            "\n" " "
-                            (replace-regexp-in-string
-                             "^\\[\\S-+\\s-+\"[?.]*\"\\]" ""
-                             (buffer-substring-no-properties (car cell) (point)))))
-                          (car cell))
-                         header-coordinates)))
-        (nreverse header-coordinates)))))
+                            "^\\[\\S-+\\s-+\"[?.]*\"\\]" ""
+                            (tsc-node-text header-node)))))
+                        (tsc-node-start-position header-node))
+                  header-coordinates)))))
+        (nreverse header-coordinates)))
 
 (defun pygn-mode-fen-coordinates ()
   "Find PGN FEN headers for all games in the buffer.
