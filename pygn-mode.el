@@ -917,7 +917,9 @@ POS defaults to the point."
         ((pygn-mode-inside-header-p)
          (unless (= pos (line-end-position))
            (goto-char (line-beginning-position))
-           (when (looking-at-p "\\[Event ")
+           (when (<= (point)
+                     (pygn-mode--true-node-first-position
+                      (pygn-mode--true-containing-node 'header)))
              (forward-line 1))))
         ((pygn-mode-inside-separator-p)
          t)
