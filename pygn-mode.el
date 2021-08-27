@@ -1305,9 +1305,9 @@ With numeric prefix ARG, move back ARG games."
       (re-search-backward "^\\[Event " nil t))
     (pygn-mode--next-game-driver (* arg -1))))
 
-;; when tree-sitter-node-at-point is used instead of pygn-mode--true-containing-node,
-;; that is intentional, for one of two related reasons: tree-sitter-node-at-point
-;; will return a leaf node even on whitespace, and/or we may plan to call
+;; when tree-sitter-node-at-point is used instead of pygn-mode--true-containing-node
+;; here, that is intentional, for two related reasons: tree-sitter-node-at-point
+;; will return a leaf node even on whitespace, and we plan to call
 ;; tsc-get-next-sibling-node on the return value.
 (defun pygn-mode-next-move (arg)
   "Advance to the next player move in a PGN game.
@@ -1321,17 +1321,20 @@ With numeric prefix ARG, advance ARG moves forward."
   (cl-callf or arg 1)
   (save-restriction
     (when (eq 'series_of_games (tsc-node-type (pygn-mode--true-containing-node)))
-      (skip-syntax-forward "-"))
+      (let ((newpos (save-excursion
+                      (skip-syntax-forward "-")
+                      (point))))
+        (when (pygn-mode--true-containing-node 'game newpos)
+          (goto-char newpos))))
     (narrow-to-region (or (pygn-mode-game-start-position) (point))
                       (or (pygn-mode-game-end-position) (point)))
-    (when-let ((header-node (pygn-mode--true-containing-node 'header)))
-      (goto-char (pygn-mode--true-node-after-position header-node)))
-    (when (tree-sitter-node-at-point 'result_code)
+    (when-let ((game-node (pygn-mode--true-containing-node 'game))
+               (movetext-or-result-node (tsc-get-nth-child game-node 1))
+               (movetext-or-result-start (pygn-mode--true-node-first-position movetext-or-result-node)))
+      (when (< (point) movetext-or-result-start)
+        (goto-char movetext-or-result-start)))
+    (unless (pygn-mode--true-containing-node 'movetext)
       (error "No more moves"))
-    ;; this is not great because it might leave a moved point if we fail
-    (while (and (not (pygn-mode--true-containing-node 'movetext))
-                (< (point) (point-max)))
-      (forward-char 1))
     (dotimes (_ arg)
       (let ((node (tree-sitter-node-at-point))
             (thumb (point)))
