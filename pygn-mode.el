@@ -676,8 +676,9 @@ found, return the root node."
   (save-excursion
     (goto-char pos)
     (let ((best-first -1)
-          (best-node nil))
-      (dolist (tp (if (listp type) (or type '(nil)) (list type)))
+          (best-node nil)
+          (type-list (if (listp type) (or type '(nil)) (list type))))
+      (dolist (tp type-list)
         (let ((node (tree-sitter-node-at-point tp))
               (first nil)
               (last nil))
@@ -697,7 +698,8 @@ found, return the root node."
                (setq node (tsc-get-parent node)))))))
       (if best-node
           best-node
-        (unless type
+        (if (or (not type)
+                (memq 'series_of_games type-list))
           (tsc-root-node tree-sitter-tree))))))
 
 (defun pygn-mode--true-node-first-position (node)
@@ -1221,17 +1223,6 @@ will respect variations."
 Intended for use in `post-command-hook'."
   (pygn-mode-display-variation-board-at-pos (point)))
 
-(defun pygn-mode--next-game-driver (arg)
-  "Move point to next game, moving ARG games forward (backwards if negative).
-
-Focus the game after motion."
-  (save-match-data
-    (let ((next-game (and (re-search-forward "^\\[Event " nil t arg)
-                          (goto-char (line-beginning-position)))))
-      (unless next-game
-        (error "No next game")))
-    (pygn-mode-focus-game-at-point)))
-
 (cl-defun pygn-mode--run-diagnostic ()
   "Open a buffer containing a `pygn-mode' dependency/configuration diagnostic."
   (let ((buf (get-buffer-create pygn-mode-diagnostic-output-buffer-name))
@@ -1322,9 +1313,24 @@ diagnostic tests were successful."
 With numeric prefix ARG, advance ARG games."
   (interactive "p")
   (cl-callf or arg 1)
-  (when (looking-at-p "\\[Event ")
-    (goto-char (line-end-position)))
-  (pygn-mode--next-game-driver arg))
+  (let ((node (pygn-mode--true-containing-node '(game series_of_games))))
+    (dotimes (_ arg)
+      (cond
+        ((eq 'series_of_games (tsc-node-type node))
+         (let ((newpos (save-excursion
+                         (skip-syntax-forward "-")
+                         (point))))
+           (if (pygn-mode--true-containing-node 'game newpos)
+               (progn
+                 (goto-char newpos)
+                 (setq node (pygn-mode--true-containing-node 'game)))
+             (error "No more games"))))
+        (t
+         (setq node (tsc-get-next-sibling node))
+         (if node
+             (goto-char (pygn-mode--true-node-first-position node))
+           (error "No more games"))))))
+  (pygn-mode-focus-game-at-point))
 
 (defun pygn-mode-previous-game (arg)
   "Move back to the previous game in a multi-game PGN buffer.
@@ -1332,10 +1338,24 @@ With numeric prefix ARG, advance ARG games."
 With numeric prefix ARG, move back ARG games."
   (interactive "p")
   (cl-callf or arg 1)
-  (save-match-data
-    (unless (looking-at-p "\\[Event ")
-      (re-search-backward "^\\[Event " nil t))
-    (pygn-mode--next-game-driver (* arg -1))))
+  (let ((node (pygn-mode--true-containing-node '(game series_of_games))))
+    (dotimes (_ arg)
+      (cond
+        ((eq 'series_of_games (tsc-node-type node))
+         (let ((newpos (save-excursion
+                         (skip-syntax-backward "-")
+                         (unless (= (point) (point-min))
+                           (forward-char -1))
+                         (point))))
+           (if-let ((newnode (pygn-mode--true-containing-node 'game newpos)))
+               (goto-char (pygn-mode--true-node-first-position newnode))
+             (error "No more games"))))
+        (t
+         (setq node (tsc-get-prev-sibling node))
+         (if node
+             (goto-char (pygn-mode--true-node-first-position node))
+           (error "No more games"))))))
+  (pygn-mode-focus-game-at-point))
 
 ;; when tree-sitter-node-at-point is used instead of pygn-mode--true-containing-node
 ;; here, that is intentional, for two related reasons: tree-sitter-node-at-point
