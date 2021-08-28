@@ -872,6 +872,22 @@ POS defaults to the point."
   (when-let ((game-node (pygn-mode--true-containing-node 'game pos)))
     (pygn-mode--true-node-first-position game-node)))
 
+(defun pygn-mode-game-start-position-forgive-trailing-pos (&optional pos)
+  "Start position for the PGN game which contains or is before position POS.
+
+If POS is not within a game or after a game, returns nil.
+
+POS defaults to the point."
+  (let ((game-node (pygn-mode--true-containing-node 'game pos)))
+    (if game-node
+        (pygn-mode--true-node-first-position game-node)
+      ;; else
+      (save-excursion
+        (skip-syntax-backward "-")
+        (setq game-node (pygn-mode--true-containing-node 'game (char-before)))
+        (when game-node
+          (pygn-mode--true-node-first-position game-node))))))
+
 (defun pygn-mode-game-end-position (&optional pos)
   "End position for the PGN game which contains position POS.
 
@@ -948,7 +964,7 @@ POS defaults to the point."
                               (min word-bound game-bound)
                               t))))
       (buffer-substring-no-properties
-       (pygn-mode-game-start-position)
+       (pygn-mode-game-start-position-forgive-trailing-pos)
        (point)))))
 
 (defun pygn-mode-pgn-at-pos-as-if-variation (pos)
@@ -991,6 +1007,8 @@ Does not work for nested variations."
                     (point))))
           (with-temp-buffer
             (insert pgn)
+            ;; todo re-running the mode seems wasteful
+            (pygn-mode)
             (when (pygn-mode-inside-variation-p)
               (up-list -1)
               (delete-char 1)
@@ -1587,6 +1605,9 @@ When called non-interactively, display the board corresponding to POS."
     ;; todo it might be a better design if a temp buffer wasn't needed here
     (with-temp-buffer
       (insert pgn)
+      ;; todo invoking the mode seems like it would be slow, compared to using
+      ;; the parse we already have
+      (pygn-mode)
       (pygn-mode-display-board-at-pos (point-max)))))
 
 (defun pygn-mode-display-line-at-pos (pos)
