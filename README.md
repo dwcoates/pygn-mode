@@ -104,6 +104,10 @@ of each game starting with an `[Event "?"]` tagpair.
  * `pygn-mode-display-fen-at-pos` — display FEN in another buffer
  * `pygn-mode-display-variation-fen-at-pos` — display FEN, respecting variations
 
+### Annotation Symbol Commands
+
+ * `pygn-mode-describe-annotation-at-pos` — echo description of annotation symbol, optionally copying to clipboard
+
 ### Board Commands
 
  * `pygn-mode-display-board-at-pos` — display board image in another buffer (format automatic)
