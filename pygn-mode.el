@@ -1179,49 +1179,24 @@ POS defaults to the point."
                  '(variation inline_comment rest_of_line_comment))))))
 
 (defun pygn-mode-pgn-at-pos (pos)
-  "Return a single-game PGN string inclusive of any move at POS."
-  (save-match-data
-    (save-excursion
-      (goto-char pos)
-      (cond
-        ((pygn-mode-inside-header-p)
-         (unless (= pos (line-end-position))
-           (goto-char (line-beginning-position))
-           (when (<= (point)
-                     (pygn-mode--true-node-first-position
-                      (pygn-mode--true-containing-node 'header)))
-             (forward-line 1))))
-        ((pygn-mode-inside-separator-p)
-         t)
-        ((pygn-mode-inside-variation-or-comment-p)
-         ;; crudely truncate at pos
-         ;; and depend on Python chess library to clean up trailing garbage
-         t)
-        ((pygn-mode-looking-at-result-code)
-         t)
-        ((pygn-mode-looking-back-strict-legal-move)
-         t)
-        ((looking-back "[)}]" 1)
-         t)
-        ((pygn-mode-looking-at-relaxed-legal-move)
-         (re-search-forward pygn-mode--relaxed-legal-move-pat nil t))
-        ;; todo both of these might be arguable. shake this out in ert testing.
-        ((or (looking-at-p "^")
-             (looking-back "[\s-]" 1))
-         t)
-        (t
-         ;; this fallback logic is probably too subtle because it sometimes rests
-         ;; on the previous word, and sometimes successfully searches forward.
-         ;; todo continue making the conditions more explicit and descriptive
-         (let ((word-bound (save-excursion (forward-word-strictly 1) (point)))
-               (game-bound (pygn-mode-game-end-position)))
-           (forward-word-strictly -1)
-           (re-search-forward pygn-mode--relaxed-legal-move-pat
-                              (min word-bound game-bound)
-                              t))))
-      (buffer-substring-no-properties
-       (pygn-mode-game-start-position-forgive-trailing-pos)
-       (point)))))
+  "Return a single-game PGN string inclusive of any move at POS.
+
+We crudely truncate when in the middle of a comment or variation,
+and depend on the Python chess library to clean up trailing
+garbage."
+  (save-excursion
+    (goto-char pos)
+    (when-let ((header-node (pygn-mode-inside-header-p)))
+      (unless (= pos (line-end-position))
+        (goto-char (line-beginning-position))
+        (when (<= (point)
+                  (pygn-mode--true-node-first-position header-node))
+          (forward-line 1))))
+    (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
+      (goto-char (pygn-mode--true-node-after-position move-node)))
+    (buffer-substring-no-properties
+     (pygn-mode-game-start-position)
+     (point))))
 
 (defun pygn-mode-pgn-at-pos-as-if-variation (pos)
   "Return a single-game PGN string as if a variation had been played.
