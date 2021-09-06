@@ -27,6 +27,27 @@
              "[Event \"?\"]\n"
              (pygn-mode-pgn-at-pos (point-min))))))
 
+;;; pygn-mode-next-move
+
+(ert-deftest pygn-mode-next-move-01 nil
+  (with-temp-buffer
+    (insert-file-contents
+     (expand-file-name "test-01.pgn" pygn-mode-test-input-directory))
+    (pygn-mode)
+    (goto-char (point-min))
+    (pygn-mode-next-move)
+    (should (= (point) 181))))
+
+(ert-deftest pygn-mode-next-move-02 nil
+  (with-temp-buffer
+    (insert-file-contents
+     (expand-file-name "test-01.pgn" pygn-mode-test-input-directory))
+    (pygn-mode)
+    (goto-char (point-min))
+    (pygn-mode-next-move)
+    (pygn-mode-next-move)
+    (should (= (point) 186))))
+
 ;;
 ;; Emacs
 ;;
