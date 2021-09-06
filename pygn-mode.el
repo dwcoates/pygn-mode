@@ -1359,7 +1359,7 @@ With numeric prefix ARG, move back ARG games."
 ;; here, that is intentional, for two related reasons: tree-sitter-node-at-point
 ;; will return a leaf node even on whitespace, and we plan to call
 ;; tsc-get-next-sibling-node on the return value.
-(defun pygn-mode-next-move (arg)
+(defun pygn-mode-next-move (&optional arg)
   "Advance to the next player move in a PGN game.
 
 Treats move numbers purely as punctuation.  If the point is on a move

@@ -16,10 +16,11 @@ TESTS=
 
 .PHONY : build autoloads test-autoloads test-tests test-prep test-batch test clean
 
+# todo restore line: (setq byte-compile-error-on-warn t)
+# after switching CI to melpa-stable
 build :
 	$(EMACS) $(EMACS_BATCH) --eval             \
 	    "(progn                                \
-	      (setq byte-compile-error-on-warn t)  \
 	      (batch-byte-compile))" *.el
 
 autoloads :
