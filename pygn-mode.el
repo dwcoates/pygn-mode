@@ -829,8 +829,7 @@ POS defaults to the point."
   "Whether POS is inside a PGN variation.
 
 POS defaults to the point."
-  (when-let ((variation-node (pygn-mode--true-containing-node 'variation pos)))
-    variation-node))
+  (pygn-mode--true-containing-node 'variation pos))
 
 (defun pygn-mode-inside-variation-or-comment-p (&optional pos)
   "Whether POS is inside a PGN comment or a variation.
@@ -843,8 +842,7 @@ POS defaults to the point."
   "Whether POS is inside a PGN header.
 
 POS defaults to the point."
-  (when-let ((header-node (pygn-mode--true-containing-node 'header pos)))
-    header-node))
+  (pygn-mode--true-containing-node 'header pos))
 
 ;; Unlike some other defuns, the node returned here does not represent the
 ;; separator, because the separator is whitespace, and there is no such node.
@@ -862,8 +860,7 @@ POS defaults to the point."
 
 (defun pygn-mode-looking-at-result-code ()
   "Whether the point is looking at a PGN movetext result code."
-  (when-let ((result-node (pygn-mode--true-containing-node 'result_code)))
-    result-node))
+  (pygn-mode--true-containing-node 'result_code))
 
 (defun pygn-mode-looking-at-suffix-annotation ()
   "Whether the point is looking at a SAN suffix annotation."
