@@ -1801,6 +1801,8 @@ When called non-interactively, display the FEN corresponding to POS."
     ;; todo it might be a better design if a temp buffer wasn't needed here
     (with-temp-buffer
       (insert pgn)
+      ;; todo re-running the mode seems wasteful
+      (pygn-mode)
       (pygn-mode-display-fen-at-pos (point-max)))))
 
 ;; interactive helper
@@ -1887,6 +1889,8 @@ The board display respects variations."
     ;; todo it might be a better design if a temp buffer wasn't needed here
     (with-temp-buffer
       (insert pgn)
+      ;; todo re-running the mode seems wasteful
+      (pygn-mode)
       (pygn-mode-display-board-at-pos (point)))))
 
 (defun pygn-mode-display-variation-board-at-pos (pos)
