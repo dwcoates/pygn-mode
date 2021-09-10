@@ -1404,9 +1404,6 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
   :syntax-table pygn-mode-syntax-table
   :group 'pygn
 
-  ;; https://github.com/ubolonton/emacs-tree-sitter/issues/84
-  (unless font-lock-defaults
-    (setq font-lock-defaults '(nil)))
   (setq-local tree-sitter-hl-default-patterns pygn-mode-tree-sitter-patterns)
   (setq-local tree-sitter-hl-face-mapping-function #'pygn-mode--capture-face-mapper)
 
