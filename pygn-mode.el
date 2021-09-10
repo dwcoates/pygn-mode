@@ -51,9 +51,6 @@
 
 ;; TODO
 
-;;     Make forward-exit and backward-exit defuns robust against %-escaped lines
-;;     Make forward-exit and backward-exit defuns robust against semicolon comments
-
 ;;     Extensive ert test coverage of
 ;;      - pygn-mode-pgn-at-pos
 ;;      - pygn-mode-pgn-at-pos-as-if-variation
@@ -1146,32 +1143,14 @@ POS defaults to the point."
   (when-let ((game-node (pygn-mode--true-containing-node 'game pos)))
     (pygn-mode--true-node-after-position game-node)))
 
-;; todo maybe shouldn't consult looking-back here, but it works well for the
-;; purpose of pygn-mode-previous-move
 (defun pygn-mode-backward-exit-variations-and-comments ()
   "However deep in nested variations and comments, exit and skip backward."
-  (save-match-data
-    (while (or (> (nth 0 (syntax-ppss)) 0)
-               (nth 4 (syntax-ppss))
-               (looking-back ")\\s-*" 10)
-               (looking-back "}\\s-*" 10))
-      (cond
-        ((> (nth 0 (syntax-ppss)) 0)
-         (up-list (- (nth 0 (syntax-ppss)))))
-        ((nth 4 (syntax-ppss))
-         (skip-syntax-backward "^<")
-         (backward-char 1))
-        ((looking-back ")\\s-*" 10)
-         (skip-syntax-backward "-")
-         (backward-char 1))
-        ((looking-back "}\\s-*" 10)
-         (skip-syntax-backward "-")
-         (backward-char 1)))
-      (skip-syntax-backward "-")
-      (when (looking-at-p "^")
-        (forward-line -1)
-        (goto-char (line-end-position))
-        (skip-syntax-backward "-")))))
+  (while (and (pygn-mode--true-containing-node
+               '(variation inline_comment rest_of_line_comment))
+              (pygn-mode--true-containing-node 'movetext))
+    (goto-char (pygn-mode--true-node-before-position
+                (pygn-mode--true-containing-node
+                 '(variation inline_comment rest_of_line_comment))))))
 
 (defun pygn-mode-pgn-at-pos (pos)
   "Return a single-game PGN string inclusive of any move at POS."
@@ -1207,7 +1186,7 @@ POS defaults to the point."
         (t
          ;; this fallback logic is probably too subtle because it sometimes rests
          ;; on the previous word, and sometimes successfully searches forward.
-         ;; todo continue making the conditions more explicit and descriptiive
+         ;; todo continue making the conditions more explicit and descriptive
          (let ((word-bound (save-excursion (forward-word-strictly 1) (point)))
                (game-bound (pygn-mode-game-end-position)))
            (forward-word-strictly -1)
