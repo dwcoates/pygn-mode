@@ -1194,9 +1194,11 @@ garbage."
           (forward-line 1))))
     (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
       (goto-char (pygn-mode--true-node-after-position move-node)))
-    (buffer-substring-no-properties
-     (pygn-mode-game-start-position)
-     (point))))
+    ;; todo returning nil might not be the best behavior when pos trails a game
+    (when-let ((start-pos (pygn-mode-game-start-position)))
+      (buffer-substring-no-properties
+       start-pos
+       (point)))))
 
 (defun pygn-mode-pgn-at-pos-as-if-variation (pos)
   "Return a single-game PGN string as if a variation had been played.
