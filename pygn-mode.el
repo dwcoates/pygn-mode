@@ -52,7 +52,6 @@
 ;; TODO
 
 ;;     Extensive ert test coverage of
-;;      - pygn-mode-pgn-at-pos
 ;;      - pygn-mode-pgn-at-pos-as-if-variation
 
 ;;     pygn-mode-go-searchmoves which defaults to searching move under point
