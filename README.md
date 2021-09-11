@@ -107,6 +107,7 @@ of each game starting with an `[Event "?"]` tagpair.
 ### Annotation Symbol Commands
 
  * `pygn-mode-describe-annotation-at-pos` — echo description of annotation symbol, optionally copying to clipboard
+ * `pygn-mode-ivy-insert-annotation` — insert an annotation interactively
 
 ### Board Commands
 
