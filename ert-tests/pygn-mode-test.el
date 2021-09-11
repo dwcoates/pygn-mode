@@ -14,15 +14,23 @@
 (setq pygn-mode-test-output-directory
       (expand-file-name "test-output" pygn-mode-test-containing-directory))
 
+(defmacro pygn-mode-test-with-file (filename &rest body)
+  "Evaluate BODY in a `pygn-mode' temp buffer filled with the contents of FILENAME."
+  (declare (indent 1))
+  `(with-temp-buffer
+     (let ((coding-system-for-read 'utf-8))
+       (insert-file-contents
+        (expand-file-name ,filename pygn-mode-test-input-directory)))
+     (goto-char (point-min))
+     (pygn-mode)
+     ,@body))
+
 ;;; pygn-mode-pgn-at-pos
 
 ;; todo: Ideally, PGN-at-pos tests would cover every position in this and
 ;; several other input files. How to organize that with clarity not clutter?
 (ert-deftest pygn-mode-pgn-at-pos-01 nil
-  (with-temp-buffer
-    (insert-file-contents
-     (expand-file-name "test-01.pgn" pygn-mode-test-input-directory))
-    (pygn-mode)
+  (pygn-mode-test-with-file "test-01.pgn"
     (should (equal
              "[Event \"?\"]\n"
              (pygn-mode-pgn-at-pos (point-min))))))
@@ -30,19 +38,13 @@
 ;;; pygn-mode-next-move
 
 (ert-deftest pygn-mode-next-move-01 nil
-  (with-temp-buffer
-    (insert-file-contents
-     (expand-file-name "test-01.pgn" pygn-mode-test-input-directory))
-    (pygn-mode)
+  (pygn-mode-test-with-file "test-01.pgn"
     (goto-char (point-min))
     (pygn-mode-next-move)
     (should (= (point) 181))))
 
 (ert-deftest pygn-mode-next-move-02 nil
-  (with-temp-buffer
-    (insert-file-contents
-     (expand-file-name "test-01.pgn" pygn-mode-test-input-directory))
-    (pygn-mode)
+  (pygn-mode-test-with-file "test-01.pgn"
     (goto-char (point-min))
     (pygn-mode-next-move)
     (pygn-mode-next-move)
@@ -51,10 +53,7 @@
 ;;; pygn-mode-previous-move
 
 (ert-deftest pygn-mode-previous-move-01 nil
-  (with-temp-buffer
-    (insert-file-contents
-     (expand-file-name "test-01.pgn" pygn-mode-test-input-directory))
-    (pygn-mode)
+  (pygn-mode-test-with-file "test-01.pgn"
     (goto-char (point-min))
     (pygn-mode-next-move)
     (pygn-mode-next-move)
@@ -63,10 +62,7 @@
     (should (looking-at-p "Qe8\\+\\>"))))
 
 (ert-deftest pygn-mode-previous-move-02 nil
-  (with-temp-buffer
-    (insert-file-contents
-     (expand-file-name "test-01.pgn" pygn-mode-test-input-directory))
-    (pygn-mode)
+  (pygn-mode-test-with-file "test-01.pgn"
     (goto-char (point-min))
     (pygn-mode-next-move)
     (should-error (pygn-mode-previous-move))))
