@@ -1569,24 +1569,27 @@ diagnostic tests were successful."
 With numeric prefix ARG, advance ARG games."
   (interactive "p")
   (cl-callf or arg 1)
-  (let ((node (pygn-mode--true-containing-node '(game series_of_games))))
-    (dotimes (_ arg)
-      (cond
-        ((eq 'series_of_games (tsc-node-type node))
-         (let ((newpos (save-excursion
-                         (skip-syntax-forward "-")
-                         (point))))
-           (if (pygn-mode--true-containing-node 'game newpos)
-               (progn
-                 (goto-char newpos)
-                 (setq node (pygn-mode--true-containing-node 'game)))
-             (error "No more games"))))
-        (t
-         (setq node (tsc-get-next-sibling node))
-         (if node
-             (goto-char (pygn-mode--true-node-first-position node))
-           (error "No more games"))))))
-  (pygn-mode-focus-game-at-point))
+  (if (< arg 0)
+      (pygn-mode-previous-game (* -1 arg))
+    ;; else
+    (let ((node (pygn-mode--true-containing-node '(game series_of_games))))
+      (dotimes (_ arg)
+        (cond
+          ((eq 'series_of_games (tsc-node-type node))
+           (let ((newpos (save-excursion
+                           (skip-syntax-forward "-")
+                           (point))))
+             (if (pygn-mode--true-containing-node 'game newpos)
+                 (progn
+                   (goto-char newpos)
+                   (setq node (pygn-mode--true-containing-node 'game)))
+               (error "No more games"))))
+          (t
+           (setq node (tsc-get-next-sibling node))
+           (if node
+               (goto-char (pygn-mode--true-node-first-position node))
+             (error "No more games"))))))
+    (pygn-mode-focus-game-at-point)))
 
 (defun pygn-mode-previous-game (arg)
   "Move back to the previous game in a multi-game PGN buffer.
@@ -1594,24 +1597,27 @@ With numeric prefix ARG, advance ARG games."
 With numeric prefix ARG, move back ARG games."
   (interactive "p")
   (cl-callf or arg 1)
-  (let ((node (pygn-mode--true-containing-node '(game series_of_games))))
-    (dotimes (_ arg)
-      (cond
-        ((eq 'series_of_games (tsc-node-type node))
-         (let ((newpos (save-excursion
-                         (skip-syntax-backward "-")
-                         (unless (= (point) (point-min))
-                           (forward-char -1))
-                         (point))))
-           (if-let ((newnode (pygn-mode--true-containing-node 'game newpos)))
-               (goto-char (pygn-mode--true-node-first-position newnode))
-             (error "No more games"))))
-        (t
-         (setq node (tsc-get-prev-sibling node))
-         (if node
-             (goto-char (pygn-mode--true-node-first-position node))
-           (error "No more games"))))))
-  (pygn-mode-focus-game-at-point))
+  (if (< arg 0)
+      (pygn-mode-next-game (* -1 arg))
+    ;; else
+    (let ((node (pygn-mode--true-containing-node '(game series_of_games))))
+      (dotimes (_ arg)
+        (cond
+          ((eq 'series_of_games (tsc-node-type node))
+           (let ((newpos (save-excursion
+                           (skip-syntax-backward "-")
+                           (unless (= (point) (point-min))
+                             (forward-char -1))
+                           (point))))
+             (if-let ((newnode (pygn-mode--true-containing-node 'game newpos)))
+                 (goto-char (pygn-mode--true-node-first-position newnode))
+               (error "No more games"))))
+          (t
+           (setq node (tsc-get-prev-sibling node))
+           (if node
+               (goto-char (pygn-mode--true-node-first-position node))
+             (error "No more games"))))))
+    (pygn-mode-focus-game-at-point)))
 
 ;; when tree-sitter-node-at-pos is used instead of pygn-mode--true-containing-node
 ;; here, that is intentional, for two related reasons: tree-sitter-node-at-pos
@@ -1627,47 +1633,50 @@ But the advancing motion will skip over move numbers when possible.
 With numeric prefix ARG, advance ARG moves forward."
   (interactive "p")
   (cl-callf or arg 1)
-  (save-restriction
-    (when (eq 'series_of_games (tsc-node-type (pygn-mode--true-containing-node)))
-      (let ((newpos (save-excursion
-                      (skip-syntax-forward "-")
-                      (point))))
-        (when (pygn-mode--true-containing-node 'game newpos)
-          (goto-char newpos))))
-    (narrow-to-region (or (pygn-mode-game-start-position) (point))
-                      (or (pygn-mode-game-end-position) (point)))
-    (when-let ((game-node (pygn-mode--true-containing-node 'game))
-               (movetext-or-result-node (tsc-get-nth-child game-node 1))
-               (movetext-or-result-start (pygn-mode--true-node-first-position movetext-or-result-node)))
-      (when (< (point) movetext-or-result-start)
-        (goto-char movetext-or-result-start)))
-    (unless (pygn-mode--true-containing-node 'movetext)
-      (error "No more moves"))
-    (dotimes (_ arg)
-      (let ((node (tree-sitter-node-at-pos))
-            (thumb (point)))
-        (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
-          (goto-char (pygn-mode--true-node-after-position move-node)))
-        (while (not (pygn-mode--true-containing-node '(san_move lan_move)))
-          (setq node (tree-sitter-node-at-pos))
-          (cond
-            ((>= (pygn-mode--true-node-last-position node)
-                 (point-max))
-             (goto-char thumb)
-             (error "No more moves"))
-            ((pygn-mode--true-containing-node
-              '(variation inline_comment rest_of_line_comment))
-             (goto-char (pygn-mode--true-node-after-position
-                         (pygn-mode--true-containing-node
-                          '(variation inline_comment rest_of_line_comment)))))
-            ((looking-at-p "\\s-")
-             (skip-syntax-forward "-"))
-            (t
-             (setq node (tsc-get-next-sibling node))
-             (if node
-                 (goto-char (pygn-mode--true-node-first-position node))
-               (forward-char 1)))))
-        (skip-syntax-forward "-")))))
+  (if (< arg 0)
+      (pygn-mode-previous-move (* -1 arg))
+    ;; else
+    (save-restriction
+      (when (eq 'series_of_games (tsc-node-type (pygn-mode--true-containing-node)))
+        (let ((newpos (save-excursion
+                        (skip-syntax-forward "-")
+                        (point))))
+          (when (pygn-mode--true-containing-node 'game newpos)
+            (goto-char newpos))))
+      (narrow-to-region (or (pygn-mode-game-start-position) (point))
+                        (or (pygn-mode-game-end-position) (point)))
+      (when-let ((game-node (pygn-mode--true-containing-node 'game))
+                 (movetext-or-result-node (tsc-get-nth-child game-node 1))
+                 (movetext-or-result-start (pygn-mode--true-node-first-position movetext-or-result-node)))
+        (when (< (point) movetext-or-result-start)
+          (goto-char movetext-or-result-start)))
+      (unless (pygn-mode--true-containing-node 'movetext)
+        (error "No more moves"))
+      (dotimes (_ arg)
+        (let ((node (tree-sitter-node-at-pos))
+              (thumb (point)))
+          (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
+            (goto-char (pygn-mode--true-node-after-position move-node)))
+          (while (not (pygn-mode--true-containing-node '(san_move lan_move)))
+            (setq node (tree-sitter-node-at-pos))
+            (cond
+              ((>= (pygn-mode--true-node-last-position node)
+                   (point-max))
+               (goto-char thumb)
+               (error "No more moves"))
+              ((pygn-mode--true-containing-node
+                '(variation inline_comment rest_of_line_comment))
+               (goto-char (pygn-mode--true-node-after-position
+                           (pygn-mode--true-containing-node
+                            '(variation inline_comment rest_of_line_comment)))))
+              ((looking-at-p "\\s-")
+               (skip-syntax-forward "-"))
+              (t
+               (setq node (tsc-get-next-sibling node))
+               (if node
+                   (goto-char (pygn-mode--true-node-first-position node))
+                 (forward-char 1)))))
+          (skip-syntax-forward "-"))))))
 
 ;; when tree-sitter-node-at-pos is used instead of pygn-mode--true-containing-node
 ;; here, that is intentional, for two related reasons: tree-sitter-node-at-pos
@@ -1683,54 +1692,57 @@ But the backward motion will skip over move numbers when possible.
 With numeric prefix ARG, move ARG moves backward."
   (interactive "p")
   (cl-callf or arg 1)
-  (save-restriction
-    (save-match-data
-      (when (eq 'series_of_games (tsc-node-type (pygn-mode--true-containing-node)))
-        (let ((newpos (save-excursion
-                        (skip-syntax-backward "-")
-                        (unless (= (point) (point-min))
-                          (forward-char -1))
-                        (point))))
-          (when (pygn-mode--true-containing-node 'game newpos)
-            (goto-char newpos))))
-      (narrow-to-region (or (pygn-mode-game-start-position) (point))
-                        (or (pygn-mode-game-end-position) (point)))
-      (when-let ((game-node (pygn-mode--true-containing-node 'game))
-                 (movetext-or-result-node (tsc-get-nth-child game-node 1))
-                 (movetext-or-result-end (pygn-mode--true-node-last-position movetext-or-result-node)))
-        (when (> (point) movetext-or-result-end)
-          (goto-char movetext-or-result-end)))
-      (unless (pygn-mode--true-containing-node 'movetext)
-        (error "No more moves"))
-      (dotimes (_ arg)
-        (let ((node (tree-sitter-node-at-pos))
-              (thumb (point)))
-          (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
-            (if (= (point) (pygn-mode--true-node-first-position move-node))
-                (goto-char (pygn-mode--true-node-before-position move-node))
-              (goto-char (pygn-mode--true-node-first-position move-node))))
-          (while (or (not (pygn-mode--true-containing-node '(san_move lan_move)))
-                     (pygn-mode--true-containing-node 'variation))
-            (setq node (tree-sitter-node-at-pos))
-            (cond
-              ((<= (pygn-mode--true-node-first-position node)
-                   (point-min))
-               (goto-char thumb)
-               (error "No more moves"))
-              ((pygn-mode--true-containing-node
-                '(variation inline_comment rest_of_line_comment))
-               (goto-char (pygn-mode--true-node-before-position
-                           (pygn-mode--true-containing-node
-                            '(variation inline_comment rest_of_line_comment)))))
-              ((looking-back "\\s-" 1)
-               (skip-syntax-backward "-"))
-              (t
-               (setq node (tsc-get-prev-sibling node))
-               (if node
-                   (goto-char (pygn-mode--true-node-first-position node))
-                 (forward-char -1)))))
-          (skip-syntax-backward "w")
-          (skip-syntax-forward "-"))))))
+  (if (< arg 0)
+      (pygn-mode-next-move (* -1 arg))
+    ;; else
+    (save-restriction
+      (save-match-data
+        (when (eq 'series_of_games (tsc-node-type (pygn-mode--true-containing-node)))
+          (let ((newpos (save-excursion
+                          (skip-syntax-backward "-")
+                          (unless (= (point) (point-min))
+                            (forward-char -1))
+                          (point))))
+            (when (pygn-mode--true-containing-node 'game newpos)
+              (goto-char newpos))))
+        (narrow-to-region (or (pygn-mode-game-start-position) (point))
+                          (or (pygn-mode-game-end-position) (point)))
+        (when-let ((game-node (pygn-mode--true-containing-node 'game))
+                   (movetext-or-result-node (tsc-get-nth-child game-node 1))
+                   (movetext-or-result-end (pygn-mode--true-node-last-position movetext-or-result-node)))
+          (when (> (point) movetext-or-result-end)
+            (goto-char movetext-or-result-end)))
+        (unless (pygn-mode--true-containing-node 'movetext)
+          (error "No more moves"))
+        (dotimes (_ arg)
+          (let ((node (tree-sitter-node-at-pos))
+                (thumb (point)))
+            (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
+              (if (= (point) (pygn-mode--true-node-first-position move-node))
+                  (goto-char (pygn-mode--true-node-before-position move-node))
+                (goto-char (pygn-mode--true-node-first-position move-node))))
+            (while (or (not (pygn-mode--true-containing-node '(san_move lan_move)))
+                       (pygn-mode--true-containing-node 'variation))
+              (setq node (tree-sitter-node-at-pos))
+              (cond
+                ((<= (pygn-mode--true-node-first-position node)
+                     (point-min))
+                 (goto-char thumb)
+                 (error "No more moves"))
+                ((pygn-mode--true-containing-node
+                  '(variation inline_comment rest_of_line_comment))
+                 (goto-char (pygn-mode--true-node-before-position
+                             (pygn-mode--true-containing-node
+                              '(variation inline_comment rest_of_line_comment)))))
+                ((looking-back "\\s-" 1)
+                 (skip-syntax-backward "-"))
+                (t
+                 (setq node (tsc-get-prev-sibling node))
+                 (if node
+                     (goto-char (pygn-mode--true-node-first-position node))
+                   (forward-char -1)))))
+            (skip-syntax-backward "w")
+            (skip-syntax-forward "-")))))))
 
 (defun pygn-mode-select-game (pos)
   "Select current game in a multi-game PGN buffer.
