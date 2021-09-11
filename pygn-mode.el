@@ -343,14 +343,6 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
 (defvar pygn-mode--server-receive-max-seconds 0.5
   "The maximum amount of time `pygn-mode--server-receive' should check the server for output when polling.")
 
-(defvar pygn-mode--strict-legal-move-pat
-  "\\<\\(?:[RNBQK][a-h]?[1-8]?x?[a-h][1-8]\\|[a-h]\\(?:x[a-h]\\)?[1-8]\\(?:=[RNBQ]\\)?\\|O\\(?:-O\\)\\{1,2\\}\\)\\(?:\\+\\+?\\|#\\)?"
-  "Regular expression strictly matching a legal SAN move.")
-
-(defvar pygn-mode--relaxed-legal-move-pat
-  (concat "[ \t]*[0-9]*[.…\s-]*" pygn-mode--strict-legal-move-pat)
-  "Regular expression matching a legal SAN move with leading move numbers and whitespace.")
-
 (defvar pygn-mode-annotation-names
   (let ((names (make-hash-table :test 'equal)))
     (puthash "$1"   "Good move"                                                      names)
@@ -1121,34 +1113,6 @@ POS defaults to the point."
       (when (pygn-mode--true-containing-node '(san_move lan_move) (char-before))
         annotation-node))))
 
-(defun pygn-mode-looking-at-relaxed-legal-move ()
-  "Whether the point is looking at a legal SAN chess move.
-
-Leading move numbers, punctuation, and spaces are allowed, and ignored."
-  (let ((inhibit-changing-match-data t))
-    (and (looking-at-p pygn-mode--relaxed-legal-move-pat)
-         (not (looking-back "[a-h]" 1)))))
-
-(defun pygn-mode-looking-at-strict-legal-move ()
-  "Whether the point is looking at a legal SAN chess move.
-
-\"Strict\" means that leading move numbers, punctuation, and spaces are
-not allowed on the SAN move."
-  (let ((inhibit-changing-match-data t))
-    (and (looking-at-p pygn-mode--strict-legal-move-pat)
-         (not (looking-back "[a-h]" 1)))))
-
-(defun pygn-mode-looking-back-strict-legal-move ()
-  "Whether the point is looking back at a legal SAN chess move.
-
-\"Strict\" means that leading move numbers, punctuation, and spaces are
-not examined on the SAN move."
-  (and (or (looking-at-p "\\s-")
-           (pygn-mode-looking-at-suffix-annotation))
-       (save-excursion
-         (forward-word-strictly -1)
-         (pygn-mode-looking-at-strict-legal-move))))
-
 (defun pygn-mode-game-start-position (&optional pos)
   "Start position for the PGN game which contains position POS.
 
@@ -1212,59 +1176,38 @@ garbage."
      (pygn-mode-game-start-position)
      (point))))
 
+;; TODO this code assumes that a variation begins with the next move,
+;; which is not always the case.  Detect when the variation leads with
+;; the current move, and include the played move in delete-region.
 (defun pygn-mode-pgn-at-pos-as-if-variation (pos)
   "Return a single-game PGN string as if a variation had been played.
 
-Inclusive of any move at POS.
-
-Does not work for nested variations."
-  (if (not (pygn-mode-inside-variation-p pos))
-      (pygn-mode-pgn-at-pos pos)
-    ;; else
-    (save-excursion
-      (save-match-data
-        (goto-char pos)
-        (cond
-          ((looking-at-p "\\s-*)")
-           ;; crudely truncate at pos
-           ;; and depend on Python chess library to clean up trailing garbage
-           t)
-          ((pygn-mode-inside-movetext-comment-p)
-           ;; crudely truncate at pos
-           ;; and depend on Python chess library to clean up trailing garbage
-           t)
-          ((pygn-mode-looking-back-strict-legal-move)
-           t)
-          ((pygn-mode-looking-at-relaxed-legal-move)
-           (re-search-forward pygn-mode--relaxed-legal-move-pat nil t))
-          (t
-           ;; this fallback logic is probably too subtle because it sometimes rests
-           ;; on the previous word, and sometimes successfully searches forward.
-           ;; todo continue making the conditions more explicit and descriptive
-           (let ((word-bound (save-excursion (forward-word-strictly 1) (point)))
-                 (sexp-bound (save-excursion (up-list 1) (1- (point)))))
-             (forward-word-strictly -1)
-             (re-search-forward pygn-mode--relaxed-legal-move-pat
-                                (min word-bound sexp-bound)
-                                t))))
-        (let ((pgn (buffer-substring-no-properties
-                    (pygn-mode-game-start-position)
-                    (point))))
+Inclusive of any move at POS."
+  (if-let ((variation-node (pygn-mode-inside-variation-p pos)))
+      (progn
+        (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
+          (goto-char (pygn-mode--true-node-after-position move-node)))
+        (let* ((start-pos (pygn-mode-game-start-position))
+               (paren-pos nil)
+               (paren-offsets '())
+               (pgn (buffer-substring-no-properties
+                     (pygn-mode-game-start-position)
+                     (point))))
+          (while variation-node
+            (setq paren-pos (pygn-mode--true-node-first-position variation-node))
+            (push (- paren-pos start-pos) paren-offsets)
+            (goto-char (1- paren-pos))
+            (setq variation-node (pygn-mode-inside-variation-p)))
           (with-temp-buffer
-            (insert pgn)
-            ;; todo re-running the mode seems wasteful
-            (pygn-mode)
-            (when (pygn-mode-inside-variation-p)
-              (up-list -1)
-              (delete-char 1)
-              (delete-region
-               (save-excursion (pygn-mode-backward-exit-variations-and-comments) (point))
-               (point))
-              (delete-region
-               (save-excursion (forward-word-strictly -1) (point))
-               (point)))
-            (goto-char (point-max))
-            (buffer-substring-no-properties (point-min) (point-max))))))))
+            ;; this temp buffer does not need to be in pygn-mode
+            (insert (replace-regexp-in-string "[ )]*\\'" "" pgn))
+            (dolist (po (reverse paren-offsets))
+              (delete-region (1+ po) (+ 2 po)))
+            (buffer-substring-no-properties
+             (point-min)
+             (point-max)))))
+      ;; else pos not in variation
+      (pygn-mode-pgn-at-pos pos)))
 
 (defun pygn-mode-pgn-to-fen (pgn)
   "Return the FEN corresponding to the position after PGN."
