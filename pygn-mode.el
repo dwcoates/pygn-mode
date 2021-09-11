@@ -713,6 +713,28 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
 
 ;;; Utility functions
 
+(defun pygn-mode-comment-region-contextually (beg end &optional arg)
+  "Wrap `comment-region-default' to remove `comment-continue' characters.
+
+This allows multi-line `comment-region' to work in `pygn-mode'
+without adding extra characters at beginning-of-line."
+  (if (and (pygn-mode--true-containing-node 'movetext beg)
+           (pygn-mode--true-containing-node 'movetext end))
+      (save-match-data
+        (comment-region-default beg end arg)
+        (save-restriction
+          (exchange-point-and-mark)
+          (narrow-to-region (min (point) (mark) beg) (max (point) (mark) end))
+          (save-excursion
+            (goto-char (point-min))
+            (while (re-search-forward (concat "^" (regexp-quote (or comment-continue "|"))) nil t)
+              (replace-match "")))))
+    ;; else
+    (let ((comment-start ";")
+          (comment-end "")
+          (comment-style 'plain))
+      (comment-region-default beg end arg))))
+
 (defun pygn-mode--get-or-create-board-buffer ()
   "Get or create the `pygn-mode' board buffer."
   (let ((buf (get-buffer-create pygn-mode-board-buffer-name)))
@@ -1414,10 +1436,15 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
 
   (setq-local comment-start "{")
   (setq-local comment-end "}")
-  (setq-local comment-continue " ")
   (setq-local comment-multi-line t)
-  (setq-local comment-style 'plain)
+  (setq-local comment-style 'multi-line)
   (setq-local comment-use-syntax t)
+  (setq-local comment-quote-nested nil)
+  ;; why does newcomment.el _force_ a non-whitespace comment-continue?
+  ;; comment-region-function must then be overridden to remove the
+  ;; continue character when not wanted.
+  (setq-local comment-continue "|")
+  (setq-local comment-region-function 'pygn-mode-comment-region-contextually)
   (setq-local parse-sexp-lookup-properties t)
   (setq-local parse-sexp-ignore-comments t)
 
