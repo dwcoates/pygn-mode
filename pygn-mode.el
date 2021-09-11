@@ -1563,7 +1563,7 @@ diagnostic tests were successful."
                pygn-mode-diagnostic-output-buffer-name)
       nil)))
 
-(defun pygn-mode-next-game (arg)
+(defun pygn-mode-next-game (&optional arg)
   "Advance to the next game in a multi-game PGN buffer.
 
 With numeric prefix ARG, advance ARG games."
@@ -1591,7 +1591,7 @@ With numeric prefix ARG, advance ARG games."
              (error "No more games"))))))
     (pygn-mode-focus-game-at-point)))
 
-(defun pygn-mode-previous-game (arg)
+(defun pygn-mode-previous-game (&optional arg)
   "Move back to the previous game in a multi-game PGN buffer.
 
 With numeric prefix ARG, move back ARG games."
