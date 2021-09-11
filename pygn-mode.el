@@ -1104,8 +1104,7 @@ POS defaults to the point."
   (when-let ((annotation-node (pygn-mode--true-containing-node 'annotation)))
     (save-excursion
       (goto-char (pygn-mode--true-node-first-position annotation-node))
-      (forward-char -1)
-      (when (pygn-mode--true-containing-node '(san_move lan_move))
+      (when (pygn-mode--true-containing-node '(san_move lan_move) (char-before))
         annotation-node))))
 
 (defun pygn-mode-looking-at-relaxed-legal-move ()
