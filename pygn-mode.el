@@ -1067,7 +1067,20 @@ POS defaults to the point."
   "Whether POS is inside a PGN variation.
 
 POS defaults to the point."
-  (pygn-mode--true-containing-node 'variation pos))
+  (save-excursion
+    ;; TODO: this is to cover up what is still buggy about tree-sitter-node-at-point
+    ;; and its wrapper pygn-mode--true-node-first-position.  When resting on
+    ;; whitespace, a parent variation node may not be returned, instead nil.
+    ;; The nil happens because an adjacent recursive variation spills over
+    ;; onto the whitespace occupied by the point.
+    (goto-char pos)
+    (when (pygn-mode--true-containing-node 'movetext)
+      (when (looking-at-p "\\s-")
+        (skip-syntax-backward "-")
+        (forward-char -1)
+        (when (looking-at-p ")")
+          (forward-char 1))))
+    (pygn-mode--true-containing-node 'variation)))
 
 (defun pygn-mode-inside-variation-or-comment-p (&optional pos)
   "Whether POS is inside a PGN comment or a variation.
