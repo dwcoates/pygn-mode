@@ -1451,10 +1451,12 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
 
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map (default-value 'mode-line-major-mode-keymap))
-    (define-key map (kbd "<mode-line> <mouse-4>")    'pygn-mode-previous-move)
-    (define-key map (kbd "<mode-line> <mouse-5>")    'pygn-mode-next-move)
-    (define-key map (kbd "<mode-line> <wheel-up>")   'pygn-mode-previous-move)
-    (define-key map (kbd "<mode-line> <wheel-down>") 'pygn-mode-next-move)
+    (define-key map (kbd "<mode-line> <mouse-4>")     'pygn-mode-previous-move)
+    (define-key map (kbd "<mode-line> <mouse-5>")     'pygn-mode-next-move)
+    (define-key map (kbd "<mode-line> <wheel-up>")    'pygn-mode-previous-move)
+    (define-key map (kbd "<mode-line> <wheel-down>")  'pygn-mode-next-move)
+    (define-key map (kbd "<mode-line> <wheel-left>")  'ignore)
+    (define-key map (kbd "<mode-line> <wheel-right>") 'ignore)
     (setq-local mode-line-major-mode-keymap map)))
 
 ;;;###autoload
