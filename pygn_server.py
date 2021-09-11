@@ -19,7 +19,7 @@
 ### version
 ###
 
-__version__ = '0.6.0'
+__version__ = '0.6.1'
 
 ###
 ### imports
@@ -59,7 +59,7 @@ def cleanup():
         except:
             pass
 
-def pgn_to_board_callback(_game,board,last_move,args):
+def pgn_to_board_callback(_game,board,last_move,last_fen,args):
     if args.board_format[0] == 'svg':
         svg = chess.svg.board(board=board,
                               lastmove=last_move,
@@ -82,15 +82,15 @@ def pgn_to_board_callback(_game,board,last_move,args):
         print(f'Bad pgn-mode -board_format value: {args.board_format[0]}', file=sys.stderr)
         return None
 
-def pgn_to_fen_callback(_game,board,_last_move,_args):
+def pgn_to_fen_callback(_game,board,_last_move,_last_fen,_args):
     return f':fen {board.fen()}'
 
-def pgn_to_score_callback(_game,board,_last_move,args):
+def pgn_to_score_callback(_game,board,_last_move,_last_fen,args):
     engine = instantiate_engine(args.engine[0])
     uci_info = engine.analyse(board, chess.engine.Limit(depth=args.depth[0]))
     return f':score {uci_info["score"]}'
 
-def pgn_to_mainline_callback(game,_board,_last_move,_args):
+def pgn_to_mainline_callback(game,_board,_last_move,_last_fen,_args):
     clean_exporter = chess.pgn.StringExporter(columns=None,
                                               headers=False,
                                               variations=False,
@@ -98,6 +98,10 @@ def pgn_to_mainline_callback(game,_board,_last_move,_args):
     mainline = game.accept(clean_exporter)
     mainline = re.sub(r'\s+\S+\Z', '', mainline)
     return f':san {mainline}'
+
+# todo should all responses be in sexp form?
+def pgn_to_last_move_info_callback(_game,_board,last_move,last_fen,_args):
+    return f':last-move-info (:fen "{shlex.quote(last_fen)}" :move-uci "{shlex.quote(last_move.uci())}")'
 
 def listen():
     """
@@ -157,12 +161,14 @@ def listen():
         game = chess.pgn.read_game(io.StringIO(pgn))
         board = game.board()
         last_move = False
+        last_fen = board.fen()
         for move in game.mainline_moves():
             last_move = move
+            last_fen = board.fen()
             board.push(move)
 
         # Compute response.
-        response = CALLBACKS[req_command](game,board,last_move,args)
+        response = CALLBACKS[req_command](game,board,last_move,last_fen,args)
 
         # Send response to client.
         if response:
@@ -216,6 +222,7 @@ if __name__ == '__main__':
         ':pgn-to-board': pgn_to_board_callback,
         ':pgn-to-score': pgn_to_score_callback,
         ':pgn-to-mainline': pgn_to_mainline_callback,
+        ':pgn-to-last-move-info': pgn_to_last_move_info_callback,
     }
 
     atexit.register(cleanup)

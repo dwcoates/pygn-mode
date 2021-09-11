@@ -5,7 +5,7 @@
 ;; Author: Dodge Coates and Roland Walker
 ;; Homepage: https://github.com/dwcoates/pygn-mode
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
-;; Version: 0.6.0
+;; Version: 0.6.1
 ;; Last-Updated: 06 Aug 2021
 ;; Package-Requires: ((emacs "26.1") (tree-sitter "0.15.2") (tree-sitter-langs "0.10.7") (uci-mode "0.5.4") (nav-flash "1.0.0") (ivy "0.10.0"))
 ;; Keywords: data, games, chess
@@ -53,8 +53,6 @@
 
 ;;     Extensive ert test coverage of
 ;;      - pygn-mode-pgn-at-pos-as-if-variation
-
-;;     pygn-mode-go-searchmoves which defaults to searching move under point
 
 ;; IDEA
 
@@ -119,7 +117,7 @@
 
 ;;; Code:
 
-(defconst pygn-mode-version "0.6.0")
+(defconst pygn-mode-version "0.6.1")
 
 ;;; Imports
 
@@ -681,6 +679,10 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
       '(menu-item "Next Move" pygn-mode-next-move
                   :help "Navigate to the next move"))
     (define-key map [menu-bar PyGN sep-3] menu-bar-separator)
+    (define-key map [menu-bar PyGN pygn-mode-engine-go-searchmoves]
+      '(menu-item "Go Searchmoves at Point" pygn-mode-engine-go-searchmoves
+                  :enable (featurep 'uci-mode)
+                  :help "UCI Engine \"go searchmoves\" at point in separate window"))
     (define-key map [menu-bar PyGN pygn-mode-engine-go-time]
       '(menu-item "Go Time at Point" pygn-mode-engine-go-time
                   :enable (featurep 'uci-mode)
@@ -1262,6 +1264,17 @@ Inclusive of any move at POS."
     (unless (eq :fen (car response))
       (error "Bad response from `pygn-mode' server"))
     (cadr response)))
+
+(defun pygn-mode-pgn-to-last-move-info (pgn)
+  "Return information corresponding to the last move in PGN."
+  (let ((response (pygn-mode--server-query
+                   :command      :pgn-to-last-move-info
+                   :payload-type :pgn
+                   :payload      pgn)))
+    (cl-callf pygn-mode--parse-response response)
+    (unless (eq :last-move-info (car response))
+      (error "Bad response from `pygn-mode' server"))
+    (read (cadr response))))
 
 (defun pygn-mode-pgn-to-board (pgn format)
   "Return a board representation for the position after PGN.
@@ -2047,6 +2060,63 @@ giving a universal prefix argument."
     (uci-mode-send-commands
      (list (format "position fen %s" fen)
            (format "go time %s" seconds)))))
+
+;; todo: ability to override the move in SAN
+(defun pygn-mode-engine-go-searchmoves (pos &optional move depth)
+  "Evaluate position at POS in a `uci-mode' engine buffer searching on a move.
+
+The MOVE defaults to the last move at POS, inclusive of a move touched by POS.
+It may be overridden directly as a string, or prompted for interactively by
+giving a universal prefix argument.  If overridden, the value must currently
+be given in UCI LAN form.
+
+DEPTH defaults to `pygn-mode-default-engine-depth'.  It may be overridden
+directly as a numeric prefix argument, or prompted for interactively by
+giving a universal prefix argument."
+  (interactive "d\nP\nP")
+  (unless (pygn-mode--true-containing-node 'movetext pos)
+    (error "POS is not in movetext"))
+  ;; this might belong in a separate function
+  (when (and (not (pygn-mode--true-containing-node '(san_move lan_move) pos))
+             (= pos
+                (save-excursion
+                  (goto-char pos)
+                  (ignore-errors
+                    (pygn-mode-previous-move))
+                  (point))))
+    (setq pos (save-excursion
+                (goto-char pos)
+                (pygn-mode-next-move)
+                (point))))
+  (setq move
+        (cond
+          ((stringp move)
+           move)
+          ((and move (listp move))
+           (completing-read "Search move: " nil))
+          (t
+           move)))
+  (setq depth
+        (cond
+          ((numberp depth)
+           depth)
+          ((and depth (listp depth))
+           (completing-read "Depth: " nil))
+          (t
+           pygn-mode-default-engine-depth)))
+  (unless (and (boundp 'uci-mode-engine-buffer)
+               uci-mode-engine-buffer
+               (window-live-p
+                (get-buffer-window uci-mode-engine-buffer)))
+    (uci-mode-run-engine))
+  (let* ((last-move-info (pygn-mode-pgn-to-last-move-info (pygn-mode-pgn-at-pos-as-if-variation pos)))
+         (fen (plist-get last-move-info :fen))
+         (ucilan-move (or move (plist-get last-move-info :move-uci))))
+    (sleep-for 0.05)
+    (uci-mode-send-stop)
+    (uci-mode-send-commands
+     (list (format "position fen %s" fen)
+           (format "go depth %s searchmoves %s" depth ucilan-move)))))
 
 (defun pygn-mode-triple-window-layout-bottom ()
   "Set up three windows for PGN buffer, board image, and UCI interaction.

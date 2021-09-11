@@ -127,6 +127,7 @@ of each game starting with an `[Event "?"]` tagpair.
 
  * `pygn-mode-engine-go-depth` — display depth-limited engine evaluation in another buffer
  * `pygn-mode-engine-go-time` — display time-limited engine evaluation in another buffer
+ * `pygn-mode-engine-go-searchmoves` — display engine evaluation on the current move in another buffer
 
 ### Window-management Commands
 
