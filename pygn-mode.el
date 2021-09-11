@@ -681,6 +681,10 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
       '(menu-item "Go Depth at Point" pygn-mode-engine-go-depth
                   :enable (featurep 'uci-mode)
                   :help "UCI Engine \"go depth\" at point in separate window"))
+    (define-key map [menu-bar PyGN pygn-mode-describe-annotation-at-pos]
+      '(menu-item "Annotation at Point" pygn-mode-describe-annotation-at-pos
+                  :enable (pygn-mode--true-containing-node 'annotation)
+                  :help "Describe annotation at point in the echo area"))
     (define-key map [menu-bar PyGN pygn-mode-display-fen-at-pos]
       '(menu-item "FEN at Point" pygn-mode-display-fen-at-pos
                   :help "Display FEN at point in separate window"))
@@ -700,6 +704,7 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
     ;; (define-key map (kbd "C-c C-p") 'pygn-mode-previous-game)
     ;; (define-key map (kbd "M-f")     'pygn-mode-next-move)
     ;; (define-key map (kbd "M-b")     'pygn-mode-previous-move)
+    ;; (define-key map (kbd "C-h $")   'pygn-mode-describe-annotation-at-pos)
     ;;
     ;; and note that `down-list'/`backward-up-list' already works to
     ;; enter/exit a parenthesized variation
@@ -1446,7 +1451,10 @@ otherwise.  If called from Lisp, enable mode if ARG is omitted or nil.
 
 When turned on, cursor motion in a PyGN buffer causes automatic display of
 a board representation corresponding to the point.  The displayed board
-will respect variations."
+will respect variations.
+
+In addition, if the cursor rests on an annotation symbol, the
+meaning of the symbol will be displayed in the echo area."
   :group 'pygn
   :init-value nil
   :lighter " fol"
@@ -1464,6 +1472,7 @@ will respect variations."
   "Driver for function `pygn-mode-follow-minor-mode'.
 
 Intended for use in `post-command-hook'."
+  (pygn-mode-describe-annotation-at-pos (point) nil 'no-error)
   (pygn-mode-display-variation-board-at-pos (point)))
 
 (cl-defun pygn-mode--run-diagnostic ()
@@ -1727,6 +1736,35 @@ When called non-interactively, select the game containing POS."
   (goto-char pos)
   (push-mark (pygn-mode-game-end-position) t t)
   (goto-char (pygn-mode-game-start-position)))
+
+(defun pygn-mode-describe-annotation-at-pos (pos &optional do-copy no-error)
+  "Describe the annotation symbol at point in the echo area.
+
+When called non-interactively, describe the annotation
+symbol corresponding to POS.
+
+With `prefix-arg' DO-COPY, copy the description to the kill ring,
+and to the system clipboard when running a GUI Emacs.
+
+When NO-ERROR is set, noninteractively, do not signal an error
+when POS is not on an annotation symbol."
+  (interactive "d\nP")
+  (let ((annotation-node (pygn-mode--true-containing-node 'annotation pos)))
+    (if annotation-node
+        (let* ((annotation-text (buffer-substring-no-properties
+                                 (pygn-mode--true-node-first-position annotation-node)
+                                 (pygn-mode--true-node-after-position annotation-node)))
+               (description (or (gethash annotation-text pygn-mode-annotation-names) "Unknown"))
+               (full-description (format "%s - %s" annotation-text description)))
+          (when do-copy
+            (kill-new full-description)
+            (when (and (fboundp 'gui-set-selection)
+                       (display-graphic-p))
+              (gui-set-selection 'CLIPBOARD full-description)))
+          (message "%s%s" full-description (if do-copy (propertize "\t(copied)" 'face '(:foreground "grey33")) "")))
+      ;; else
+      (unless no-error
+        (error "No annotation symbol")))))
 
 (defun pygn-mode-echo-fen-at-pos (pos &optional do-copy)
   "Display the FEN corresponding to the point in the echo area.
