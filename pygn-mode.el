@@ -933,12 +933,13 @@ find the latest-starting containing node of any of the given types.
 POS defaults to the point.
 
 If a node has leading or trailing whitespace, and POS is in that
-whitespace, ignore the result, and consult the parent node.
+whitespace, ignore the result, and consult the parent node.  This is a
+major difference between this function and `tree-sitter-node-at-point'.
 
 Also respect narrowing.
 
-If TYPE is unset, and an appropriate containing node is not
-found, return the root node."
+If TYPE is unset, and an appropriate containing node is not found,
+return the root node."
   (cl-callf or pos (point))
   (save-excursion
     (goto-char pos)
