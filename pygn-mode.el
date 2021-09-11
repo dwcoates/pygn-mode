@@ -2009,7 +2009,8 @@ giving a universal prefix argument."
            (completing-read "Depth: " nil))
           (t
            pygn-mode-default-engine-depth)))
-  (unless (and uci-mode-engine-buffer
+  (unless (and (boundp 'uci-mode-engine-buffer)
+               uci-mode-engine-buffer
                (window-live-p
                 (get-buffer-window uci-mode-engine-buffer)))
     (uci-mode-run-engine))
@@ -2035,7 +2036,8 @@ giving a universal prefix argument."
            (completing-read "Seconds: " nil))
           (t
            pygn-mode-default-engine-time)))
-  (unless (and uci-mode-engine-buffer
+  (unless (and (boundp 'uci-mode-engine-buffer)
+               uci-mode-engine-buffer
                (window-live-p
                 (get-buffer-window uci-mode-engine-buffer)))
     (uci-mode-run-engine))
