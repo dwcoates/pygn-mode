@@ -1156,6 +1156,7 @@ POS defaults to the point."
         (pygn-mode--true-node-first-position game-node)
       ;; else
       (save-excursion
+        (goto-char (or pos (point)))
         (skip-syntax-backward "-")
         (ignore-errors (forward-char -1))
         (setq game-node (pygn-mode--true-containing-node 'game))
