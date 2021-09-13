@@ -7,7 +7,7 @@
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
 ;; Version: 0.6.0
 ;; Last-Updated: 06 Aug 2021
-;; Package-Requires: ((emacs "26.1") (tree-sitter "0.15.1") (tree-sitter-langs "0.10.1") (uci-mode "0.5.4") (nav-flash "1.0.0") (ivy "0.10.0"))
+;; Package-Requires: ((emacs "26.1") (tree-sitter "0.15.2") (tree-sitter-langs "0.10.1") (uci-mode "0.5.4") (nav-flash "1.0.0") (ivy "0.10.0"))
 ;; Keywords: data, games, chess
 
 ;;; License
@@ -934,7 +934,7 @@ POS defaults to the point.
 
 If a node has leading or trailing whitespace, and POS is in that
 whitespace, ignore the result, and consult the parent node.  This is a
-major difference between this function and `tree-sitter-node-at-point'.
+major difference between this function and `tree-sitter-node-at-pos'.
 
 Also respect narrowing.
 
@@ -947,7 +947,7 @@ return the root node."
           (best-node nil)
           (type-list (if (listp type) (or type '(nil)) (list type))))
       (dolist (tp type-list)
-        (let ((node (tree-sitter-node-at-point tp))
+        (let ((node (tree-sitter-node-at-pos tp pos 'ignore-invalid-types))
               (first nil)
               (last nil))
           (while node
@@ -1093,7 +1093,7 @@ POS defaults to the point."
   (when-let ((node (pygn-mode--true-containing-node nil pos))
              (type (tsc-node-type node)))
     (when (and (memq type '(game series_of_games))
-               (not (tree-sitter-node-at-point 'result_code)))
+               (not (tree-sitter-node-at-pos 'result_code pos)))
       node)))
 
 (defun pygn-mode-looking-at-result-code ()
@@ -1322,22 +1322,22 @@ For use in `pygn-mode-ivy-jump-to-game-by-any-header'."
       (setq game-node (tsc-get-nth-child root-node index))
       (cl-incf index)
       (when (and game-node (eq 'game (tsc-node-type game-node)))
-        (save-excursion
-          (goto-char (tsc-node-start-position game-node))
-          (setq header-node (tree-sitter-node-at-point 'header))
-          (when header-node
-            (push (cons (replace-regexp-in-string
-                         "\\`\\s-+" ""
+        (setq header-node
+              (tree-sitter-node-at-pos 'header
+                                       (tsc-node-start-position game-node)))
+        (when header-node
+          (push (cons (replace-regexp-in-string
+                       "\\`\\s-+" ""
+                       (replace-regexp-in-string
+                        "\\s-+\\'" ""
+                        (replace-regexp-in-string
+                         "[\r\n]" " "
                          (replace-regexp-in-string
-                          "\\s-+\\'" ""
-                          (replace-regexp-in-string
-                           "[\r\n]" " "
-                           (replace-regexp-in-string
-                            "^\\[\\S-+\\s-+\"[?.]*\"\\]" ""
-                            (tsc-node-text header-node)))))
-                        (tsc-node-start-position header-node))
-                  header-coordinates)))))
-        (nreverse header-coordinates)))
+                          "^\\[\\S-+\\s-+\"[?.]*\"\\]" ""
+                          (tsc-node-text header-node)))))
+                      (tsc-node-start-position header-node))
+                header-coordinates))))
+    (nreverse header-coordinates)))
 
 (defun pygn-mode-fen-coordinates ()
   "Find PGN FEN headers for all games in the buffer.
@@ -1613,8 +1613,8 @@ With numeric prefix ARG, move back ARG games."
            (error "No more games"))))))
   (pygn-mode-focus-game-at-point))
 
-;; when tree-sitter-node-at-point is used instead of pygn-mode--true-containing-node
-;; here, that is intentional, for two related reasons: tree-sitter-node-at-point
+;; when tree-sitter-node-at-pos is used instead of pygn-mode--true-containing-node
+;; here, that is intentional, for two related reasons: tree-sitter-node-at-pos
 ;; will return a leaf node even on whitespace, and we plan to call
 ;; tsc-get-next-sibling-node on the return value.
 (defun pygn-mode-next-move (&optional arg)
@@ -1644,12 +1644,12 @@ With numeric prefix ARG, advance ARG moves forward."
     (unless (pygn-mode--true-containing-node 'movetext)
       (error "No more moves"))
     (dotimes (_ arg)
-      (let ((node (tree-sitter-node-at-point))
+      (let ((node (tree-sitter-node-at-pos))
             (thumb (point)))
         (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
           (goto-char (pygn-mode--true-node-after-position move-node)))
         (while (not (pygn-mode--true-containing-node '(san_move lan_move)))
-          (setq node (tree-sitter-node-at-point))
+          (setq node (tree-sitter-node-at-pos))
           (cond
             ((>= (pygn-mode--true-node-last-position node)
                  (point-max))
@@ -1669,8 +1669,8 @@ With numeric prefix ARG, advance ARG moves forward."
                (forward-char 1)))))
         (skip-syntax-forward "-")))))
 
-;; when tree-sitter-node-at-point is used instead of pygn-mode--true-containing-node
-;; here, that is intentional, for two related reasons: tree-sitter-node-at-point
+;; when tree-sitter-node-at-pos is used instead of pygn-mode--true-containing-node
+;; here, that is intentional, for two related reasons: tree-sitter-node-at-pos
 ;; will return a leaf node even on whitespace, and we plan to call
 ;; tsc-get-next-sibling-node on the return value.
 (defun pygn-mode-previous-move (&optional arg)
@@ -1703,7 +1703,7 @@ With numeric prefix ARG, move ARG moves backward."
       (unless (pygn-mode--true-containing-node 'movetext)
         (error "No more moves"))
       (dotimes (_ arg)
-        (let ((node (tree-sitter-node-at-point))
+        (let ((node (tree-sitter-node-at-pos))
               (thumb (point)))
           (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
             (if (= (point) (pygn-mode--true-node-first-position move-node))
@@ -1711,7 +1711,7 @@ With numeric prefix ARG, move ARG moves backward."
               (goto-char (pygn-mode--true-node-first-position move-node))))
           (while (or (not (pygn-mode--true-containing-node '(san_move lan_move)))
                      (pygn-mode--true-containing-node 'variation))
-            (setq node (tree-sitter-node-at-point))
+            (setq node (tree-sitter-node-at-pos))
             (cond
               ((<= (pygn-mode--true-node-first-position node)
                    (point-min))
