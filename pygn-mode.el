@@ -911,55 +911,81 @@ not match the client."
        (replace-regexp-in-string
         "\\`\s-*" "" (match-string 2 response))))))
 
-;; would be nicer if multi-type were chosen by how far up we must go in the
-;; syntax tree to find a node of the type, instead of the latest-starting by
-;; buffer position.
-(cl-defun pygn-mode--true-containing-node (&optional type pos)
-  "Return the node of type TYPE which contains POS, adjusting whitespace.
+;; multi-node adaptation of tree-sitter-node-at-pos
+(defun pygn-mode--named-nodes-at-pos (&optional type pos)
+  "Return a list of nodes of type TYPE which span position POS.
 
-TYPE defaults to the nearest containing node.  If TYPE is a symbol, find
-the first containing node of that type.  If TYPE is a list of symbols,
-find the latest-starting containing node of any of the given types.
+TYPE must be symbol corresponding to a named syntax node, or the
+special value `:named' for all named nodes.  The default value is
+`:named'.
+
+Anonymous nodes are completely ignored.
 
 POS defaults to the point.
 
-If a node has leading or trailing whitespace, and POS is in that
-whitespace, ignore the result, and consult the parent node.  This is a
-major difference between this function and `tree-sitter-node-at-pos'.
+Results are returned in innermost order."
+  (cl-callf or pos (point))
+  (cl-callf or type :named)
+  (let* ((root (tsc-root-node tree-sitter-tree))
+         (node (tsc-get-named-descendant-for-position-range root pos pos))
+         (results nil))
+    (while node
+      (when (or (eq type (tsc-node-type node))
+                (and (eq type :named)
+                     (tsc-node-named-p node)))
+        (push node results))
+      (setq node (tsc-get-parent node)))
+    (reverse results)))
+
+(cl-defun pygn-mode--true-containing-node (&optional type pos)
+  "Return the named node of type TYPE which contains POS, adjusting whitespace.
+
+TYPE defaults to the special value `:named', which finds the \"closest\"
+containing named node.  If TYPE is a symbol, find the closest containing
+named node of that type.  If TYPE is a list of symbols, find the closest
+containing named node of any of the given types.
+
+\"Closest\" is defined as: the latest-starting, or (tie-breaker) shortest,
+or (tie-breaker) deepest matching node.
+
+Anonymous nodes are completely ignored.
+
+POS defaults to the point.
+
+If a node has leading or trailing whitespace, and POS is in that whitespace,
+ignore the result, and consult the parent node.  This is a major difference
+between this function and `tree-sitter-node-at-point'.
 
 Also respect narrowing.
 
-If TYPE is unset, and an appropriate containing node is not found,
-return the root node."
+If TYPE is `:named' or unset, and an appropriate containing node is not
+found, return the root node."
   (cl-callf or pos (point))
-  (save-excursion
-    (goto-char pos)
-    (let ((best-first -1)
-          (best-node nil)
-          (type-list (if (listp type) (or type '(nil)) (list type))))
-      (dolist (tp type-list)
-        (let ((node (tree-sitter-node-at-pos tp pos 'ignore-invalid-types))
-              (first nil)
-              (last nil))
-          (while node
-            (setq first (pygn-mode--true-node-first-position node))
-            (setq last (pygn-mode--true-node-last-position node))
-            (cond
-              ((and (>= pos first)
-                    (<= pos last)
-                    (> first best-first))
-               (setq best-first first)
-               (setq best-node node)
-               (setq node nil))
-              (tp
-               (setq node nil))
-              (t
-               (setq node (tsc-get-parent node)))))))
-      (if best-node
-          best-node
-        (if (or (not type)
-                (memq 'series_of_games type-list))
-          (tsc-root-node tree-sitter-tree))))))
+  (cl-callf or type :named)
+  ;; buglet: depths is shared across types
+  (let ((type-list (if (listp type) (or type '(nil)) (list type)))
+        (results nil)
+        (depths nil)
+        (counter 0))
+    (dolist (tp type-list)
+      (setq counter 0)
+      (dolist (node (pygn-mode--named-nodes-at-pos tp pos))
+        (cl-incf counter)
+        (when (and (>= pos (pygn-mode--true-node-first-position node))
+                   (<= pos (pygn-mode--true-node-last-position node)))
+          (push (cons node counter) depths)
+          (push node results))))
+    (when (and (eq type :named)
+               (not results))
+      (push (cons (tsc-root-node tree-sitter-tree) 10000) depths)
+      (push (tsc-root-node tree-sitter-tree) results))
+    (car (sort results
+               (lambda (a b) (or (> (pygn-mode--true-node-first-position a)
+                                    (pygn-mode--true-node-first-position b))
+                                 (< (pygn-mode--true-node-last-position a)
+                                    (pygn-mode--true-node-last-position b))
+                                 (< (cdr (assoc a depths))
+                                    (cdr (assoc b depths)))))))))
 
 (defun pygn-mode--true-node-first-position (node)
   "Return the true first position within NODE, adjusting whitespace.
@@ -1058,20 +1084,7 @@ POS defaults to the point."
   "Whether POS is inside a PGN variation.
 
 POS defaults to the point."
-  (save-excursion
-    ;; TODO: this is to cover up what is still buggy about tree-sitter-node-at-point
-    ;; and its wrapper pygn-mode--true-node-first-position.  When resting on
-    ;; whitespace, a parent variation node may not be returned, instead nil.
-    ;; The nil happens because an adjacent recursive variation spills over
-    ;; onto the whitespace occupied by the point.
-    (goto-char pos)
-    (when (pygn-mode--true-containing-node 'movetext)
-      (when (looking-at-p "\\s-")
-        (skip-syntax-backward "-")
-        (forward-char -1)
-        (when (looking-at-p ")")
-          (forward-char 1))))
-    (pygn-mode--true-containing-node 'variation)))
+  (pygn-mode--true-containing-node 'variation pos))
 
 (defun pygn-mode-inside-variation-or-comment-p (&optional pos)
   "Whether POS is inside a PGN comment or a variation.
