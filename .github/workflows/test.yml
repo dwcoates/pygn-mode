@@ -28,5 +28,4 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run tests
         run: |
-          "$HOME/.cask/bin/cask" install
           make test CASK="$HOME/.cask/bin/cask"

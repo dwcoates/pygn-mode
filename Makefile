@@ -2,6 +2,7 @@ ifneq ($(CASK),)
  EMACS := $(CASK) emacs
 else
  EMACS := emacs
+ CASK := true
 endif
 
 EMACS_CLEAN := -Q
@@ -14,7 +15,10 @@ TEST_DIR := ert-tests
 # TESTS can be overridden to specify a subset of tests
 TESTS=
 
-.PHONY : build autoloads test-autoloads test-tests test-prep test-batch test clean
+.PHONY : cask-install build autoloads test-autoloads test-tests test-prep test-batch test clean
+
+cask-install :
+	@$(CASK) install
 
 build :
 	$(EMACS) $(EMACS_BATCH) --eval             \
@@ -35,7 +39,7 @@ test-autoloads : autoloads
 test-tests :
 	@perl -ne 'if (m/^\s*\(\s*ert-deftest\s*(\S+)/) {die "$$1 test name duplicated in $$ARGV\n" if $$dupes{$$1}++}' '$(TEST_DIR)/'*-test.el
 
-test-prep : build test-autoloads test-tests
+test-prep : cask-install build test-autoloads test-tests
 
 test-batch :
 	for test_lib in $(TEST_DIR)/*-test.el; do           \
