@@ -978,7 +978,7 @@ Also respect narrowing."
     (cond
       ((eq node (tsc-root-node tree-sitter-tree))
        (setq first (point-min)))
-      (t
+      ((= 0 (car (syntax-after first)))
        (save-excursion
          (goto-char first)
          (skip-syntax-forward "-")
@@ -993,6 +993,7 @@ Also respect narrowing."
     (cond
       ((eq node (tsc-root-node tree-sitter-tree))
        (setq last (point-max)))
+      ;; todo: avoid this save-excursion when possible
       (t
        (save-excursion
          (goto-char last)
