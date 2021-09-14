@@ -976,7 +976,7 @@ return the root node."
 Also respect narrowing."
   (let ((first (max (point-min) (tsc-node-start-position node))))
     (cond
-      ((eq node (tsc-root-node tree-sitter-tree))
+      ((tsc-node-eq node (tsc-root-node tree-sitter-tree))
        (setq first (point-min)))
       ((= 0 (car (syntax-after first)))
        (save-excursion
@@ -991,7 +991,7 @@ Also respect narrowing."
 Also respect narrowing."
   (let ((last (min (point-max) (tsc-node-end-position node))))
     (cond
-      ((eq node (tsc-root-node tree-sitter-tree))
+      ((tsc-node-eq node (tsc-root-node tree-sitter-tree))
        (setq last (point-max)))
       ;; todo: avoid this save-excursion when possible
       (t
