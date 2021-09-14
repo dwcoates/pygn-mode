@@ -1422,6 +1422,7 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
   (setq-local comment-region-function 'pygn-mode-comment-region-contextually)
   (setq-local parse-sexp-lookup-properties t)
   (setq-local parse-sexp-ignore-comments t)
+  (setq-local fill-column 80)
 
   (tree-sitter-hl-mode)
 
