@@ -1292,7 +1292,9 @@ FORMAT may be either 'svg or 'text."
 
 (defun pygn-mode-focus-game-at-point ()
   "Recenter the window and highlight the current game at point."
-  (recenter-window-group)
+  ;; todo the ignore-errors is for automated testing.  is there a better way?
+  (ignore-errors
+    (recenter-window-group))
   (when (fboundp 'nav-flash-show)
     (let ((nav-flash-delay 0.2)
           (beg (if pygn-mode-flash-full-game
