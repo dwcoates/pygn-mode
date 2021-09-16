@@ -340,6 +340,12 @@
                                     (93 . "8/8/p1bPkp2/4p1p1/1P6/P4P1K/1B1R4/6r1 b - - 29 47"                  )
                                     (94 . "8/8/p1bPkp2/4p1p1/1P6/P4P1K/1B1R4/5r2 w - - 30 48"                  )))
 
+(setq pygn-mode-test-03-game-start-positions '((1 . 1)
+                                               (2 . 982)
+                                               (3 . 1963)
+                                               (4 . 2944)
+                                               (5 . 3925)))
+
 (defmacro pygn-mode-test-with-file (filename &rest body)
   "Evaluate BODY in a `pygn-mode' temp buffer filled with the contents of FILENAME."
   (declare (indent 1))
@@ -650,6 +656,181 @@
         (should-error (pygn-mode-previous-move))))))
 
 ;; TODO pygn-mode-previous-move behavior when between games
+
+;;; pygn-mode-next-game
+
+(ert-deftest pygn-mode-next-game-01 nil
+  "Test `pygn-mode-next-game' from `point-min' to second game."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (pygn-mode-next-game)
+    (should (= (point)
+               (cdr (assoc 2 pygn-mode-test-03-game-start-positions))))))
+
+(ert-deftest pygn-mode-next-game-02 nil
+  "Test two successive calls to `pygn-mode-next-game'."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (pygn-mode-next-game)
+    (pygn-mode-next-game)
+    (should (= (point)
+               (cdr (assoc 3 pygn-mode-test-03-game-start-positions))))))
+
+(ert-deftest pygn-mode-next-game-03 nil
+  "Test integer ARG to `pygn-mode-next-game'."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (pygn-mode-next-game 2)
+    (should (= (point)
+               (cdr (assoc 3 pygn-mode-test-03-game-start-positions))))))
+
+(ert-deftest pygn-mode-next-game-04 nil
+  "Test negative integer ARG to `pygn-mode-next-game'."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (pygn-mode-next-game 2)
+    (pygn-mode-next-game -1)
+    (should (= (point)
+               (cdr (assoc 2 pygn-mode-test-03-game-start-positions))))))
+
+(ert-deftest pygn-mode-next-game-05 nil
+  "Test `pygn-mode-next-game' for every ARG which leads to a game (test-03.pgn)."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (dolist (cell pygn-mode-test-03-game-start-positions)
+      (let ((games    (car cell))
+            (game-pos (cdr cell)))
+        (goto-char (point-min))
+        (pygn-mode-next-game (1- games))
+        (should (= (point) game-pos))))))
+
+(ert-deftest pygn-mode-next-game-06 nil
+  "Test `pygn-mode-next-game' exhaustively, from every position in the buffer which precedes a game (test-03.pgn)."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (let ((last-pos (point-min)))
+      (dolist (cell pygn-mode-test-03-game-start-positions)
+        (let* ((games             (car cell))
+               (game-pos          (cdr cell))
+               (leading-positions (number-sequence last-pos (1- game-pos))))
+          (dolist (pos leading-positions)
+            (goto-char pos)
+            (pygn-mode-next-game)
+            (should (= (point) game-pos)))
+          (setq last-pos game-pos))))))
+
+(ert-deftest pygn-mode-next-game-07 nil
+  "Test that `pygn-mode-next-game' errors from the last game start."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (let* ((cell     (car (last pygn-mode-test-03-game-start-positions)))
+           (games    (car cell))
+           (game-pos (cdr cell)))
+      (pygn-mode-next-game (1- games))
+      (should-error (pygn-mode-next-game)))))
+
+(ert-deftest pygn-mode-next-game-08 nil
+  "Test that `pygn-mode-next-game' errors from every position after the last game start."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (let* ((cell     (car (last pygn-mode-test-03-game-start-positions)))
+           (games    (car cell))
+           (game-pos (cdr cell))
+           (trailing-positions (number-sequence game-pos (point-max))))
+      (dolist (pos trailing-positions)
+        (goto-char pos)
+        (should-error (pygn-mode-next-game))))))
+
+;; TODO pygn-mode-next-game behavior when between games
+
+;;; pygn-mode-previous-game
+
+(ert-deftest pygn-mode-previous-game-01 nil
+  "Test `pygn-mode-previous-game' from `point-min' to second game, back to first game."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (pygn-mode-next-game)
+    (pygn-mode-previous-game)
+    (should (= (point)
+               (cdr (assoc 1 pygn-mode-test-03-game-start-positions))))))
+
+(ert-deftest pygn-mode-previous-game-02 nil
+  "Test two successive calls to `pygn-mode-previous-game'."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (pygn-mode-next-game 3)
+    (pygn-mode-previous-game)
+    (pygn-mode-previous-game)
+    (should (= (point)
+               (cdr (assoc 2 pygn-mode-test-03-game-start-positions))))))
+
+(ert-deftest pygn-mode-previous-game-03 nil
+  "Test integer ARG to `pygn-mode-previous-game'."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (pygn-mode-next-game 3)
+    (pygn-mode-previous-game 2)
+    (should (= (point)
+               (cdr (assoc 2 pygn-mode-test-03-game-start-positions))))))
+
+(ert-deftest pygn-mode-previous-game-04 nil
+  "Test negative integer ARG to `pygn-mode-previous-game'."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (pygn-mode-next-game 2)
+    (pygn-mode-previous-game -1)
+    (should (= (point)
+               (cdr (assoc 4 pygn-mode-test-03-game-start-positions))))))
+
+(ert-deftest pygn-mode-previous-game-05 nil
+  "Test `pygn-mode-previous-game' for every ARG which leads to a game (test-03.pgn)."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (dolist (cell (reverse pygn-mode-test-03-game-start-positions))
+      (let ((games    (car cell))
+            (game-pos (cdr cell))
+            (rescaler (length pygn-mode-test-03-game-start-positions)))
+        (setq games (- rescaler games))
+        (goto-char (cdr (car (last pygn-mode-test-03-game-start-positions))))
+        (pygn-mode-previous-game games)
+        (should (= (point) game-pos))))))
+
+;; TODO: the save-excursions are needed because the behavior of
+;; pygn-mode-previous-game when between games is not well defined.
+(ert-deftest pygn-mode-previous-game-06 nil
+  "Test `pygn-mode-previous-game' exhaustively, from every position in the buffer which follows a game (test-03.pgn)."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (let ((last-pos (save-excursion
+                      (goto-char (point-max))
+                      (skip-syntax-backward "-")
+                      (forward-char -1)
+                      (point))))
+      (dolist (cell (reverse (cdr pygn-mode-test-03-game-start-positions)))
+        (let* ((games              (car cell))
+               (game-pos           (cdr cell))
+               (previous-game      (1- games))
+               (previous-game-pos  (cdr (assoc previous-game pygn-mode-test-03-game-start-positions)))
+               (trailing-positions (number-sequence last-pos game-pos -1)))
+          (dolist (pos trailing-positions)
+            (goto-char pos)
+            (pygn-mode-previous-game)
+            (should (= (point) previous-game-pos)))
+          (setq last-pos (save-excursion
+                           (goto-char game-pos)
+                           (skip-syntax-backward "-")
+                           (forward-char -1)
+                           (point))))))))
+
+(ert-deftest pygn-mode-previous-game-07 nil
+  "Test that `pygn-mode-previous-game' errors from the first game start."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (let* ((cell     (car pygn-mode-test-03-game-start-positions))
+           (games    (car cell))
+           (game-pos (cdr cell)))
+      (goto-char game-pos)
+      (should-error (pygn-mode-previous-game)))))
+
+(ert-deftest pygn-mode-previous-game-08 nil
+  "Test that `pygn-mode-previous-game' errors from every position in the first game."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (let* ((cell     (car pygn-mode-test-03-game-start-positions))
+           (games    (car cell))
+           (game-pos (cdr cell))
+           (second-cell (car (cadr pygn-mode-test-03-game-start-positions)))
+           (second-game-pos (cdr cell))
+           (positions (number-sequence game-pos (1- second-game-pos))))
+      (dolist (pos positions)
+        (goto-char pos)
+        (should-error (pygn-mode-previous-game))))))
+
+;; TODO pygn-mode-previous-game behavior when between games
 
 ;;
 ;; Emacs

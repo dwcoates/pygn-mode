@@ -1,0 +1,104 @@
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "Player_A"]
+[Black "Player_B"]
+[Result "*"]
+[SetUp "1"]
+[FEN "r1bR2Q1/ppp3pp/4p1k1/2b1P1n1/1np1q3/5N2/PPP3PP/5R1K w - - 2 18"]
+
+18. Qe8+ Kh6 ({+6.30} 18... Nf7 19. Rxc8 Qc6 20. Rxa8 Qxe8 21. Rxe8 Kh5 22. Rd1
+Ng5 23. Rd7 +−) 19. Nxg5 Kxg5 ({+7.74} 19... Bd7 20. Nxe4 Bxe8 21. Rxa8 Bc6 22.
+Nxc5 b6 23. Rxa7 bxc5 24. Rxc7 +−) ({+8.70} 19... Qg4 20. Nf7+ Kh5 21. Rf3 c3
+22. bxc3 Nc6 23. Qh8 h6 24. Rg8 +−) 20. Qf7 Qg6 ({0.00} 20... Nc6 21. Qxg7+ Qg6
+22. Rg8 Qxg7 23. Rxg7+ Kh6 24. Rff7 Nxe5 25. Rxh7+ =) ({0.00} 20... Kh6 21. Rg8
+Qxe5 22. Rf3 Qe1+ 23. Rf1 Qe5 =) 21. Rg8 Qxf7 ({0.00} 21... Kh5 22. Qf3+ Kh6 23.
+Qf4+ Qg5 24. Qxg5+ Kxg5 25. Rxg7+ Kh6 26. Rxc7 =) ({0.00} 21... Kh6 22. Qf4+ Qg5
+23. Qxg5+ Kxg5 24. Rxg7+ Kh6 25. Rxc7 Be3 26. Rf6+ =) 22. Rxf7 g6 ({0.00} 22...
+Kh6 23. Rgxg7 Be3 24. Rxh7+ Kg5 25. Rhg7+ Kh5 26. Rh7+ Kg4 27. Rhg7+ =) ({0.00}
+22... b6 23. Rgxg7+ Kh6 24. Rxh7+ Kg5 25. Rhg7+ Kh5 26. Rh7+ Kg5 =) *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "Player_C"]
+[Black "Player_D"]
+[Result "*"]
+[SetUp "1"]
+[FEN "r1bR2Q1/ppp3pp/4p1k1/2b1P1n1/1np1q3/5N2/PPP3PP/5R1K w - - 2 18"]
+
+18. Qe8+ Kh6 ({+6.30} 18... Nf7 19. Rxc8 Qc6 20. Rxa8 Qxe8 21. Rxe8 Kh5 22. Rd1
+Ng5 23. Rd7 +−) 19. Nxg5 Kxg5 ({+7.74} 19... Bd7 20. Nxe4 Bxe8 21. Rxa8 Bc6 22.
+Nxc5 b6 23. Rxa7 bxc5 24. Rxc7 +−) ({+8.70} 19... Qg4 20. Nf7+ Kh5 21. Rf3 c3
+22. bxc3 Nc6 23. Qh8 h6 24. Rg8 +−) 20. Qf7 Qg6 ({0.00} 20... Nc6 21. Qxg7+ Qg6
+22. Rg8 Qxg7 23. Rxg7+ Kh6 24. Rff7 Nxe5 25. Rxh7+ =) ({0.00} 20... Kh6 21. Rg8
+Qxe5 22. Rf3 Qe1+ 23. Rf1 Qe5 =) 21. Rg8 Qxf7 ({0.00} 21... Kh5 22. Qf3+ Kh6 23.
+Qf4+ Qg5 24. Qxg5+ Kxg5 25. Rxg7+ Kh6 26. Rxc7 =) ({0.00} 21... Kh6 22. Qf4+ Qg5
+23. Qxg5+ Kxg5 24. Rxg7+ Kh6 25. Rxc7 Be3 26. Rf6+ =) 22. Rxf7 g6 ({0.00} 22...
+Kh6 23. Rgxg7 Be3 24. Rxh7+ Kg5 25. Rhg7+ Kh5 26. Rh7+ Kg4 27. Rhg7+ =) ({0.00}
+22... b6 23. Rgxg7+ Kh6 24. Rxh7+ Kg5 25. Rhg7+ Kh5 26. Rh7+ Kg5 =) *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "Player_E"]
+[Black "Player_F"]
+[Result "*"]
+[SetUp "1"]
+[FEN "r1bR2Q1/ppp3pp/4p1k1/2b1P1n1/1np1q3/5N2/PPP3PP/5R1K w - - 2 18"]
+
+18. Qe8+ Kh6 ({+6.30} 18... Nf7 19. Rxc8 Qc6 20. Rxa8 Qxe8 21. Rxe8 Kh5 22. Rd1
+Ng5 23. Rd7 +−) 19. Nxg5 Kxg5 ({+7.74} 19... Bd7 20. Nxe4 Bxe8 21. Rxa8 Bc6 22.
+Nxc5 b6 23. Rxa7 bxc5 24. Rxc7 +−) ({+8.70} 19... Qg4 20. Nf7+ Kh5 21. Rf3 c3
+22. bxc3 Nc6 23. Qh8 h6 24. Rg8 +−) 20. Qf7 Qg6 ({0.00} 20... Nc6 21. Qxg7+ Qg6
+22. Rg8 Qxg7 23. Rxg7+ Kh6 24. Rff7 Nxe5 25. Rxh7+ =) ({0.00} 20... Kh6 21. Rg8
+Qxe5 22. Rf3 Qe1+ 23. Rf1 Qe5 =) 21. Rg8 Qxf7 ({0.00} 21... Kh5 22. Qf3+ Kh6 23.
+Qf4+ Qg5 24. Qxg5+ Kxg5 25. Rxg7+ Kh6 26. Rxc7 =) ({0.00} 21... Kh6 22. Qf4+ Qg5
+23. Qxg5+ Kxg5 24. Rxg7+ Kh6 25. Rxc7 Be3 26. Rf6+ =) 22. Rxf7 g6 ({0.00} 22...
+Kh6 23. Rgxg7 Be3 24. Rxh7+ Kg5 25. Rhg7+ Kh5 26. Rh7+ Kg4 27. Rhg7+ =) ({0.00}
+22... b6 23. Rgxg7+ Kh6 24. Rxh7+ Kg5 25. Rhg7+ Kh5 26. Rh7+ Kg5 =) *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "Player_G"]
+[Black "Player_H"]
+[Result "*"]
+[SetUp "1"]
+[FEN "r1bR2Q1/ppp3pp/4p1k1/2b1P1n1/1np1q3/5N2/PPP3PP/5R1K w - - 2 18"]
+
+18. Qe8+ Kh6 ({+6.30} 18... Nf7 19. Rxc8 Qc6 20. Rxa8 Qxe8 21. Rxe8 Kh5 22. Rd1
+Ng5 23. Rd7 +−) 19. Nxg5 Kxg5 ({+7.74} 19... Bd7 20. Nxe4 Bxe8 21. Rxa8 Bc6 22.
+Nxc5 b6 23. Rxa7 bxc5 24. Rxc7 +−) ({+8.70} 19... Qg4 20. Nf7+ Kh5 21. Rf3 c3
+22. bxc3 Nc6 23. Qh8 h6 24. Rg8 +−) 20. Qf7 Qg6 ({0.00} 20... Nc6 21. Qxg7+ Qg6
+22. Rg8 Qxg7 23. Rxg7+ Kh6 24. Rff7 Nxe5 25. Rxh7+ =) ({0.00} 20... Kh6 21. Rg8
+Qxe5 22. Rf3 Qe1+ 23. Rf1 Qe5 =) 21. Rg8 Qxf7 ({0.00} 21... Kh5 22. Qf3+ Kh6 23.
+Qf4+ Qg5 24. Qxg5+ Kxg5 25. Rxg7+ Kh6 26. Rxc7 =) ({0.00} 21... Kh6 22. Qf4+ Qg5
+23. Qxg5+ Kxg5 24. Rxg7+ Kh6 25. Rxc7 Be3 26. Rf6+ =) 22. Rxf7 g6 ({0.00} 22...
+Kh6 23. Rgxg7 Be3 24. Rxh7+ Kg5 25. Rhg7+ Kh5 26. Rh7+ Kg4 27. Rhg7+ =) ({0.00}
+22... b6 23. Rgxg7+ Kh6 24. Rxh7+ Kg5 25. Rhg7+ Kh5 26. Rh7+ Kg5 =) *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "Player_I"]
+[Black "Player_J"]
+[Result "*"]
+[SetUp "1"]
+[FEN "r1bR2Q1/ppp3pp/4p1k1/2b1P1n1/1np1q3/5N2/PPP3PP/5R1K w - - 2 18"]
+
+18. Qe8+ Kh6 ({+6.30} 18... Nf7 19. Rxc8 Qc6 20. Rxa8 Qxe8 21. Rxe8 Kh5 22. Rd1
+Ng5 23. Rd7 +−) 19. Nxg5 Kxg5 ({+7.74} 19... Bd7 20. Nxe4 Bxe8 21. Rxa8 Bc6 22.
+Nxc5 b6 23. Rxa7 bxc5 24. Rxc7 +−) ({+8.70} 19... Qg4 20. Nf7+ Kh5 21. Rf3 c3
+22. bxc3 Nc6 23. Qh8 h6 24. Rg8 +−) 20. Qf7 Qg6 ({0.00} 20... Nc6 21. Qxg7+ Qg6
+22. Rg8 Qxg7 23. Rxg7+ Kh6 24. Rff7 Nxe5 25. Rxh7+ =) ({0.00} 20... Kh6 21. Rg8
+Qxe5 22. Rf3 Qe1+ 23. Rf1 Qe5 =) 21. Rg8 Qxf7 ({0.00} 21... Kh5 22. Qf3+ Kh6 23.
+Qf4+ Qg5 24. Qxg5+ Kxg5 25. Rxg7+ Kh6 26. Rxc7 =) ({0.00} 21... Kh6 22. Qf4+ Qg5
+23. Qxg5+ Kxg5 24. Rxg7+ Kh6 25. Rxc7 Be3 26. Rf6+ =) 22. Rxf7 g6 ({0.00} 22...
+Kh6 23. Rgxg7 Be3 24. Rxh7+ Kg5 25. Rhg7+ Kh5 26. Rh7+ Kg4 27. Rhg7+ =) ({0.00}
+22... b6 23. Rgxg7+ Kh6 24. Rxh7+ Kg5 25. Rhg7+ Kh5 26. Rh7+ Kg5 =) *
