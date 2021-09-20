@@ -1109,7 +1109,8 @@ POS defaults to the point."
   (when-let ((annotation-node (pygn-mode--true-containing-node 'annotation)))
     (save-excursion
       (goto-char (pygn-mode--true-node-first-position annotation-node))
-      (when (pygn-mode--true-containing-node '(san_move lan_move) (char-before))
+      (ignore-errors (forward-char -1))
+      (when (pygn-mode--true-containing-node '(san_move lan_move))
         annotation-node))))
 
 (defun pygn-mode-game-start-position (&optional pos)
@@ -1132,8 +1133,10 @@ POS defaults to the point."
         (pygn-mode--true-node-first-position game-node)
       ;; else
       (save-excursion
+        (goto-char (or pos (point)))
         (skip-syntax-backward "-")
-        (setq game-node (pygn-mode--true-containing-node 'game (char-before)))
+        (ignore-errors (forward-char -1))
+        (setq game-node (pygn-mode--true-containing-node 'game))
         (when game-node
           (pygn-mode--true-node-first-position game-node))))))
 
