@@ -1174,9 +1174,19 @@ garbage."
           (forward-line 1))))
     (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
       (goto-char (pygn-mode--true-node-after-position move-node)))
-    (buffer-substring-no-properties
-     (pygn-mode-game-start-position)
-     (point))))
+    ;; todo returning nil might not be the best behavior when pos trails a game
+    (when-let ((start-pos (pygn-mode-game-start-position)))
+      (buffer-substring-no-properties
+       start-pos
+       (point)))))
+
+(defun pygn-mode--pgn-at-pos-or-stub (pos)
+  "Return a single-game PGN string inclusive of any move at POS.
+
+Identical to `pygn-mode-pgn-at-pos' except that a stub value is returned
+when POS is not inside a game."
+  (or (pygn-mode-pgn-at-pos pos)
+      "[Event \"?\"]\n\n*\n"))
 
 ;; TODO this code assumes that a variation begins with the next move,
 ;; which is not always the case.  Detect when the variation leads with
@@ -1750,7 +1760,7 @@ When called non-interactively, display the FEN corresponding to POS.
 With `prefix-arg' DO-COPY, copy the FEN to the kill ring, and to the system
 clipboard when running a GUI Emacs."
   (interactive "d\nP")
-  (let ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos pos))))
+  (let ((fen (pygn-mode-pgn-to-fen (pygn-mode--pgn-at-pos-or-stub pos))))
     (when do-copy
       (kill-new fen)
       (when (and (fboundp 'gui-set-selection)
@@ -1769,7 +1779,7 @@ clipboard when running a GUI Emacs."
 
 When called non-interactively, display the FEN corresponding to POS."
   (interactive "d")
-  (let* ((fen (pygn-mode-pgn-to-fen (pygn-mode-pgn-at-pos pos)))
+  (let* ((fen (pygn-mode-pgn-to-fen (pygn-mode--pgn-at-pos-or-stub pos)))
          (buf (get-buffer-create pygn-mode-fen-buffer-name))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
@@ -1800,7 +1810,7 @@ When called non-interactively, display the FEN corresponding to POS."
   "Save the board image corresponding to POS to a file."
   (let* ((pygn-mode-board-size (completing-read "Pixels per side: " nil nil nil nil nil pygn-mode-board-size))
          (filename (read-file-name "SVG filename: "))
-         (svg-data (pygn-mode-pgn-to-board (pygn-mode-pgn-at-pos pos) 'svg)))
+         (svg-data (pygn-mode-pgn-to-board (pygn-mode--pgn-at-pos-or-stub pos) 'svg)))
     (with-temp-buffer
       (insert svg-data)
       (write-file filename))))
@@ -1810,7 +1820,7 @@ When called non-interactively, display the FEN corresponding to POS."
 
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
-  (let* ((svg-data (pygn-mode-pgn-to-board (pygn-mode-pgn-at-pos pos) 'svg))
+  (let* ((svg-data (pygn-mode-pgn-to-board (pygn-mode--pgn-at-pos-or-stub pos) 'svg))
          (buf (pygn-mode--get-or-create-board-buffer))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
@@ -1829,7 +1839,7 @@ When called non-interactively, display the board corresponding to POS."
 
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
-  (let* ((text-data (pygn-mode-pgn-to-board (pygn-mode-pgn-at-pos pos) 'text))
+  (let* ((text-data (pygn-mode-pgn-to-board (pygn-mode--pgn-at-pos-or-stub pos) 'text))
          (buf (pygn-mode--get-or-create-board-buffer))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
@@ -1902,7 +1912,7 @@ When called non-interactively, display the board corresponding to POS."
 
 When called non-interactively, display the line corresponding to POS."
   (interactive "d")
-  (let* ((line (pygn-mode-pgn-to-line (pygn-mode-pgn-at-pos pos)))
+  (let* ((line (pygn-mode-pgn-to-line (pygn-mode--pgn-at-pos-or-stub pos)))
          (buf (get-buffer-create pygn-mode-line-buffer-name))
          (win (get-buffer-window buf)))
     (with-current-buffer buf
