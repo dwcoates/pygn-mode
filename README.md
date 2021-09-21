@@ -21,13 +21,21 @@ An Emacs major-mode for chess PGN files, powered by Python.
 ```elisp
 ;; maybe
 ;; (eval-after-load "pygn-mode"
-;;   (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move)
-;;   (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move))
+;;   (define-key pygn-mode-map (kbd "C-c C-n") 'pygn-mode-next-game)
+;;   (define-key pygn-mode-map (kbd "C-c C-p") 'pygn-mode-previous-game)
+;;   (define-key pygn-mode-map (kbd "M-f")     'pygn-mode-next-move)
+;;   (define-key pygn-mode-map (kbd "M-b")     'pygn-mode-previous-move)
+;;   (define-key pygn-mode-map (kbd "C-c SPC") 'pygn-mode-display-gui-board-at-pos)
+;;   (define-key pygn-mode-map (kbd "C-h $")   'pygn-mode-describe-annotation-at-pos))
 
 ;; or maybe
 ;; (eval-after-load "pygn-mode"
-;;   (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move-follow-board)
-;;   (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move-follow-board))
+;;   (define-key pygn-mode-map (kbd "C-c C-n") 'pygn-mode-next-game)
+;;   (define-key pygn-mode-map (kbd "C-c C-p") 'pygn-mode-previous-game)
+;;   (define-key pygn-mode-map (kbd "M-f")     'pygn-mode-next-move-follow-board)
+;;   (define-key pygn-mode-map (kbd "M-b")     'pygn-mode-previous-move-follow-board)
+;;   (define-key pygn-mode-map (kbd "C-c SPC") 'pygn-mode-display-gui-board-at-pos)
+;;   (define-key pygn-mode-map (kbd "C-h $")   'pygn-mode-describe-annotation-at-pos))
 
 (require 'pygn-mode)
 ```

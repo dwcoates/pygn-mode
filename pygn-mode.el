@@ -86,8 +86,11 @@
 ;;     No keys are bound by default.  Consider
 
 ;;         (eval-after-load "pygn-mode"
-;;           (define-key pygn-mode-map (kbd "M-f") 'pygn-mode-next-move)
-;;           (define-key pygn-mode-map (kbd "M-b") 'pygn-mode-previous-move))
+;;           (define-key pygn-mode-map (kbd "C-c C-n") 'pygn-mode-next-game)
+;;           (define-key pygn-mode-map (kbd "C-c C-p") 'pygn-mode-previous-game)
+;;           (define-key pygn-mode-map (kbd "M-f")     'pygn-mode-next-move)
+;;           (define-key pygn-mode-map (kbd "M-b")     'pygn-mode-previous-move)
+;;           (define-key pygn-mode-map (kbd "C-h $")   'pygn-mode-describe-annotation-at-pos))
 
 ;; Customization
 
@@ -689,16 +692,13 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
     ;; mouse
     (define-key map [mouse-2] 'pygn-mode-mouse-display-variation-board)
 
-    ;; example keystrokes:
+    ;; example keystrokes which could be defined here
     ;;
     ;; (define-key map (kbd "C-c C-n") 'pygn-mode-next-game)
     ;; (define-key map (kbd "C-c C-p") 'pygn-mode-previous-game)
     ;; (define-key map (kbd "M-f")     'pygn-mode-next-move)
     ;; (define-key map (kbd "M-b")     'pygn-mode-previous-move)
     ;; (define-key map (kbd "C-h $")   'pygn-mode-describe-annotation-at-pos)
-    ;;
-    ;; and note that `down-list'/`backward-up-list' already works to
-    ;; enter/exit a parenthesized variation
     map)
   "Keymap for `pygn-mode'.")
 
