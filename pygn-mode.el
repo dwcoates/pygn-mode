@@ -289,6 +289,36 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   "pygn-mode face for rest-of-line comments within variations."
   :group 'pygn-faces)
 
+(defface pygn-mode-recursive-variation-move-face
+  '((t (:foreground "Gray50")))
+  "pygn-mode face for recursive variation moves."
+  :group 'pygn-faces)
+
+(defface pygn-mode-recursive-variation-move-number-face
+  '((t (:foreground "Gray50")))
+  "pygn-mode face for recursive variation move numbers."
+  :group 'pygn-faces)
+
+(defface pygn-mode-recursive-variation-delimiter-face
+  '((t (:foreground "Gray50")))
+  "pygn-mode face for recursive variation delimiters."
+  :group 'pygn-faces)
+
+(defface pygn-mode-recursive-variation-annotation-face
+  '((t (:inherit font-lock-comment-face)))
+  "pygn-mode face for annotation symbols within recursive variations."
+  :group 'pygn-faces)
+
+(defface pygn-mode-recursive-variation-inline-comment-face
+  '((t (:inherit font-lock-comment-face)))
+  "pygn-mode face for inline comments within recursive variations."
+  :group 'pygn-faces)
+
+(defface pygn-mode-recursive-variation-rest-of-line-comment-face
+  '((t (:inherit font-lock-comment-face)))
+  "pygn-mode face for rest-of-line comments within recursive variations."
+  :group 'pygn-faces)
+
 (defface pygn-mode-result-face
   '((t (:inherit font-lock-builtin-face)))
   "pygn-mode face for result codes."
@@ -1399,10 +1429,20 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
    (tagpair tagpair_value_delimiter: (double_quote) @tagpair-value)
    (tagpair_value_contents) @tagpair-value
 
+   (recursive_variation (variation_delimiter_open) @recursive-variation-delimiter)
+   (recursive_variation (variation_delimiter_close) @recursive-variation-delimiter)
+   (recursive_variation (variation_movetext variation_move_number: (move_number) @recursive-variation-move-number))
+   (recursive_variation (variation_movetext variation_san_move: (san_move) @recursive-variation-move))
+   ;; todo lan_move is not yet supported within recursive variations in the grammar
+   (recursive_variation (variation_movetext variation_annotation: (annotation) @recursive-variation-annotation))
+   (recursive_variation (variation_movetext variation_comment: (inline_comment) @recursive-variation-inline-comment))
+   (recursive_variation (variation_movetext variation_comment: (rest_of_line_comment) @recursive-variation-rest-of-line-comment))
+
    (variation_delimiter_open) @variation-delimiter
    (variation_delimiter_close) @variation-delimiter
    (variation_movetext variation_move_number: (move_number) @variation-move-number)
    (variation_movetext variation_san_move: (san_move) @variation-move)
+   ;; todo lan_move is not yet supported within variations in the grammar
    (variation_movetext variation_annotation: (annotation) @variation-annotation)
    (variation_movetext variation_comment: (inline_comment) @variation-inline-comment)
    (variation_movetext variation_comment: (rest_of_line_comment) @variation-rest-of-line-comment)
