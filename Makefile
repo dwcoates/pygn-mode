@@ -19,6 +19,7 @@ TESTS=
 
 cask-install :
 	@$(CASK) install
+	@$(CASK) update
 
 build :
 	$(EMACS) $(EMACS_BATCH) --eval             \
