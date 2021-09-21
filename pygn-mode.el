@@ -1464,6 +1464,7 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
 
    (movetext (move_number) @move-number)
    (movetext (san_move) @move)
+   (movetext (lan_move) @move)
 
    (annotation) @annotation
 
