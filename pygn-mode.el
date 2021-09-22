@@ -56,8 +56,6 @@
 
 ;;     pygn-mode-go-searchmoves which defaults to searching move under point
 
-;;     Flash current move on selection
-
 ;; IDEA
 
 ;;     UCI moves to pgn: UCI position command arguments to pgn and/or graphical display
@@ -207,6 +205,11 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   "Buffer name for server stderr output, nil to redirect stderr to null device."
   :group 'pygn
   :type 'string)
+
+(defcustom pygn-mode-flash-moves-on-motion nil
+  "Flash the destination move when arriving via a motion command."
+  :group 'pygn
+  :type 'boolean)
 
 ;;;###autoload
 (defgroup pygn-faces nil
@@ -725,6 +728,20 @@ without adding extra characters at beginning-of-line."
           (comment-end "")
           (comment-style 'plain))
       (comment-region-default beg end arg))))
+
+(defun pygn-mode--maybe-flash-move-at-point nil
+  "Flash the move at point, given the right conditions.
+
+ * the point must be on a move
+ * the `nav-flash' library must be installed
+ * the option `pygn-mode-flash-moves-on-motion' must be set"
+
+  (when (and pygn-mode-flash-moves-on-motion
+             (fboundp 'nav-flash-show))
+    (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
+      (nav-flash-show
+       (pygn-mode--true-node-first-position move-node)
+       (pygn-mode--true-node-after-position move-node)))))
 
 (defun pygn-mode--get-or-create-board-buffer ()
   "Get or create the `pygn-mode' board buffer."
@@ -1646,7 +1663,8 @@ With numeric prefix ARG, advance ARG moves forward."
                (if node
                    (goto-char (pygn-mode--true-node-first-position node))
                  (forward-char 1)))))
-          (skip-syntax-forward "-"))))))
+          (skip-syntax-forward "-")))
+      (pygn-mode--maybe-flash-move-at-point))))
 
 ;; when tree-sitter-node-at-pos is used instead of pygn-mode--true-containing-node
 ;; here, that is intentional, for two related reasons: tree-sitter-node-at-pos
@@ -1712,7 +1730,8 @@ With numeric prefix ARG, move ARG moves backward."
                      (goto-char (pygn-mode--true-node-first-position node))
                    (forward-char -1)))))
             (skip-syntax-backward "w")
-            (skip-syntax-forward "-")))))))
+            (skip-syntax-forward "-")))
+        (pygn-mode--maybe-flash-move-at-point)))))
 
 (defun pygn-mode-select-game (pos)
   "Select current game in a multi-game PGN buffer.
