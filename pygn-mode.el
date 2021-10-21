@@ -556,6 +556,14 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
     names)
   "Names and descriptions of annotations recognized by `pygn-mode'.")
 
+(defvar pygn-mode--annotation-completions nil
+  "A like of annotation completions for use in `ivy-completing-read'.")
+
+(maphash (lambda (k v)
+           (push (concat k " " v)
+                 pygn-mode--annotation-completions))
+         pygn-mode-annotation-names)
+
 ;;; Syntax table
 
 (defvar pygn-mode-syntax-table
@@ -660,13 +668,19 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
       '(menu-item "Next Game" pygn-mode-next-game
                   :help "Navigate to the next game"))
     (define-key map [menu-bar PyGN sep] menu-bar-separator)
+    (define-key map [menu-bar PyGN pygn-mode-ivy-insert-annotation]
+      '(menu-item "Insert annotation" pygn-mode-ivy-insert-annotation
+                  :enable (and (featurep 'ivy)
+                               (pygn-mode--true-containing-node 'movetext))
+                  :help "Insert an annotation glyph interactively"))
+    (define-key map [menu-bar PyGN sep-2] menu-bar-separator)
     (define-key map [menu-bar PyGN pygn-mode-previous-move]
       '(menu-item "Previous Move" pygn-mode-previous-move
                   :help "Navigate to the previous move"))
     (define-key map [menu-bar PyGN pygn-mode-next-move]
       '(menu-item "Next Move" pygn-mode-next-move
                   :help "Navigate to the next move"))
-    (define-key map [menu-bar PyGN sep-2] menu-bar-separator)
+    (define-key map [menu-bar PyGN sep-3] menu-bar-separator)
     (define-key map [menu-bar PyGN pygn-mode-engine-go-time]
       '(menu-item "Go Time at Point" pygn-mode-engine-go-time
                   :enable (featurep 'uci-mode)
@@ -2100,6 +2114,18 @@ Games without FEN tagpairs are not represented in the search."
     (when (and choice (not (zerop (length choice))))
       (goto-char (cdr (assoc choice read-collection)))
       (pygn-mode-focus-game-at-point))))
+
+;; todo refuse to insert into non-whitespace, and/or scan forward
+;; todo pad around the glyph with whitespace, but only if needed
+(defun pygn-mode-ivy-insert-annotation ()
+  "Insert an annotation interactively via `ivy-completing-read'."
+  (interactive)
+  (unless (pygn-mode--true-containing-node 'movetext)
+    (error "Point is not within movetext"))
+  (let* ((choice (ivy-completing-read "Insert annotation: " pygn-mode--annotation-completions))
+         (space-pos (string-match-p " " choice))
+         (glyph (substring choice 0 space-pos)))
+    (insert glyph)))
 
 (provide 'pygn-mode)
 
