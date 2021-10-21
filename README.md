@@ -109,6 +109,10 @@ of each game starting with an `[Event "?"]` tagpair.
  * `pygn-mode-describe-annotation-at-pos` — echo description of annotation symbol, optionally copying to clipboard
  * `pygn-mode-ivy-insert-annotation` — insert an annotation interactively
 
+### Game Commands
+
+ * `pygn-mode-insert-game` — insert a new, empty game
+
 ### Board Commands
 
  * `pygn-mode-display-board-at-pos` — display board image in another buffer (format automatic)

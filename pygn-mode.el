@@ -671,6 +671,9 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
                   :enable (and (featurep 'ivy)
                                (pygn-mode--true-containing-node 'movetext))
                   :help "Insert an annotation glyph interactively"))
+    (define-key map [menu-bar PyGN pygn-mode-insert-game]
+      '(menu-item "Insert Game" pygn-mode-insert-game
+                  :help "Insert a new game"))
     (define-key map [menu-bar PyGN sep-2] menu-bar-separator)
     (define-key map [menu-bar PyGN pygn-mode-previous-move]
       '(menu-item "Previous Move" pygn-mode-previous-move
@@ -722,6 +725,14 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   "Keymap for `pygn-mode'.")
 
 ;;; Utility functions
+
+(defun pygn-mode--plist-keys (plist)
+  "Return a list of keys in property-list PLIST."
+  (let ((keys-l nil))
+    (while plist
+      (push (pop plist) keys-l)
+      (pop plist))
+    (nreverse keys-l)))
 
 (defun pygn-mode-comment-region-contextually (beg end &optional arg)
   "Wrap `comment-region-default' to remove `comment-continue' characters.
@@ -2213,6 +2224,50 @@ Games without FEN tagpairs are not represented in the search."
          (space-pos (string-match-p " " choice))
          (glyph (substring choice 0 space-pos)))
     (insert glyph)))
+
+;; todo: accept two universal prefix arg to also prompt for FEN and set SetUp
+;; todo: set defaults and/or completions for tagpair values from the previous game
+;;       or other games in the file
+(defun pygn-mode-insert-game (&optional arg)
+  "Insert a new, empty game.
+
+With universal prefix ARG, prompt for minimal header tagpair values."
+  (interactive "P")
+  (when-let ((game-node (pygn-mode--true-containing-node 'game)))
+    (goto-char (pygn-mode--true-node-after-position game-node)))
+  (let ((tagpairs `(:Event "?"
+                    :Site "?"
+                    :Date ,(format-time-string "%Y.%m.%d")
+                    :Round "?"
+                    :White "?"
+                    :Black "?"
+                    :Result "*"))
+        (first-move-num 1)
+        (first-input-pos nil))
+    (when (and arg (listp arg))
+      (dolist (key (pygn-mode--plist-keys tagpairs))
+        (plist-put tagpairs key (completing-read
+                                 (concat (substring (symbol-name key) 1) ": ")
+                                 nil nil nil (plist-get tagpairs key)))))
+    (insert "\n\n")
+    (delete-blank-lines)
+    (unless (= (point) (point-min))
+      (insert "\n"))
+    (insert (format "[Event \"%s\"]\n[Site \"%s\"]\n[Date \"%s\"]\n[Round \"%s\"]\n[White \"%s\"]\n[Black \"%s\"]\n[Result \"%s\"]"
+                    (plist-get tagpairs :Event)
+                    (plist-get tagpairs :Site)
+                    (plist-get tagpairs :Date)
+                    (plist-get tagpairs :Round)
+                    (plist-get tagpairs :White)
+                    (plist-get tagpairs :Black)
+                    (plist-get tagpairs :Result)))
+    (insert "\n\n")
+    (insert (format "%s. " first-move-num))
+    (setq first-input-pos (point))
+    (insert (format "\n%s" (plist-get tagpairs :Result)))
+    (insert "\n\n")
+    (delete-blank-lines)
+    (goto-char first-input-pos)))
 
 (provide 'pygn-mode)
 
