@@ -19,7 +19,7 @@
 ### version
 ###
 
-__version__ = '0.6.1'
+__version__ = '0.6.2'
 
 ###
 ### imports
@@ -65,6 +65,7 @@ def pgn_to_board_callback(_game,board,last_move,last_fen,args):
                               lastmove=last_move,
                               size=args.pixels[0],
                               flipped=args.flipped)
+        svg = re.sub(r'\r?\n', r' ', svg)
         return f':board-svg {svg}'
     elif args.board_format[0] == 'text':
         text = board.unicode(borders=True)

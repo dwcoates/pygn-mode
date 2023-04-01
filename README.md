@@ -160,7 +160,7 @@ emacs-chess
 ## License
 
 * pygn-mode: [BSD 2-Clause](LICENSE)
-* bundled [chess](https://pypi.org/project/chess/) library: [GPL-3+](lib/python/site-packages/chess.egg-info/LICENSE.txt)
+* bundled [chess](https://pypi.org/project/chess/) library: [GPL-3+](lib/python/site-packages/chess-1.9.4.dist-info/LICENSE.txt)
 
 ## Compatibility and Requirements
 
@@ -170,7 +170,7 @@ GNU Emacs 26.1+, compiled with dynamic module support
 
 Python 3.7+
 
-Needed for board images and FENs: [chess](https://pypi.org/project/chess/) (bundled version 1.6.1)
+Needed for board images and FENs: [chess](https://pypi.org/project/chess/) (bundled version 1.9.4)
 
 Needed for engine evaluations: [uci-mode](https://github.com/dwcoates/uci-mode)
 
