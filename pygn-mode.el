@@ -1109,6 +1109,20 @@ Also respect narrowing."
   (let ((first (pygn-mode--true-node-first-position node)))
     (max (point-min) (1- first))))
 
+(defun pygn-mode--true-child-at-or-before-pos (node pos)
+  "Return child of NODE at or preceding POS, adjusting whitespace.
+
+Return nil if there is no qualifying child node."
+  (when (>= pos (pygn-mode--true-node-first-position node))
+    (let* ((cursor (tsc-make-cursor node))
+	   (index (or (tsc-goto-first-child-for-position cursor pos)
+		      (1- (tsc-count-children node))))
+	   (child (and (>= index 0) (tsc-get-nth-child node index))))
+      (while (and child
+		  (< pos (pygn-mode--true-node-first-position child)))
+	(setq child (tsc-get-prev-sibling child)))
+      child)))
+
 (defun pygn-mode-inside-movetext-comment-p (&optional pos)
   "Whether POS is inside a PGN movetext comment.
 
@@ -1246,27 +1260,52 @@ POS defaults to the point."
                 (pygn-mode--true-containing-node
                  '(variation inline_comment rest_of_line_comment))))))
 
-(defun pygn-mode-pgn-at-pos (pos)
-  "Return a single-game PGN string inclusive of any move at POS.
+(defun pygn-mode-single-line-pgn-at-pos (pos with-ravs)
+  "Return a single-game PGN string for main line or variation.
 
-We crudely truncate when in the middle of a comment or variation,
-and depend on the Python chess library to clean up trailing
-garbage."
-  (save-excursion
-    (goto-char pos)
-    (when-let ((header-node (pygn-mode-inside-header-p)))
-      (unless (= pos (line-end-position))
-        (goto-char (line-beginning-position))
-        (when (<= (point)
-                  (pygn-mode--true-node-first-position header-node))
-          (forward-line 1))))
-    (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
-      (goto-char (pygn-mode--true-node-after-position move-node)))
-    ;; todo returning nil might not be the best behavior when pos trails a game
-    (when-let ((start-pos (pygn-mode-game-start-position)))
-      (buffer-substring-no-properties
-       start-pos
-       (point)))))
+Return a PGN containing moves for a single line up to and including POS.
+Return nil when POS is not inside a valid PGN game.
+
+When WITH-RAVS is nil, the PGN holds mainline moves up to POS.
+
+When WITH-RAVS is non-nil, the PGN moves follow any variation and
+subvariations that encompass POS."
+  (let ((node (or (and (not with-ravs)
+		       (pygn-mode--true-containing-node '(movetext) pos))
+		  (pygn-mode--true-containing-node :named pos))))
+    (when (not (tsc-node-eq node (tree-sitter-node-at-pos :named pos)))
+      (setq node (pygn-mode--true-child-at-or-before-pos node pos)))
+    (while
+	(cl-case (tsc-node-type node)
+	  ((series_of_games game movetext variation_movetext)
+	   (setq node (pygn-mode--true-child-at-or-before-pos node pos)))
+	  ((result_code variation_delimiter_close)
+	   (setq node (tsc-get-prev-sibling node)))))
+
+    (let (text-list replace-move can-number)
+      (cl-flet ((node-text () (string-trim (tsc-node-text node))))
+	(while node
+	  (cl-case (tsc-node-type node)
+	    ((header) (push (concat (node-text) "\n\n") text-list))
+	    ((variation_delimiter_open) (setq replace-move t))
+	    ((san_move lan_move)
+	     (if replace-move (setq replace-move nil)
+	       ;; else
+	       (if (string-suffix-p "..." (car text-list))
+		   (setcar text-list (concat (node-text) " "))
+		 (push (concat (node-text) " ") text-list))
+	       (setq can-number t)))
+	    ((move_number)
+	     (when can-number
+	       (push (node-text) text-list)
+	       (setq can-number nil))))
+	  (setq node (or (tsc-get-prev-sibling node) (tsc-get-parent node)))))
+      
+      (and text-list (concat (string-join text-list) "*\n")))))
+
+(defun pygn-mode-pgn-at-pos (pos)
+  "Return a single-game PGN string inclusive of any move at POS."
+  (pygn-mode-single-line-pgn-at-pos pos nil))
 
 (defun pygn-mode--pgn-at-pos-or-stub (pos)
   "Return a single-game PGN string inclusive of any move at POS.
@@ -1276,38 +1315,11 @@ when POS is not inside a game."
   (or (pygn-mode-pgn-at-pos pos)
       "[Event \"?\"]\n\n*\n"))
 
-;; TODO this code assumes that a variation begins with the next move,
-;; which is not always the case.  Detect when the variation leads with
-;; the current move, and include the played move in delete-region.
 (defun pygn-mode-pgn-at-pos-as-if-variation (pos)
   "Return a single-game PGN string as if a variation had been played.
 
 Inclusive of any move at POS."
-  (if-let ((variation-node (pygn-mode-inside-variation-p pos)))
-      (progn
-        (when-let ((move-node (pygn-mode--true-containing-node '(san_move lan_move))))
-          (goto-char (pygn-mode--true-node-after-position move-node)))
-        (let* ((start-pos (pygn-mode-game-start-position))
-               (paren-pos nil)
-               (paren-offsets '())
-               (pgn (buffer-substring-no-properties
-                     (pygn-mode-game-start-position)
-                     (point))))
-          (while variation-node
-            (setq paren-pos (pygn-mode--true-node-first-position variation-node))
-            (push (- paren-pos start-pos) paren-offsets)
-            (goto-char (1- paren-pos))
-            (setq variation-node (pygn-mode-inside-variation-p)))
-          (with-temp-buffer
-            ;; this temp buffer does not need to be in pygn-mode
-            (insert (replace-regexp-in-string "[ )]*\\'" "" pgn))
-            (dolist (po (reverse paren-offsets))
-              (delete-region (1+ po) (+ 2 po)))
-            (buffer-substring-no-properties
-             (point-min)
-             (point-max)))))
-      ;; else pos not in variation
-      (pygn-mode-pgn-at-pos pos)))
+  (pygn-mode-single-line-pgn-at-pos pos t))
 
 (defun pygn-mode-pgn-to-fen (pgn)
   "Return the FEN corresponding to the position after PGN."
@@ -2001,7 +2013,7 @@ The board display respects variations."
   (let ((pgn (pygn-mode-pgn-at-pos-as-if-variation (point))))
     ;; todo it might be a better design if a temp buffer wasn't needed here
     (with-temp-buffer
-      (insert pgn)
+      (when pgn (insert pgn))
       ;; todo re-running the mode seems wasteful
       (pygn-mode)
       (pygn-mode-display-board-at-pos (point)))))
@@ -2014,7 +2026,7 @@ When called non-interactively, display the board corresponding to POS."
   (let ((pgn (pygn-mode-pgn-at-pos-as-if-variation pos)))
     ;; todo it might be a better design if a temp buffer wasn't needed here
     (with-temp-buffer
-      (insert pgn)
+      (when pgn (insert pgn))
       ;; todo invoking the mode seems like it would be slow, compared to using
       ;; the parse we already have
       (pygn-mode)
