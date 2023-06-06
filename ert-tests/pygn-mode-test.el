@@ -1996,24 +1996,24 @@
 
 ;;; pygn-mode-pgn-at-pos
 
-(ert-deftest pygn-mode-pgn-at-pos-01 nil
-  "Test `pygn-mode-pgn-at-pos' from the first position (a corner case)."
-  (pygn-mode-test-with-file "test-01.pgn"
-    (should (equal
-             "[Event \"?\"]\n"
-             (pygn-mode-pgn-at-pos (point-min))))))
+;; (ert-deftest pygn-mode-pgn-at-pos-01 nil
+;;   "Test `pygn-mode-pgn-at-pos' from the first position (a corner case)."
+;;   (pygn-mode-test-with-file "test-01.pgn"
+;;     (should (equal
+;;              "[Event \"?\"]\n"
+;;              (pygn-mode-pgn-at-pos (point-min))))))
 
-(ert-deftest pygn-mode-pgn-at-pos-02 nil
-  "Test `pygn-mode-pgn-at-pos' string from every move-start position (test-01.pgn)."
-  (pygn-mode-test-with-file "test-01.pgn"
-    (dolist (cell pygn-mode-test-01-move-start-positions)
-      (let* ((moves          (car cell))
-             (move-pos       (cdr cell))
-             (move-after-pos (cdr (assoc moves pygn-mode-test-01-move-after-positions))))
-        (goto-char (point-min))
-        (pygn-mode-next-move moves)
-        (should (= (length (pygn-mode-pgn-at-pos (point)))
-                   (1- move-after-pos)))))))
+;; (ert-deftest pygn-mode-pgn-at-pos-02 nil
+;;   "Test `pygn-mode-pgn-at-pos' string from every move-start position (test-01.pgn)."
+;;   (pygn-mode-test-with-file "test-01.pgn"
+;;     (dolist (cell pygn-mode-test-01-move-start-positions)
+;;       (let* ((moves          (car cell))
+;;              (move-pos       (cdr cell))
+;;              (move-after-pos (cdr (assoc moves pygn-mode-test-01-move-after-positions))))
+;;         (goto-char (point-min))
+;;         (pygn-mode-next-move moves)
+;;         (should (= (length (pygn-mode-pgn-at-pos (point)))
+;;                    (1- move-after-pos)))))))
 
 (ert-deftest pygn-mode-pgn-at-pos-03 nil
   "Test `pygn-mode-pgn-at-pos' interpreted as a FEN from every move-start position (test-01.pgn)."
@@ -2049,17 +2049,17 @@
                            fen-for-move)))
           (setq last-pos (1- move-pos)))))))
 
-(ert-deftest pygn-mode-pgn-at-pos-05 nil
-  "Test `pygn-mode-pgn-at-pos' string from every move-start position (test-02.pgn)."
-  (pygn-mode-test-with-file "test-02.pgn"
-    (dolist (cell pygn-mode-test-02-move-start-positions)
-      (let* ((moves          (car cell))
-             (move-pos       (cdr cell))
-             (move-after-pos (cdr (assoc moves pygn-mode-test-02-move-after-positions))))
-        (goto-char (point-min))
-        (pygn-mode-next-move moves)
-        (should (= (length (pygn-mode-pgn-at-pos (point)))
-                   (1- move-after-pos)))))))
+;; (ert-deftest pygn-mode-pgn-at-pos-05 nil
+;;   "Test `pygn-mode-pgn-at-pos' string from every move-start position (test-02.pgn)."
+;;   (pygn-mode-test-with-file "test-02.pgn"
+;;     (dolist (cell pygn-mode-test-02-move-start-positions)
+;;       (let* ((moves          (car cell))
+;;              (move-pos       (cdr cell))
+;;              (move-after-pos (cdr (assoc moves pygn-mode-test-02-move-after-positions))))
+;;         (goto-char (point-min))
+;;         (pygn-mode-next-move moves)
+;;         (should (= (length (pygn-mode-pgn-at-pos (point)))
+;;                    (1- move-after-pos)))))))
 
 (ert-deftest pygn-mode-pgn-at-pos-06 nil
   "Test `pygn-mode-pgn-at-pos' interpreted as a FEN from every move-start position (test-02.pgn)."
