@@ -2003,6 +2003,8 @@
 ;;              "[Event \"?\"]\n"
 ;;              (pygn-mode-pgn-at-pos (point-min))))))
 
+;; TODO temporarily disabled
+;;
 ;; (ert-deftest pygn-mode-pgn-at-pos-02 nil
 ;;   "Test `pygn-mode-pgn-at-pos' string from every move-start position (test-01.pgn)."
 ;;   (pygn-mode-test-with-file "test-01.pgn"
@@ -2049,6 +2051,8 @@
                            fen-for-move)))
           (setq last-pos (1- move-pos)))))))
 
+;; TODO temporarily disabled
+;;
 ;; (ert-deftest pygn-mode-pgn-at-pos-05 nil
 ;;   "Test `pygn-mode-pgn-at-pos' string from every move-start position (test-02.pgn)."
 ;;   (pygn-mode-test-with-file "test-02.pgn"
