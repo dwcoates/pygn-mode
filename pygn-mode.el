@@ -371,10 +371,10 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   "Buffer to which the `pygn-mode' server process is associated.")
 
 (defvar pygn-mode--server-receive-every-seconds 0.01
-  "How often `pygn-mode--server-receive' should check the server for output when polling.")
+  "How often `pygn-mode--server-receive' should check for output when polling.")
 
 (defvar pygn-mode--server-receive-max-seconds 0.5
-  "The maximum amount of time `pygn-mode--server-receive' should check the server for output when polling.")
+  "Max time `pygn-mode--server-receive' should check for output when polling.")
 
 (defvar pygn-mode-annotation-names
   (let ((names (make-hash-table :test 'equal)))
