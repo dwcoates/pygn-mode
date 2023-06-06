@@ -1996,12 +1996,12 @@
 
 ;;; pygn-mode-pgn-at-pos
 
-;; (ert-deftest pygn-mode-pgn-at-pos-01 nil
-;;   "Test `pygn-mode-pgn-at-pos' from the first position (a corner case)."
-;;   (pygn-mode-test-with-file "test-01.pgn"
-;;     (should (equal
-;;              "[Event \"?\"]\n"
-;;              (pygn-mode-pgn-at-pos (point-min))))))
+(ert-deftest pygn-mode-pgn-at-pos-01 nil
+  "Test `pygn-mode-pgn-at-pos' from the first position (a corner case)."
+  (pygn-mode-test-with-file "test-01.pgn"
+    (should (equal
+             "[Event \"?\"]\n[Site \"?\"]\n[Date \"????.??.??\"]\n[Round \"?\"]\n[White \"?\"]\n[Black \"?\"]\n[Result \"*\"]\n[SetUp \"1\"]\n[FEN \"r1bR2Q1/ppp3pp/4p1k1/2b1P1n1/1np1q3/5N2/PPP3PP/5R1K w - - 2 18\"]\n\n*\n"
+             (pygn-mode-pgn-at-pos (point-min))))))
 
 ;; TODO temporarily disabled
 ;;
