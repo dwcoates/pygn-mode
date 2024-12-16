@@ -1,19 +1,3 @@
-# This file is part of the python-chess library.
-# Copyright (C) 2012-2021 Niklas Fiekas <niklas.fiekas@backscattering.de>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 from __future__ import annotations
 
 import chess
@@ -27,7 +11,7 @@ from types import TracebackType
 from typing import Callable, Container, Iterator, List, NamedTuple, Optional, Type, Union
 
 
-PathLike = Union[str, bytes, os.PathLike]
+StrOrBytesPath = Union[str, bytes, "os.PathLike[str]", "os.PathLike[bytes]"]
 
 
 ENTRY_STRUCT = struct.Struct(">QHHI")
@@ -328,6 +312,9 @@ class _EmptyMmap(bytearray):
     def close(self) -> None:
         pass
 
+    def madvise(self, option: int) -> None:
+        pass
+
 
 def _randint(rng: Optional[random.Random], a: int, b: int) -> int:
     return random.randint(a, b) if rng is None else rng.randint(a, b)
@@ -336,20 +323,21 @@ def _randint(rng: Optional[random.Random], a: int, b: int) -> int:
 class MemoryMappedReader:
     """Maps a Polyglot opening book to memory."""
 
-    def __init__(self, filename: PathLike) -> None:
-        self.fd = os.open(filename, os.O_RDONLY | os.O_BINARY if hasattr(os, "O_BINARY") else os.O_RDONLY)
-
+    def __init__(self, filename: StrOrBytesPath) -> None:
+        fd = os.open(filename, os.O_RDONLY | os.O_BINARY if hasattr(os, "O_BINARY") else os.O_RDONLY)
         try:
-            self.mmap: Union[mmap.mmap, _EmptyMmap] = mmap.mmap(self.fd, 0, access=mmap.ACCESS_READ)
+            self.mmap: Union[mmap.mmap, _EmptyMmap] = mmap.mmap(fd, 0, access=mmap.ACCESS_READ)
         except (ValueError, OSError):
             self.mmap = _EmptyMmap()  # Workaround for empty opening books.
+        finally:
+            os.close(fd)
 
         if self.mmap.size() % ENTRY_STRUCT.size != 0:
             raise IOError(f"invalid file size: ensure {filename!r} is a valid polyglot opening book")
 
         try:
-            # Python 3.8
-            self.mmap.madvise(mmap.MADV_RANDOM)  # type: ignore
+            # Unix
+            self.mmap.madvise(mmap.MADV_RANDOM)
         except AttributeError:
             pass
 
@@ -390,11 +378,8 @@ class MemoryMappedReader:
         return Entry(key, raw_move, weight, learn, move)
 
     def __iter__(self) -> Iterator[Entry]:
-        i = 0
-        size = len(self)
-        while i < size:
+        for i in range(len(self)):
             yield self[i]
-            i += 1
 
     def bisect_key_left(self, key: int) -> int:
         lo = 0
@@ -514,13 +499,8 @@ class MemoryMappedReader:
         """Closes the reader."""
         self.mmap.close()
 
-        try:
-            os.close(self.fd)
-        except OSError:
-            pass
 
-
-def open_reader(path: PathLike) -> MemoryMappedReader:
+def open_reader(path: StrOrBytesPath) -> MemoryMappedReader:
     """
     Creates a reader for the file at the given path.
 
