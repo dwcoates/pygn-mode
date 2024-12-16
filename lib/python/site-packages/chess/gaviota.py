@@ -1,20 +1,3 @@
-# This file is part of the python-chess library.
-# Copyright (C) 2015 Jean-Noël Avila <jn.avila@free.fr>
-# Copyright (C) 2015-2021 Niklas Fiekas <niklas.fiekas@backscattering.de>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 from __future__ import annotations
 
 import ctypes
@@ -161,10 +144,9 @@ FLIPT = init_flipt()
 
 
 def init_pp48_idx() -> Tuple[List[List[int]], List[int], List[int]]:
-    MAX_I = 48
-    MAX_J = 48
+    MAX_I = MAX_J = 48
     idx = 0
-    pp48_idx = [[-1] * MAX_J for i in range(MAX_I)]
+    pp48_idx = [[-1] * MAX_J for _ in range(MAX_I)]
     pp48_sq_x = [NOSQUARE] * MAX_PP48_INDEX
     pp48_sq_y = [NOSQUARE] * MAX_PP48_INDEX
 
@@ -187,10 +169,8 @@ PP48_IDX, PP48_SQ_X, PP48_SQ_Y = init_pp48_idx()
 
 
 def init_ppp48_idx() -> Tuple[List[List[List[int]]], List[int], List[int], List[int]]:
-    MAX_I = 48
-    MAX_J = 48
-    MAX_K = 48
-    ppp48_idx = [[[-1] * MAX_I for j in range(MAX_J)] for k in range(MAX_K)]
+    MAX_I = MAX_J = MAX_K = 48
+    ppp48_idx = [[[-1] * MAX_I for _ in range(MAX_J)] for _ in range(MAX_K)]
     ppp48_sq_x = [NOSQUARE] * MAX_PPP48_INDEX
     ppp48_sq_y = [NOSQUARE] * MAX_PPP48_INDEX
     ppp48_sq_z = [NOSQUARE] * MAX_PPP48_INDEX
@@ -227,7 +207,7 @@ PPP48_IDX, PPP48_SQ_X, PPP48_SQ_Y, PPP48_SQ_Z = init_ppp48_idx()
 
 
 def init_aaidx() -> Tuple[List[int], List[List[int]]]:
-    aaidx = [[-1] * 64 for y in range(64)]
+    aaidx = [[-1] * 64 for _ in range(64)]
     aabase = [0] * MAX_AAINDEX
 
     idx = 0
@@ -257,7 +237,7 @@ def init_aaa() -> Tuple[List[int], List[List[int]]]:
         aaa_base[a + 1] = accum
 
     # Get aaa_xyz.
-    aaa_xyz = [[-1] * 3 for idx in range(MAX_AAAINDEX)]
+    aaa_xyz = [[-1] * 3 for _ in range(MAX_AAAINDEX)]
 
     idx = 0
     for z in range(64):
@@ -336,7 +316,7 @@ def wsq_to_pidx48(pawn: int) -> int:
     return idx48
 
 def init_ppidx() -> Tuple[List[List[int]], List[int], List[int]]:
-    ppidx = [[-1] * 48 for i in range(24)]
+    ppidx = [[-1] * 48 for _ in range(24)]
     pp_hi24 = [-1] * MAX_PPINDEX
     pp_lo48 = [-1] * MAX_PPINDEX
 
@@ -396,7 +376,7 @@ def norm_kkindex(x: chess.Square, y: chess.Square) -> Tuple[int, int]:
     return x, y
 
 def init_kkidx() -> Tuple[List[List[int]], List[int], List[int]]:
-    kkidx = [[-1] * 64 for x in range(64)]
+    kkidx = [[-1] * 64 for _ in range(64)]
     bksq = [-1] * MAX_KKINDEX
     wksq = [-1] * MAX_KKINDEX
     idx = 0
