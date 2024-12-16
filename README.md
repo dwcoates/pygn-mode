@@ -168,9 +168,9 @@ GNU Emacs 26.1+, compiled with dynamic module support
 
 [tree-sitter.el](https://github.com/emacs-tree-sitter/elisp-tree-sitter) and [tree-sitter-langs.el](https://github.com/emacs-tree-sitter/tree-sitter-langs)
 
-Python 3.7+
+Python 3.8+
 
-Needed for board images and FENs: [chess](https://pypi.org/project/chess/) (bundled version 1.9.4)
+Needed for board images and FENs: [chess](https://pypi.org/project/chess/) (bundled version 1.11.1)
 
 Needed for engine evaluations: [uci-mode](https://github.com/dwcoates/uci-mode)
 

@@ -1,13 +1,13 @@
 ;;; pygn-mode.el --- Major-mode for chess PGN files, powered by Python -*- lexical-binding: t -*-
 
-;; Copyright (c) 2019-2023 Dodge Coates and Roland Walker
+;; Copyright (c) 2019-2024 Dodge Coates and Roland Walker
 
 ;; Author: Dodge Coates and Roland Walker
 ;; Homepage: https://github.com/dwcoates/pygn-mode
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
-;; Version: 0.6.2
-;; Last-Updated: 01 Apr 2023
-;; Package-Requires: ((emacs "26.1") (tree-sitter "0.15.2") (tree-sitter-langs "0.10.7") (uci-mode "0.5.4") (nav-flash "1.0.0") (ivy "0.10.0"))
+;; Version: 0.6.3
+;; Last-Updated: 16 Dec 2024
+;; Package-Requires: ((emacs "26.1") (tree-sitter "0.15.2") (tree-sitter-langs "0.12.242") (uci-mode "0.5.4") (nav-flash "1.0.0") (ivy "0.10.0"))
 ;; Keywords: data, games, chess
 
 ;;; License
@@ -120,7 +120,7 @@
 
 ;;; Code:
 
-(defconst pygn-mode-version "0.6.2")
+(defconst pygn-mode-version "0.6.3")
 
 ;;; Imports
 
@@ -1596,12 +1596,12 @@ Intended for use in `post-command-hook'."
           "[ ] Bad. The executable '%s' is not a Python 3 interpreter.  Try installing Python 3.7+ and/or customizing the value of pygn-mode-python-executable.\n\n"
           pygn-mode-python-executable))
         (cl-return-from pygn-mode--run-diagnostic nil))
-      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3070000 else 1)"))
-          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is better than or equal to Python version 3.7.\n\n" pygn-mode-python-executable))
+      (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import sys; exit(0 if sys.hexversion >= 0x3080000 else 1)"))
+          (insert (format "[x] Good. The pygn-mode-python-executable at '%s' is better than or equal to Python version 3.8.\n\n" pygn-mode-python-executable))
         ;; else
         (insert
          (format
-          "[ ] Bad. The executable '%s' is not at least Python version 3.7.  Try installing Python 3.7+ and/or customizing the value of pygn-mode-python-executable.\n\n"
+          "[ ] Bad. The executable '%s' is not at least Python version 3.8.  Try installing Python 3.8+ and/or customizing the value of pygn-mode-python-executable.\n\n"
           pygn-mode-python-executable))
         (cl-return-from pygn-mode--run-diagnostic nil))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
