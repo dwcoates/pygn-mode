@@ -7,7 +7,7 @@
 ;; URL: https://raw.githubusercontent.com/dwcoates/pygn-mode/master/pygn-mode.el
 ;; Version: 0.6.3
 ;; Last-Updated: 16 Dec 2024
-;; Package-Requires: ((emacs "26.1") (tree-sitter "0.15.2") (tree-sitter-langs "0.12.242") (uci-mode "0.5.4") (nav-flash "1.0.0") (ivy "0.10.0"))
+;; Package-Requires: ((emacs "27.1") (tree-sitter "0.18.0") (tree-sitter-langs "0.12.242") (uci-mode "0.5.4") (nav-flash "1.0.0") (ivy "0.10.0"))
 ;; Keywords: data, games, chess
 
 ;;; License
