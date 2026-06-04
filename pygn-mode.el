@@ -258,7 +258,7 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   :group 'pygn-faces)
 
 (defface pygn-mode-move-number-face
-  '((t (:inherit default)))
+  '((t (:inherit shadow)))
   "pygn-mode face for move numbers."
   :group 'pygn-faces)
 
