@@ -5,6 +5,11 @@
 (eval-when-compile
   (require 'subr-x))
 
+;; Use python3 when python is not available (python3 is the common name on macOS)
+(when (and (not (executable-find pygn-mode-python-executable))
+           (executable-find "python3"))
+  (setq pygn-mode-python-executable "python3"))
+
 (setq pygn-mode-test-containing-directory
       (file-name-directory
        (or load-file-name
@@ -1954,17 +1959,17 @@
                                                            (191 . move_number)
                                                            (192 . move_number)
                                                            (193 . movetext)
-                                                           (194 . lan_move)
-                                                           (195 . lan_move)
-                                                           (196 . lan_move)
-                                                           (197 . lan_move)
-                                                           (198 . lan_move)
+                                                           (194 . san_move)
+                                                           (195 . san_move)
+                                                           (196 . san_move)
+                                                           (197 . san_move)
+                                                           (198 . san_move)
                                                            (199 . movetext)
-                                                           (200 . lan_move)
-                                                           (201 . lan_move)
-                                                           (202 . lan_move)
-                                                           (203 . lan_move)
-                                                           (204 . lan_move)
+                                                           (200 . san_move)
+                                                           (201 . san_move)
+                                                           (202 . san_move)
+                                                           (203 . san_move)
+                                                           (204 . san_move)
                                                            (205 . movetext)
                                                            (206 . move_number)
                                                            (207 . move_number)
@@ -1990,6 +1995,15 @@
      (let ((coding-system-for-read 'utf-8))
        (insert-file-contents
         (expand-file-name ,filename pygn-mode-test-input-directory)))
+     (goto-char (point-min))
+     (pygn-mode)
+     ,@body))
+
+(defmacro pygn-mode-test-with-string (str &rest body)
+  "Evaluate BODY in a `pygn-mode' temp buffer containing STR."
+  (declare (indent 1))
+  `(with-temp-buffer
+     (insert ,str)
      (goto-char (point-min))
      (pygn-mode)
      ,@body))
@@ -2500,6 +2514,339 @@
             (node-type  (cdr cell)))
         (should (eq (tsc-node-type (pygn-mode--true-containing-node nil pos))
                     node-type))))))
+
+;;; pygn-mode--plist-keys
+
+(ert-deftest pygn-mode--plist-keys-01 nil
+  "Test `pygn-mode--plist-keys' returns the keys of a property list."
+  (should (equal '(:a :b :c)
+                 (pygn-mode--plist-keys '(:a 1 :b 2 :c 3)))))
+
+(ert-deftest pygn-mode--plist-keys-02 nil
+  "Test `pygn-mode--plist-keys' returns nil for an empty plist."
+  (should (equal nil
+                 (pygn-mode--plist-keys nil))))
+
+;;; pygn-mode--opts-to-argparse
+
+(ert-deftest pygn-mode--opts-to-argparse-01 nil
+  "Test `pygn-mode--opts-to-argparse' with a key-value pair."
+  (let ((result (pygn-mode--opts-to-argparse '(:format "text"))))
+    (should (string-match-p "-format" result))
+    (should (string-match-p "text" result))))
+
+(ert-deftest pygn-mode--opts-to-argparse-02 nil
+  "Test `pygn-mode--opts-to-argparse' with a boolean flag produces flag-only entry."
+  (should (equal " -verbose"
+                 (pygn-mode--opts-to-argparse '(:verbose t)))))
+
+(ert-deftest pygn-mode--opts-to-argparse-03 nil
+  "Test `pygn-mode--opts-to-argparse' skips keys with nil values."
+  (should (equal ""
+                 (pygn-mode--opts-to-argparse '(:verbose nil)))))
+
+;;; pygn-mode--capture-face-mapper
+
+(ert-deftest pygn-mode--capture-face-mapper-01 nil
+  "Test `pygn-mode--capture-face-mapper' maps a capture name to its face symbol."
+  (should (eq 'pygn-mode-move-face
+              (pygn-mode--capture-face-mapper "move"))))
+
+;;; pygn-mode-inside-header-p
+
+(ert-deftest pygn-mode-inside-header-p-01 nil
+  "Test `pygn-mode-inside-header-p' returns non-nil inside a tagpair header."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "Event")
+    (should (pygn-mode-inside-header-p (point)))))
+
+(ert-deftest pygn-mode-inside-header-p-02 nil
+  "Test `pygn-mode-inside-header-p' returns nil inside movetext."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "e4")
+    (should-not (pygn-mode-inside-header-p (point)))))
+
+;;; pygn-mode-inside-inline-comment-p
+
+(ert-deftest pygn-mode-inside-inline-comment-p-01 nil
+  "Test `pygn-mode-inside-inline-comment-p' returns non-nil inside a curly-bracket comment."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 {comment} e5 *\n"
+    (search-forward "comment")
+    (should (pygn-mode-inside-inline-comment-p (point)))))
+
+(ert-deftest pygn-mode-inside-inline-comment-p-02 nil
+  "Test `pygn-mode-inside-inline-comment-p' returns nil outside a comment."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 {comment} e5 *\n"
+    (search-forward "e4")
+    (should-not (pygn-mode-inside-inline-comment-p (point)))))
+
+;;; pygn-mode-inside-rest-of-line-comment-p
+
+(ert-deftest pygn-mode-inside-rest-of-line-comment-p-01 nil
+  "Test `pygn-mode-inside-rest-of-line-comment-p' returns non-nil inside a semicolon comment."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 ; rest of line\ne5 *\n"
+    (search-forward "rest")
+    (should (pygn-mode-inside-rest-of-line-comment-p (point)))))
+
+(ert-deftest pygn-mode-inside-rest-of-line-comment-p-02 nil
+  "Test `pygn-mode-inside-rest-of-line-comment-p' returns nil inside a curly-bracket comment."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 {comment} e5 *\n"
+    (search-forward "comment")
+    (should-not (pygn-mode-inside-rest-of-line-comment-p (point)))))
+
+;;; pygn-mode-inside-escaped-line-comment-p
+
+(ert-deftest pygn-mode-inside-escaped-line-comment-p-01 nil
+  "Test `pygn-mode-inside-escaped-line-comment-p' returns non-nil inside a percent-escaped comment."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4\n% escape comment\ne5 *\n"
+    (search-forward "escape")
+    (should (pygn-mode-inside-escaped-line-comment-p (point)))))
+
+(ert-deftest pygn-mode-inside-escaped-line-comment-p-02 nil
+  "Test `pygn-mode-inside-escaped-line-comment-p' returns nil inside a semicolon comment."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 ; semi comment\ne5 *\n"
+    (search-forward "semi")
+    (should-not (pygn-mode-inside-escaped-line-comment-p (point)))))
+
+;;; pygn-mode-inside-variation-p
+
+(ert-deftest pygn-mode-inside-variation-p-01 nil
+  "Test `pygn-mode-inside-variation-p' returns non-nil inside a variation."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 (1. d4 d5) e5 *\n"
+    (search-forward "d4")
+    (should (pygn-mode-inside-variation-p (point)))))
+
+(ert-deftest pygn-mode-inside-variation-p-02 nil
+  "Test `pygn-mode-inside-variation-p' returns nil in main-line movetext."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 (1. d4 d5) e5 *\n"
+    (search-forward "e4")
+    (should-not (pygn-mode-inside-variation-p (point)))))
+
+;;; pygn-mode-inside-variation-or-comment-p
+
+(ert-deftest pygn-mode-inside-variation-or-comment-p-01 nil
+  "Test `pygn-mode-inside-variation-or-comment-p' returns non-nil inside a variation."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 (1. d4 d5) e5 *\n"
+    (search-forward "d4")
+    (should (pygn-mode-inside-variation-or-comment-p (point)))))
+
+(ert-deftest pygn-mode-inside-variation-or-comment-p-02 nil
+  "Test `pygn-mode-inside-variation-or-comment-p' returns non-nil inside an inline comment."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 {comment} e5 *\n"
+    (search-forward "comment")
+    (should (pygn-mode-inside-variation-or-comment-p (point)))))
+
+(ert-deftest pygn-mode-inside-variation-or-comment-p-03 nil
+  "Test `pygn-mode-inside-variation-or-comment-p' returns nil in main-line movetext."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "e4")
+    (should-not (pygn-mode-inside-variation-or-comment-p (point)))))
+
+;;; pygn-mode-inside-movetext-comment-p
+
+(ert-deftest pygn-mode-inside-movetext-comment-p-01 nil
+  "Test `pygn-mode-inside-movetext-comment-p' returns non-nil inside an inline comment."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 {comment} e5 *\n"
+    (search-forward "comment")
+    (should (pygn-mode-inside-movetext-comment-p (point)))))
+
+(ert-deftest pygn-mode-inside-movetext-comment-p-02 nil
+  "Test `pygn-mode-inside-movetext-comment-p' returns non-nil inside a semicolon comment."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 ; rest of line\ne5 *\n"
+    (search-forward "rest")
+    (should (pygn-mode-inside-movetext-comment-p (point)))))
+
+(ert-deftest pygn-mode-inside-movetext-comment-p-03 nil
+  "Test `pygn-mode-inside-movetext-comment-p' returns nil in main-line movetext."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "e4")
+    (should-not (pygn-mode-inside-movetext-comment-p (point)))))
+
+;;; pygn-mode-inside-separator-p
+
+(ert-deftest pygn-mode-inside-separator-p-01 nil
+  "Test `pygn-mode-inside-separator-p' returns non-nil at the blank line after a header."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    ;; search-forward "\n\n" lands after both newlines; back up one to the blank line
+    (search-forward "\n\n")
+    (backward-char)
+    (should (pygn-mode-inside-separator-p (point)))))
+
+(ert-deftest pygn-mode-inside-separator-p-02 nil
+  "Test `pygn-mode-inside-separator-p' returns nil inside movetext."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "e4")
+    (should-not (pygn-mode-inside-separator-p (point)))))
+
+;;; pygn-mode-looking-at-result-code
+
+(ert-deftest pygn-mode-looking-at-result-code-01 nil
+  "Test `pygn-mode-looking-at-result-code' returns non-nil at a result code."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "*")
+    (forward-char -1)
+    (should (pygn-mode-looking-at-result-code))))
+
+(ert-deftest pygn-mode-looking-at-result-code-02 nil
+  "Test `pygn-mode-looking-at-result-code' returns nil at a move."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "e4")
+    (forward-char -1)
+    (should-not (pygn-mode-looking-at-result-code))))
+
+;;; pygn-mode-looking-at-suffix-annotation
+
+(ert-deftest pygn-mode-looking-at-suffix-annotation-01 nil
+  "Test `pygn-mode-looking-at-suffix-annotation' returns non-nil at a suffix annotation."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4! e5 *\n"
+    (search-forward "!")
+    (forward-char -1)
+    (should (pygn-mode-looking-at-suffix-annotation))))
+
+(ert-deftest pygn-mode-looking-at-suffix-annotation-02 nil
+  "Test `pygn-mode-looking-at-suffix-annotation' returns nil at a non-annotation position."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4! e5 *\n"
+    (search-forward "e4")
+    (forward-char -1)
+    (should-not (pygn-mode-looking-at-suffix-annotation))))
+
+;;; pygn-mode-game-start-position
+
+(ert-deftest pygn-mode-game-start-position-01 nil
+  "Test `pygn-mode-game-start-position' returns the position of the first header character."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "e4")
+    (should (= (pygn-mode-game-start-position (point))
+               (point-min)))))
+
+(ert-deftest pygn-mode-game-start-position-02 nil
+  "Test `pygn-mode-game-start-position' returns nil outside any game."
+  (pygn-mode-test-with-string ""
+    (should-not (pygn-mode-game-start-position (point)))))
+
+;;; pygn-mode-game-end-position
+
+(ert-deftest pygn-mode-game-end-position-01 nil
+  "Test `pygn-mode-game-end-position' returns a position after all moves."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "e5")
+    (let ((after-e5 (point)))
+      (goto-char (point-min))
+      (should (> (pygn-mode-game-end-position (point))
+                 after-e5)))))
+
+(ert-deftest pygn-mode-game-end-position-02 nil
+  "Test `pygn-mode-game-end-position' returns nil outside any game."
+  (pygn-mode-test-with-string ""
+    (should-not (pygn-mode-game-end-position (point)))))
+
+;;; pygn-mode-game-start-position-forgive-trailing-pos
+
+(ert-deftest pygn-mode-game-start-position-forgive-trailing-pos-01 nil
+  "Test `pygn-mode-game-start-position-forgive-trailing-pos' finds the game from trailing whitespace."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n\n"
+    (goto-char (point-max))
+    (should (= (pygn-mode-game-start-position-forgive-trailing-pos (point))
+               (point-min)))))
+
+(ert-deftest pygn-mode-game-start-position-forgive-trailing-pos-02 nil
+  "Test `pygn-mode-game-start-position-forgive-trailing-pos' returns nil in an empty buffer."
+  (pygn-mode-test-with-string ""
+    (should-not (pygn-mode-game-start-position-forgive-trailing-pos (point)))))
+
+;;; pygn-mode--pgn-at-pos-or-stub
+
+(ert-deftest pygn-mode--pgn-at-pos-or-stub-01 nil
+  "Test `pygn-mode--pgn-at-pos-or-stub' returns a stub string outside any game."
+  (pygn-mode-test-with-string ""
+    (should (equal "[Event \"?\"]\n\n*\n"
+                   (pygn-mode--pgn-at-pos-or-stub (point))))))
+
+(ert-deftest pygn-mode--pgn-at-pos-or-stub-02 nil
+  "Test `pygn-mode--pgn-at-pos-or-stub' returns a PGN string inside a game."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "e4")
+    (should (stringp (pygn-mode--pgn-at-pos-or-stub (point))))))
+
+;;; pygn-mode-pgn-at-pos-as-if-variation
+
+(ert-deftest pygn-mode-pgn-at-pos-as-if-variation-01 nil
+  "Test `pygn-mode-pgn-at-pos-as-if-variation' returns a PGN string inside a variation."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 (1. d4 d5) e5 *\n"
+    (search-forward "d5")
+    (should (stringp (pygn-mode-pgn-at-pos-as-if-variation (point))))))
+
+(ert-deftest pygn-mode-pgn-at-pos-as-if-variation-02 nil
+  "Test `pygn-mode-pgn-at-pos-as-if-variation' returns nil outside any game."
+  (pygn-mode-test-with-string ""
+    (should-not (pygn-mode-pgn-at-pos-as-if-variation (point)))))
+
+;;; pygn-mode-all-header-coordinates
+
+(ert-deftest pygn-mode-all-header-coordinates-01 nil
+  "Test `pygn-mode-all-header-coordinates' returns one entry per game."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (should (= 5 (length (pygn-mode-all-header-coordinates))))))
+
+(ert-deftest pygn-mode-all-header-coordinates-02 nil
+  "Test `pygn-mode-all-header-coordinates' returns alist cells with a string key and integer position."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (let ((coords (pygn-mode-all-header-coordinates)))
+      (should (consp (car coords)))
+      (should (stringp (caar coords)))
+      (should (integerp (cdar coords))))))
+
+;;; pygn-mode-fen-coordinates
+
+(ert-deftest pygn-mode-fen-coordinates-01 nil
+  "Test `pygn-mode-fen-coordinates' extracts FEN values from all games that have FEN headers."
+  (pygn-mode-test-with-file "test-03.pgn"
+    (let ((coords (pygn-mode-fen-coordinates)))
+      (should (= 5 (length coords)))
+      (dolist (cell coords)
+        (should (string-match-p "r1b" (car cell)))))))
+
+(ert-deftest pygn-mode-fen-coordinates-02 nil
+  "Test `pygn-mode-fen-coordinates' returns nil when no FEN headers are present."
+  (pygn-mode-test-with-string "[Event \"?\"]\n[Site \"?\"]\n\n1. e4 e5 *\n"
+    (should (null (pygn-mode-fen-coordinates)))))
+
+;;; pygn-mode-describe-annotation-at-pos
+
+(ert-deftest pygn-mode-describe-annotation-at-pos-01 nil
+  "Test `pygn-mode-describe-annotation-at-pos' returns non-nil at a valid annotation."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4! e5 *\n"
+    (search-forward "!")
+    (forward-char -1)
+    (should (pygn-mode-describe-annotation-at-pos (point) nil 'no-error))))
+
+(ert-deftest pygn-mode-describe-annotation-at-pos-02 nil
+  "Test `pygn-mode-describe-annotation-at-pos' returns nil when no annotation and no-error set."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "e4")
+    (should-not (pygn-mode-describe-annotation-at-pos (point) nil 'no-error))))
+
+(ert-deftest pygn-mode-describe-annotation-at-pos-03 nil
+  "Test `pygn-mode-describe-annotation-at-pos' signals an error when not at an annotation."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 e5 *\n"
+    (search-forward "e4")
+    (should-error (pygn-mode-describe-annotation-at-pos (point)))))
+
+;;; pygn-mode-backward-exit-variations-and-comments
+
+(ert-deftest pygn-mode-backward-exit-variations-and-comments-01 nil
+  "Test `pygn-mode-backward-exit-variations-and-comments' exits a variation."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 (1. d4 d5) e5 *\n"
+    (search-forward "d5")
+    (pygn-mode-backward-exit-variations-and-comments)
+    (should-not (pygn-mode-inside-variation-p (point)))))
+
+(ert-deftest pygn-mode-backward-exit-variations-and-comments-02 nil
+  "Test `pygn-mode-backward-exit-variations-and-comments' exits an inline comment."
+  (pygn-mode-test-with-string "[Event \"?\"]\n\n1. e4 {comment} e5 *\n"
+    (search-forward "comment")
+    (pygn-mode-backward-exit-variations-and-comments)
+    (should-not (pygn-mode-inside-inline-comment-p (point)))))
 
 ;;
 ;; Emacs
