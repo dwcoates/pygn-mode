@@ -212,6 +212,36 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   :group 'pygn
   :type 'boolean)
 
+(defcustom pygn-mode-debug nil
+  "Control pygn-mode debug logging.
+
+When nil (default), all debug output is suppressed.
+When t, log messages are written to `pygn-mode-log-file' and echoed to
+`*Messages*'.
+When `verbose', high-frequency events (per-query, per-keystroke) are
+also logged — use this when chasing server or navigation bugs."
+  :group 'pygn
+  :type '(choice (const :tag "Off"     nil)
+                 (const :tag "On"      t)
+                 (const :tag "Verbose" verbose)))
+
+(defcustom pygn-mode-log-file nil
+  "Path to the pygn-mode log file, or nil to disable file logging.
+
+When set, all `pygn-mode--log' calls append a timestamped `[pygn-mode]'
+line to this file regardless of `pygn-mode-debug'.  The debug flag only
+controls whether the line is also echoed to `*Messages*'.
+
+To integrate with the doom claude-repl debug-logs system and have
+pygn-mode output appear in workspace-specific logs, set this to the
+value of `claude-repl-log-file-name'.  Example:
+
+  (with-eval-after-load \\='pygn-mode
+    (when (boundp \\='claude-repl-log-file-name)
+      (setq pygn-mode-log-file claude-repl-log-file-name)))"
+  :group 'pygn
+  :type '(choice (const :tag "Disabled" nil) file))
+
 ;;;###autoload
 (defgroup pygn-faces nil
   "Faces used by pygn-mode."
@@ -336,6 +366,32 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
  'pygn-mode-nag-face
  'pygn-mode-annotation-face
  "0.6.0")
+
+;;; Variables
+
+;;; Logging
+
+(defun pygn-mode--log (fmt &rest args)
+  "Append a timestamped [pygn-mode] line to `pygn-mode-log-file'.
+Also echoes to *Messages* when `pygn-mode-debug' is non-nil.
+File write happens regardless of `pygn-mode-debug' when the file is set."
+  (let ((text (format "%s [pygn-mode] %s"
+                      (format-time-string "%H:%M:%S.%3N")
+                      (apply #'format fmt args))))
+    (when pygn-mode-log-file
+      (condition-case err
+          (write-region (concat text "\n") nil
+                        (expand-file-name pygn-mode-log-file)
+                        :append 'silent)
+        (error (message "[pygn-mode] WARNING: log write failed: %S" err))))
+    (when pygn-mode-debug
+      (message "%s" text))))
+
+(defun pygn-mode--log-verbose (fmt &rest args)
+  "Log a high-frequency pygn-mode message, gated on verbose mode.
+No-op unless `pygn-mode-debug' is `verbose'."
+  (when (eq pygn-mode-debug 'verbose)
+    (apply #'pygn-mode--log fmt args)))
 
 ;;; Variables
 
@@ -844,11 +900,15 @@ To produce a flag which takes no options, give a plist value of t."
 (defun pygn-mode--python-chess-guard ()
   "Throw an error unless the Python chess library is available."
   (unless pygn-mode-python-chess-succeeded
+    (pygn-mode--log-verbose "python-chess-guard: checking interpreter=%s" pygn-mode-python-executable)
     (let ((process-environment (cl-copy-list process-environment)))
       (when pygn-mode-pythonpath
         (pygn-mode--set-python-path))
       (if (zerop (call-process pygn-mode-python-executable nil nil nil "-c" "import chess"))
-          (setq pygn-mode-python-chess-succeeded t)
+          (progn
+            (setq pygn-mode-python-chess-succeeded t)
+            (pygn-mode--log-verbose "python-chess-guard: chess library available"))
+        (pygn-mode--log "python-chess-guard: chess library NOT found for interpreter=%s" pygn-mode-python-executable)
         (error "The Python interpreter at `pygn-mode-python-path' must have the Python chess library available")))))
 
 (defun pygn-mode--get-stderr-buffer ()
@@ -865,6 +925,10 @@ Optionally FORCE recreation if the server already exists."
       (pygn-mode--server-kill)
     (when (pygn-mode--server-running-p)
       (error "The pygn-mode server process is already running.  Use optional `force' to recreate")))
+  (pygn-mode--log "server-start: interpreter=%s script=%s force=%s"
+                  pygn-mode-python-executable
+                  pygn-mode-script-directory
+                  (if force "t" "nil"))
   (message "Initializing pygn-mode server process%s." (if force " (forcing)" ""))
   (let ((process-environment (cl-copy-list process-environment)))
     (when pygn-mode-pythonpath
@@ -879,16 +943,31 @@ Optionally FORCE recreation if the server already exists."
                         :coding 'utf-8
                         :connection-type 'pipe
                         :stderr (or (pygn-mode--get-stderr-buffer) null-device)
-                        :command (list pygn-mode-python-executable
-                                       "-u"
-                                       (expand-file-name "pygn_server.py" pygn-mode-script-directory)
-                                       "-"))))
-  (unless (string-match-p (regexp-quote  "Server started.") (pygn-mode--server-receive))
-    (error "Server for `pygn-mode' failed to start.  Try running `pygn-mode-run-diagnostic'")))
+                        :command (append
+                                  (list pygn-mode-python-executable
+                                        "-u"
+                                        (expand-file-name "pygn_server.py" pygn-mode-script-directory)
+                                        "-")
+                                  ;; Pass log file and debug flag to the server so its own
+                                  ;; [pygn-mode] log lines land in the same file as the
+                                  ;; Elisp-side log lines when pygn-mode-log-file is set.
+                                  (when pygn-mode-log-file
+                                    (list "--log-file"
+                                          (expand-file-name pygn-mode-log-file)))
+                                  (when (eq pygn-mode-debug 'verbose)
+                                    (list "--debug"))))))
+  (let ((startup-response (pygn-mode--server-receive)))
+    (if (string-match-p (regexp-quote "Server started.") startup-response)
+        (pygn-mode--log "server-start: server ready pid=%s"
+                        (process-id pygn-mode--server-process))
+      (pygn-mode--log "server-start: FAILED startup-response=%S" startup-response)
+      (error "Server for `pygn-mode' failed to start.  Try running `pygn-mode-run-diagnostic'"))))
 
 (defun pygn-mode--server-kill ()
   "Stop the currently running `pygn-mode--server-process'."
   (when (pygn-mode--server-running-p)
+    (pygn-mode--log "server-kill: stopping server pid=%s"
+                    (process-id pygn-mode--server-process))
     (process-send-eof pygn-mode--server-process)
     (delete-process pygn-mode--server-process)
     (setq pygn-mode--server-process nil)
@@ -907,6 +986,8 @@ in which the keys correspond to argparse arguments known by the server.
 data payload, and :PAYLOAD may contain arbitrary data."
   (unless (pygn-mode--server-running-p)
     (error "The pygn-mode server is not running -- cannot send a message"))
+  (pygn-mode--log-verbose "server-send: cmd=%s payload-type=%s payload-len=%d"
+                           command payload-type (length payload))
   (setq payload (replace-regexp-in-string "\n" "\\\\n" payload))
   (setq payload (replace-regexp-in-string "[\n\r]*$" "\n" payload))
   (process-send-string
@@ -940,6 +1021,11 @@ Respects the variables `pygn-mode--server-receive-every-seconds' and
         (accept-process-output pygn-mode--server-process pygn-mode--server-receive-every-seconds nil 1)
         (cl-incf tries))
       (setq server-message (buffer-substring-no-properties (point-min) (point-max)))
+      (pygn-mode--log-verbose "server-receive: tries=%d response-len=%d timed-out=%s"
+                               tries (length server-message)
+                               (if (>= (* tries pygn-mode--server-receive-every-seconds)
+                                       pygn-mode--server-receive-max-seconds)
+                                   "t" "nil"))
       (erase-buffer)
       server-message)))
 
@@ -949,13 +1035,17 @@ Respects the variables `pygn-mode--server-receive-every-seconds' and
 :COMMAND, :OPTIONS, :PAYLOAD-TYPE, and :PAYLOAD are as documented at
 `pygn-mode--server-send'."
   (unless (pygn-mode--server-running-p)
+    (pygn-mode--log "server-query: server not running, starting for cmd=%s" command)
     (pygn-mode--server-start))
+  (pygn-mode--log-verbose "server-query: cmd=%s" command)
   (pygn-mode--server-send
    :command      command
    :options      options
    :payload-type payload-type
    :payload      payload)
-  (pygn-mode--server-receive))
+  (let ((response (pygn-mode--server-receive)))
+    (pygn-mode--log-verbose "server-query: cmd=%s response-len=%d" command (length response))
+    response))
 
 ;; it is a bit muddy that the parser is permitted to restart the server
 (defun pygn-mode--parse-response (response)
@@ -970,20 +1060,25 @@ not match the client."
         (error "Bad response from `pygn-mode' server -- empty response"))
       (unless (string-match
                "\\`:version\\s-+\\(\\S-+\\)\\s-+\\(.*\\)" response)
+        (pygn-mode--log "parse-response: no :version in response=%S restarting" response)
         (pygn-mode--server-start 'force)
         (error "Bad response from `pygn-mode' server -- no :version.  Attempted restart"))
       (setq response-version (match-string 1 response))
       (setq response (match-string 2 response))
       (unless (equal response-version pygn-mode-version)
+        (pygn-mode--log "parse-response: version mismatch expected=%s got=%s restarting"
+                        pygn-mode-version response-version)
         (pygn-mode--server-start 'force)
         (error "Bad response from `pygn-mode' server -- unexpected :version value: '%s'.  Attempted restart" response-version))
       (unless (string-match
                "\\`\\(:\\S-+\\)\\(.*\\)" response)
+        (pygn-mode--log "parse-response: malformed response=%S" response)
         (error "Bad response from `pygn-mode' server"))
-      (list
-       (intern (match-string 1 response))
-       (replace-regexp-in-string
-        "\\`\s-*" "" (match-string 2 response))))))
+      (let ((parsed (list (intern (match-string 1 response))
+                          (replace-regexp-in-string "\\`\s-*" "" (match-string 2 response)))))
+        (pygn-mode--log-verbose "parse-response: type=%s payload-len=%d"
+                                 (car parsed) (length (cadr parsed)))
+        parsed))))
 
 ;; multi-node adaptation of tree-sitter-node-at-pos
 (defun pygn-mode--named-nodes-at-pos (&optional type pos)
@@ -1323,23 +1418,28 @@ Inclusive of any move at POS."
 
 (defun pygn-mode-pgn-to-fen (pgn)
   "Return the FEN corresponding to the position after PGN."
+  (pygn-mode--log-verbose "pgn-to-fen: pgn-len=%d" (length pgn))
   (let ((response (pygn-mode--server-query
                    :command      :pgn-to-fen
                    :payload-type :pgn
                    :payload      pgn)))
     (cl-callf pygn-mode--parse-response response)
     (unless (eq :fen (car response))
+      (pygn-mode--log "pgn-to-fen: unexpected response type=%s" (car response))
       (error "Bad response from `pygn-mode' server"))
+    (pygn-mode--log-verbose "pgn-to-fen: fen=%s" (cadr response))
     (cadr response)))
 
 (defun pygn-mode-pgn-to-last-move-info (pgn)
   "Return information corresponding to the last move in PGN."
+  (pygn-mode--log-verbose "pgn-to-last-move-info: pgn-len=%d" (length pgn))
   (let ((response (pygn-mode--server-query
                    :command      :pgn-to-last-move-info
                    :payload-type :pgn
                    :payload      pgn)))
     (cl-callf pygn-mode--parse-response response)
     (unless (eq :last-move-info (car response))
+      (pygn-mode--log "pgn-to-last-move-info: unexpected response type=%s" (car response))
       (error "Bad response from `pygn-mode' server"))
     (read (cadr response))))
 
@@ -1347,6 +1447,7 @@ Inclusive of any move at POS."
   "Return a board representation for the position after PGN.
 
 FORMAT may be either 'svg or 'text."
+  (pygn-mode--log-verbose "pgn-to-board: format=%s pgn-len=%d" format (length pgn))
   (let ((response (pygn-mode--server-query
                    :command      :pgn-to-board
                    :options      `(:pixels       ,pygn-mode-board-size
@@ -1356,17 +1457,20 @@ FORMAT may be either 'svg or 'text."
                    :payload      pgn)))
     (cl-callf pygn-mode--parse-response response)
     (unless (memq (car response) '(:board-svg :board-text))
+      (pygn-mode--log "pgn-to-board: unexpected response type=%s" (car response))
       (error "Bad response from `pygn-mode' server"))
     (cadr response)))
 
 (defun pygn-mode-pgn-to-line (pgn)
   "Return the SAN line corresponding to the position after PGN."
+  (pygn-mode--log-verbose "pgn-to-line: pgn-len=%d" (length pgn))
   (let ((response (pygn-mode--server-query
                    :command      :pgn-to-mainline
                    :payload-type :pgn
                    :payload      pgn)))
     (cl-callf pygn-mode--parse-response response)
     (unless (eq :san (car response))
+      (pygn-mode--log "pgn-to-line: unexpected response type=%s" (car response))
       (error "Bad response from `pygn-mode' server"))
     (cadr response)))
 
@@ -1497,6 +1601,8 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
   "A major-mode for chess PGN files, powered by Python."
   :syntax-table pygn-mode-syntax-table
   :group 'pygn
+
+  (pygn-mode--log "mode-activated: buf=%s file=%s" (buffer-name) (or buffer-file-name "-"))
 
   (setq-local tree-sitter-hl-default-patterns pygn-mode-tree-sitter-patterns)
   (setq-local tree-sitter-hl-face-mapping-function #'pygn-mode--capture-face-mapper)
@@ -1675,6 +1781,7 @@ diagnostic tests were successful."
 With numeric prefix ARG, advance ARG games."
   (interactive "p")
   (cl-callf or arg 1)
+  (pygn-mode--log-verbose "next-game: arg=%d pos=%d buf=%s" arg (point) (buffer-name))
   (if (< arg 0)
       (pygn-mode-previous-game (* -1 arg))
     ;; else
@@ -1703,6 +1810,7 @@ With numeric prefix ARG, advance ARG games."
 With numeric prefix ARG, move back ARG games."
   (interactive "p")
   (cl-callf or arg 1)
+  (pygn-mode--log-verbose "previous-game: arg=%d pos=%d buf=%s" arg (point) (buffer-name))
   (if (< arg 0)
       (pygn-mode-next-game (* -1 arg))
     ;; else
@@ -1739,6 +1847,7 @@ But the advancing motion will skip over move numbers when possible.
 With numeric prefix ARG, advance ARG moves forward."
   (interactive "p")
   (cl-callf or arg 1)
+  (pygn-mode--log-verbose "next-move: arg=%d pos=%d buf=%s" arg (point) (buffer-name))
   (if (< arg 0)
       (pygn-mode-previous-move (* -1 arg))
     ;; else
@@ -1799,6 +1908,7 @@ But the backward motion will skip over move numbers when possible.
 With numeric prefix ARG, move ARG moves backward."
   (interactive "p")
   (cl-callf or arg 1)
+  (pygn-mode--log-verbose "previous-move: arg=%d pos=%d buf=%s" arg (point) (buffer-name))
   (if (< arg 0)
       (pygn-mode-next-move (* -1 arg))
     ;; else
@@ -1926,6 +2036,7 @@ clipboard when running a GUI Emacs."
 
 When called non-interactively, display the FEN corresponding to POS."
   (interactive "d")
+  (pygn-mode--log-verbose "display-fen-at-pos: pos=%d buf=%s" pos (buffer-name))
   (let* ((fen (pygn-mode-pgn-to-fen (pygn-mode--pgn-at-pos-or-stub pos)))
          (buf (get-buffer-create pygn-mode-fen-buffer-name))
          (win (get-buffer-window buf)))
@@ -1967,6 +2078,7 @@ When called non-interactively, display the FEN corresponding to POS."
 
 When called non-interactively, display the board corresponding to POS."
   (interactive "d")
+  (pygn-mode--log-verbose "display-gui-board-at-pos: pos=%d buf=%s" pos (buffer-name))
   (let* ((svg-data (pygn-mode-pgn-to-board (pygn-mode--pgn-at-pos-or-stub pos) 'svg))
          (buf (pygn-mode--get-or-create-board-buffer))
          (win (get-buffer-window buf)))
@@ -2059,6 +2171,7 @@ When called non-interactively, display the board corresponding to POS."
 
 When called non-interactively, display the line corresponding to POS."
   (interactive "d")
+  (pygn-mode--log-verbose "display-line-at-pos: pos=%d buf=%s" pos (buffer-name))
   (let* ((line (pygn-mode-pgn-to-line (pygn-mode--pgn-at-pos-or-stub pos)))
          (buf (get-buffer-create pygn-mode-line-buffer-name))
          (win (get-buffer-window buf)))

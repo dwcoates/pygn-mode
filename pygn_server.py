@@ -32,10 +32,49 @@ import io
 import re
 import atexit
 import shlex
+import logging
+import traceback
 
 import chess.pgn
 import chess.svg
 import chess.engine
+
+###
+### logging
+###
+
+def setup_logging(log_file=None, debug=False):
+    """Configure the [pygn-mode] logger.
+
+    Always writes WARNING+ to stderr so Emacs can capture errors.
+    When debug is True, also writes DEBUG+ to stderr.
+    When log_file is given, a FileHandler is added for all levels.
+    Log lines are prefixed with '[pygn-mode]' to distinguish from
+    claude-repl and other Emacs logging.
+    """
+    level = logging.DEBUG if debug else logging.WARNING
+    fmt = logging.Formatter('%(asctime)s.%(msecs)03d [pygn-mode] %(levelname)s %(message)s',
+                            datefmt='%H:%M:%S')
+    root = logging.getLogger('pygn-mode')
+    root.setLevel(logging.DEBUG)
+
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setLevel(level)
+    stderr_handler.setFormatter(fmt)
+    root.addHandler(stderr_handler)
+
+    if log_file:
+        try:
+            file_handler = logging.FileHandler(log_file, encoding='utf-8')
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(fmt)
+            root.addHandler(file_handler)
+        except OSError as e:
+            root.warning("Could not open log file %s: %s", log_file, e)
+
+    return root
+
+logger = logging.getLogger('pygn-mode')
 
 ###
 ### file-scoped variables
@@ -110,6 +149,7 @@ def listen():
     """
 
     argparser = generate_argparser()
+    logger.debug("listen: entering request loop")
 
     while True:
         input_str = sys.stdin.readline()
@@ -118,15 +158,18 @@ def listen():
         # Handle terminating characters and garbage.
         if len(input_str) == 0:
             # eof
+            logger.debug("listen: EOF received, shutting down")
             cleanup()
             break
         if input_str == '\n':
             continue
 
+        logger.debug("listen: request received len=%d", len(input_str))
+
         # Parse request.
         match = re.compile(r'\A:version\s+(\S+)\s+(:\S+)(.*?)\s+--\s+(:\S+)\s+(\S.*)\n').search(input_str)
         if not match:
-            print(f'Bad pgn-mode server request. Could not parse: {input_str}', file=sys.stderr)
+            logger.warning("listen: could not parse request: %r", input_str[:200])
             continue
         [req_version,
          req_command,
@@ -134,32 +177,45 @@ def listen():
          req_payload_type,
          req_payload] = match.groups()
 
+        logger.debug("listen: cmd=%s payload-type=%s payload-len=%d",
+                     req_command, req_payload_type, len(req_payload))
+
         if not req_version == __version__:
-            print(f'Bad request: version mismatch: {req_version}', file=sys.stderr)
+            logger.warning("listen: version mismatch expected=%s got=%s",
+                           __version__, req_version)
             continue
 
         # Command code for handling input.
         if req_command not in CALLBACKS:
-            print(f'Bad request command (unknown): {req_command}', file=sys.stderr)
+            logger.warning("listen: unknown command=%s", req_command)
             continue
 
         # Options to modify operation of the command.
         try:
             args = argparser.parse_args(shlex.split(req_options))
-        except:
-            print(f'Bad request options: {req_options}', file=sys.stderr)
+        except Exception as e:
+            logger.warning("listen: bad request options=%r error=%s", req_options, e)
             continue
 
         # :payload-type is for future extensibility, currently always :pgn
         if not req_payload_type == ':pgn':
-            print(f'Bad request :payload-type (unknown): {req_payload_type}', file=sys.stderr)
+            logger.warning("listen: unknown payload-type=%s", req_payload_type)
             continue
 
         # Build game board.
         pgn = req_payload
         pgn = re.sub(r'\\n', '\n', pgn)
         pgn = pgn + '\n\n'
-        game = chess.pgn.read_game(io.StringIO(pgn))
+        try:
+            game = chess.pgn.read_game(io.StringIO(pgn))
+            if game is None:
+                logger.warning("listen: chess.pgn.read_game returned None for cmd=%s", req_command)
+                continue
+        except Exception as e:
+            logger.error("listen: PGN parse error cmd=%s: %s\n%s",
+                         req_command, e, traceback.format_exc())
+            continue
+
         board = game.board()
         last_move = False
         last_fen = board.fen()
@@ -169,10 +225,17 @@ def listen():
             board.push(move)
 
         # Compute response.
-        response = CALLBACKS[req_command](game,board,last_move,last_fen,args)
+        try:
+            response = CALLBACKS[req_command](game, board, last_move, last_fen, args)
+        except Exception as e:
+            logger.error("listen: callback error cmd=%s: %s\n%s",
+                         req_command, e, traceback.format_exc())
+            continue
 
         # Send response to client.
         if response:
+            logger.debug("listen: sending response type=%s len=%d",
+                         response.split()[0] if response else '-', len(response))
             print(f':version {__version__} {response}')
 
 ###
@@ -221,6 +284,20 @@ if __name__ == '__main__':
         print(__version__)
         sys.exit(0)
 
+    # Parse startup arguments before entering the request loop.
+    startup_parser = argparse.ArgumentParser(add_help=False)
+    startup_parser.add_argument('-', dest='stdin_mode', action='store_true',
+                                help='read requests from stdin (server mode)')
+    startup_parser.add_argument('--log-file', dest='log_file', default=None,
+                                metavar='PATH',
+                                help='append [pygn-mode] log lines to PATH')
+    startup_parser.add_argument('--debug', dest='debug', action='store_true',
+                                help='enable DEBUG-level logging to stderr')
+    startup_args, _ = startup_parser.parse_known_args()
+
+    setup_logging(log_file=startup_args.log_file, debug=startup_args.debug)
+    logger.debug("server starting version=%s interpreter=%s", __version__, sys.executable)
+
     CALLBACKS = {
         ':pgn-to-fen': pgn_to_fen_callback,
         ':pgn-to-board': pgn_to_board_callback,
@@ -232,8 +309,10 @@ if __name__ == '__main__':
     atexit.register(cleanup)
 
     print(f'Server started.')
+    logger.info("server ready version=%s", __version__)
 
     listen()
+    logger.info("server exiting")
 
 #
 # Emacs
