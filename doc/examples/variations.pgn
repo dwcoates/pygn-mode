@@ -1,0 +1,87 @@
+[Event "Position Analysis"]
+[Site "?"]
+[Date "2026.06.04"]
+[Black "?"]
+[Result "*"]
+[SetUp "1"]
+[FEN "5rk1/pQp3pq/3p3p/3PpNn1/2P1P3/7P/5rPK/4R1R1 b - - 0 2"]
+
+{ Black to move. White threatens Qxc7 and Qxa7, so Black cannot drift.
+  White's knight on f5 is the linchpin of White's entire defensive structure — it controls
+  d6 and g7 and anchors White's kingside. Black's attacking trumps are the rook already
+  buried on f2, the knight on g5 with Nf3+ available, and the queen on h7 eyeing f5.
+  Black must strike immediately. }
+
+2... R8xf5!! { Brilliant! The rook on f8 captures White's key knight. Note that only the
+  e4-pawn can recapture — neither White rook can reach f5, and the d5 pawn blocks the
+  queen's diagonal from b7. The rook on f5 is therefore installed for free, completely
+  transforming the position. }
+
+  ( 2... Nf3+ { Missed — inferior to R8xf5, though still giving Black a large advantage. }
+    3. Kh1 Nxe1!! { The key resource: knight leaps to e1 and wins the rook outright.
+      Not 3...Nxg1?? which is an inaccuracy — after Kxg1 White's king escapes to safety
+      and the attack loses steam. From e1 the knight is nearly impossible to dislodge. }
+    4. Ne7+ { White's best fighting chance — the f5 knight checks on e7, threatening to win
+      the e1 knight back. }
+    4... Kh8 5. Rxe1 g6 { Black retains a decisive material advantage (~3.3 pawns). } )
+
+  ( 2... Rxg2+ { Missed — too materialistic. }
+    3. Kxg2 { White calmly recaptures the rook. Black has won only a pawn for a rook
+      and the attack runs dry. White is better by over 3.8 pawns after Kxg2. } )
+
+3. exf5 { Best. White must recapture or concede the knight for nothing.
+  3.Rgf1 Rxf1 4.exf5 Qxf5 5.Rxf1 Qxf1 6.c5 Qf4+ 7.Kh1 Ne4 reaches -5.0. }
+
+3... Qxf5 { The queen swings from h7 to the dominant f5 square in one tempo, perfectly
+  centralized. Black now threatens Nf3+ Kh1 Nxe1 (winning the e1 rook), Ne4 (the knight
+  leaps to e4, targeting g3 and d2), and Rxg2+ infiltrations. White is already losing
+  by nearly 3.6 pawns. }
+
+4. Re3 { White tries to shore up the third rank and contain Black's threats. }
+
+  ( 4. Qb8+ { White desperately attempts to trade queens. }
+    4... Kh7 5. Qb1 { Queen retreats, threatening Qxf5+ to exchange. }
+    5... Nf3+ { The knight checks White's king on h2 — from f3 the knight attacks h2. }
+    6. Kh1 Nxg1! { Knight captures the g1 rook — from f3 the knight reaches g1. }
+    7. Qxf5+ Rxf5 { Black recaptures with the f2 rook. Black has rook and knight versus
+      rook — a technically winning material advantage. Black's king marches Kg6 to activate. } )
+
+  ( 4. Kh1 { White preemptively moves the king to h1, escaping the Nf3+ check threat
+    since from f3 the knight attacks h2 not h1. }
+    4... Nf3!! { Brilliant even without the check: from f3 the knight simultaneously
+      threatens Nxe1 and Nxg1 — both White rooks are under attack at once.
+      White cannot save them both. }
+    5. Kf2 Nxe1+ { The knight claims the e1 rook with check. Black is winning easily. } )
+
+  ( 4. Qxc7 { White grabs the pawn, ignoring the attack entirely. }
+    4... Nf3+ { Knight checks immediately — from g5 to f3, attacking the h2 king. }
+    5. Kh1 Nxe1 { Wins the e1 rook outright. Black is winning by over 5 pawns. } )
+
+4... Qf4+ { The queen delivers a diagonal check, forcing White to react to the f4 square. }
+
+5. Rg3 { White slides the rook from e3 to g3, interposing to block the check. }
+
+  ( 5. Kh1 { King retreats. }
+    5... Nxh3! { The knight hops from g5 to h3, picking up the pawn with tempo.
+      White's position continues to deteriorate. } )
+
+5... Ne4 { The knight vaults from g5 to e4, a dominant central square. From e4 it attacks
+  the g3 rook directly (e4-g3 is a valid knight move), defends g3 from the king, and eyes
+  d2 and c5. This sets up the decisive queen sacrifice. }
+
+6. Qb3 { White's queen retreats — it cannot cover all the threats. }
+
+6... Kh7 { A crucial quiet move: the Black king steps to h7, preventing Qb8+ back-rank
+  tricks and preparing to consolidate the winning material once obtained. }
+
+7. Qe3 { White repositions, attempting to stabilize. }
+
+7... Qxg3+!! { The queen crashes into g3, capturing White's rook WITH CHECK. The e4 knight
+  guards g3 (e4-g3 is a valid knight move), so Kxg3 is illegal — the king would step into
+  the knight's control. White's only legal response is Kh1. }
+
+8. Kh1 { The king is forced to retreat to the corner. }
+
+8... Qxe3 { The queen mopping up White's queen on e3. Black has won a full rook for nothing —
+  an overwhelming material advantage. The knight on e4, rook on f2, and active king convert
+  routinely. } *
