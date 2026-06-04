@@ -1524,6 +1524,13 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
 
   (tree-sitter-hl-mode)
 
+  ;; WHY: tree-sitter-hl--invalidate only calls font-lock-flush (async).
+  ;; font-lock-ensure bails early because pygn-mode sets no font-lock-defaults,
+  ;; causing font-lock-specified-p to return nil.  font-lock-fontify-region
+  ;; calls font-lock-fontify-region-function directly, which is already adviced
+  ;; by tree-sitter-hl, so highlighting is synchronous and visible immediately.
+  (font-lock-fontify-region (point-min) (point-max))
+
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map (default-value 'mode-line-major-mode-keymap))
     (define-key map (kbd "<mode-line> <mouse-4>")     'pygn-mode-previous-move)
