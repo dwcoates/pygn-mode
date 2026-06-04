@@ -1501,6 +1501,12 @@ For use in `pygn-mode-ivy-jump-to-game-by-fen'."
   (setq-local tree-sitter-hl-default-patterns pygn-mode-tree-sitter-patterns)
   (setq-local tree-sitter-hl-face-mapping-function #'pygn-mode--capture-face-mapper)
 
+  ;; WHY: tree-sitter-hl wraps font-lock-fontify-region-function and relies on
+  ;; jit-lock to trigger fontification.  pygn-mode inherits from fundamental-mode
+  ;; which does not enable font-lock-mode automatically, so without this explicit
+  ;; call the hl machinery never fires and the buffer stays unhighlighted.
+  (font-lock-mode 1)
+
   (setq-local comment-start "{")
   (setq-local comment-end "}")
   (setq-local comment-multi-line t)
