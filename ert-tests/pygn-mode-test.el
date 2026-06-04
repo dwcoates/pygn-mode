@@ -2078,12 +2078,6 @@
   (pygn-mode-test-with-file "test-02.pgn"
     (let ((last-pos (point-max)))
 
-      ;; TODO: this merely hides a bug in pygn-mode-pgn-at-pos
-      (goto-char last-pos)
-      (skip-syntax-backward "-")
-      (forward-char -1)
-      (setq last-pos (point))
-
       (dolist (cell (reverse pygn-mode-test-02-move-start-positions))
         (let* ((moves              (car cell))
                (move-pos           (cdr cell))
