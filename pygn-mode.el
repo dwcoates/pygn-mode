@@ -1831,10 +1831,19 @@ With numeric prefix ARG, move ARG moves backward."
                ((looking-back "\\s-" 1)
                 (skip-syntax-backward "-"))
                (t
-                (setq node (tsc-get-prev-sibling node))
-                (if node
-                    (goto-char (pygn-mode--true-node-first-position node))
-                  (forward-char -1)))))
+                ;; WHY: when point is on anonymous whitespace inside movetext
+                ;; (e.g. between an inline comment and a variation),
+                ;; tree-sitter-node-at-pos returns the movetext container.
+                ;; Following tsc-get-prev-sibling(movetext) gives header, which
+                ;; jumps to point-min and falsely triggers "No more moves".
+                ;; Moving backward one character instead keeps the search inside
+                ;; the movetext content.
+                (if (memq (tsc-node-type node) '(movetext game series_of_games))
+                    (forward-char -1)
+                  (setq node (tsc-get-prev-sibling node))
+                  (if node
+                      (goto-char (pygn-mode--true-node-first-position node))
+                    (forward-char -1))))))
             (skip-syntax-backward "w")
             (skip-syntax-forward "-")))
         (pygn-mode--maybe-flash-move-at-point)))))
