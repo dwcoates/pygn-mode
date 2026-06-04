@@ -403,7 +403,7 @@ No-op unless `pygn-mode-debug' is `verbose'."
   "Directory to find Python server script \"pygn_server.py\".")
 
 (defvar pygn-mode-python-chess-succeeded nil
-  "Whether a simple external command using the Python chess library has succeeded.")
+  "Whether a test import of the Python chess library has succeeded.")
 
 (defvar pygn-mode-fen-buffer-name "*pygn-mode-fen*"
   "Buffer name used to display FENs.")
@@ -427,10 +427,10 @@ No-op unless `pygn-mode-debug' is `verbose'."
   "Buffer to which the `pygn-mode' server process is associated.")
 
 (defvar pygn-mode--server-receive-every-seconds 0.01
-  "How often `pygn-mode--server-receive' should check the server for output when polling.")
+  "Poll interval in seconds for `pygn-mode--server-receive'.")
 
 (defvar pygn-mode--server-receive-max-seconds 0.5
-  "The maximum amount of time `pygn-mode--server-receive' should check the server for output when polling.")
+  "Maximum poll duration in seconds for `pygn-mode--server-receive'.")
 
 (defvar pygn-mode-annotation-names
   (let ((names (make-hash-table :test 'equal)))
@@ -1446,7 +1446,7 @@ Inclusive of any move at POS."
 (defun pygn-mode-pgn-to-board (pgn format)
   "Return a board representation for the position after PGN.
 
-FORMAT may be either 'svg or 'text."
+FORMAT may be either `svg' or `text'."
   (pygn-mode--log-verbose "pgn-to-board: format=%s pgn-len=%d" format (length pgn))
   (let ((response (pygn-mode--server-query
                    :command      :pgn-to-board
