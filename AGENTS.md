@@ -169,3 +169,28 @@ When asked to make changes, commit your work when done. Commit freely and often.
 ## AGENTS.md Updates
 
 Keep entries minimal — one short sentence or a brief code block per rule.
+
+## pygn-mode Server
+
+The Python server (`pygn_server.py`) powers all server-backed features (FEN lookup, PGN-at-pos, etc.).  It is an internal process managed by `pygn-mode--server-*` functions — there is no public `M-x` command to start or stop it.
+
+**When the server is needed:** it auto-starts on the first call to `pygn-mode--server-query`.  You do not need to start it manually.
+
+**How to start/bounce in elisp:**
+
+```elisp
+;; start (errors if already running)
+(pygn-mode--server-start)
+
+;; force-restart / bounce
+(pygn-mode--server-start 'force)
+
+;; kill only
+(pygn-mode--server-kill)
+```
+
+**Auto-restart:** `pygn-mode--parse-response` calls `(pygn-mode--server-start 'force)` automatically on a version mismatch or empty response, so a bounce happens transparently in normal use.
+
+**Prerequisite:** `python` (controlled by `pygn-mode-python-executable`) must be on `$PATH` and must have the `chess` library importable.  Run `M-x pygn-mode-run-diagnostic` to diagnose setup problems.
+
+**In tests:** tests must never invoke the server directly — mock `pygn-mode--server-query` (or whichever internal wrapper is needed) via `cl-letf` instead.
