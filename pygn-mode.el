@@ -228,7 +228,7 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   :group 'pygn-faces)
 
 (defface pygn-mode-tagpair-bracket-face
-   '((t (:foreground "Gray50")))
+  '((t (:foreground "Gray50")))
   "pygn-mode face for tagpair (header) square brackets."
   :group 'pygn-faces)
 
@@ -333,9 +333,9 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   :group 'pygn-faces)
 
 (define-obsolete-face-alias
-  'pygn-mode-nag-face
-  'pygn-mode-annotation-face
-  "0.6.0")
+ 'pygn-mode-nag-face
+ 'pygn-mode-annotation-face
+ "0.6.0")
 
 ;;; Variables
 
@@ -680,65 +680,65 @@ ignore the bundled library and use only the system `$PYTHONPATH'."
   (let ((map (make-sparse-keymap)))
     ;; menu bar and lighter
     (define-key map [menu-bar PyGN]
-      (cons "PyGN" (make-sparse-keymap "PyGN")))
+                (cons "PyGN" (make-sparse-keymap "PyGN")))
     (define-key map [menu-bar PyGN pygn-mode-select-game]
-      '(menu-item "Select Game" pygn-mode-select-game
+                '(menu-item "Select Game" pygn-mode-select-game
                   :help "Select the current game"))
     (define-key map [menu-bar PyGN pygn-mode-ivy-jump-to-game-by-fen]
-      '(menu-item "Jump to Game by FEN" pygn-mode-ivy-jump-to-game-by-fen
+                '(menu-item "Jump to Game by FEN" pygn-mode-ivy-jump-to-game-by-fen
                   :enable (featurep 'ivy)
                   :help "Jump to a game by FEN"))
     (define-key map [menu-bar PyGN pygn-mode-ivy-jump-to-game-by-any-header]
-      '(menu-item "Jump to Game by Header" pygn-mode-ivy-jump-to-game-by-header
+                '(menu-item "Jump to Game by Header" pygn-mode-ivy-jump-to-game-by-header
                   :enable (featurep 'ivy)
                   :help "Jump to a game by any header content"))
     (define-key map [menu-bar PyGN pygn-mode-previous-game]
-      '(menu-item "Previous Game" pygn-mode-previous-game
+                '(menu-item "Previous Game" pygn-mode-previous-game
                   :help "Navigate to the previous game"))
     (define-key map [menu-bar PyGN pygn-mode-next-game]
-      '(menu-item "Next Game" pygn-mode-next-game
+                '(menu-item "Next Game" pygn-mode-next-game
                   :help "Navigate to the next game"))
     (define-key map [menu-bar PyGN sep] menu-bar-separator)
     (define-key map [menu-bar PyGN pygn-mode-ivy-insert-annotation]
-      '(menu-item "Insert annotation" pygn-mode-ivy-insert-annotation
+                '(menu-item "Insert annotation" pygn-mode-ivy-insert-annotation
                   :enable (and (featurep 'ivy)
                                (pygn-mode--true-containing-node 'movetext))
                   :help "Insert an annotation glyph interactively"))
     (define-key map [menu-bar PyGN pygn-mode-insert-game]
-      '(menu-item "Insert Game" pygn-mode-insert-game
+                '(menu-item "Insert Game" pygn-mode-insert-game
                   :help "Insert a new game"))
     (define-key map [menu-bar PyGN sep-2] menu-bar-separator)
     (define-key map [menu-bar PyGN pygn-mode-previous-move]
-      '(menu-item "Previous Move" pygn-mode-previous-move
+                '(menu-item "Previous Move" pygn-mode-previous-move
                   :help "Navigate to the previous move"))
     (define-key map [menu-bar PyGN pygn-mode-next-move]
-      '(menu-item "Next Move" pygn-mode-next-move
+                '(menu-item "Next Move" pygn-mode-next-move
                   :help "Navigate to the next move"))
     (define-key map [menu-bar PyGN sep-3] menu-bar-separator)
     (define-key map [menu-bar PyGN pygn-mode-engine-go-searchmoves]
-      '(menu-item "Go Searchmoves at Point" pygn-mode-engine-go-searchmoves
+                '(menu-item "Go Searchmoves at Point" pygn-mode-engine-go-searchmoves
                   :enable (featurep 'uci-mode)
                   :help "UCI Engine \"go searchmoves\" at point in separate window"))
     (define-key map [menu-bar PyGN pygn-mode-engine-go-time]
-      '(menu-item "Go Time at Point" pygn-mode-engine-go-time
+                '(menu-item "Go Time at Point" pygn-mode-engine-go-time
                   :enable (featurep 'uci-mode)
                   :help "UCI Engine \"go time\" at point in separate window"))
     (define-key map [menu-bar PyGN pygn-mode-engine-go-depth]
-      '(menu-item "Go Depth at Point" pygn-mode-engine-go-depth
+                '(menu-item "Go Depth at Point" pygn-mode-engine-go-depth
                   :enable (featurep 'uci-mode)
                   :help "UCI Engine \"go depth\" at point in separate window"))
     (define-key map [menu-bar PyGN pygn-mode-describe-annotation-at-pos]
-      '(menu-item "Annotation at Point" pygn-mode-describe-annotation-at-pos
+                '(menu-item "Annotation at Point" pygn-mode-describe-annotation-at-pos
                   :enable (pygn-mode--true-containing-node 'annotation)
                   :help "Describe annotation at point in the echo area"))
     (define-key map [menu-bar PyGN pygn-mode-display-fen-at-pos]
-      '(menu-item "FEN at Point" pygn-mode-display-fen-at-pos
+                '(menu-item "FEN at Point" pygn-mode-display-fen-at-pos
                   :help "Display FEN at point in separate window"))
     (define-key map [menu-bar PyGN pygn-mode-display-board-at-pos]
-      '(menu-item "Board at Point" pygn-mode-display-board-at-pos
+                '(menu-item "Board at Point" pygn-mode-display-board-at-pos
                   :help "Display board at point in separate window"))
     (define-key map [menu-bar PyGN pygn-mode-display-variation-line-at-pos]
-      '(menu-item "Line at Point" pygn-mode-display-variation-line-at-pos
+                '(menu-item "Line at Point" pygn-mode-display-variation-line-at-pos
                   :help "Display SAN line at point in separate window"))
 
     ;; mouse
@@ -1067,13 +1067,13 @@ found, return the root node."
 Also respect narrowing."
   (let ((first (max (point-min) (tsc-node-start-position node))))
     (cond
-      ((tsc-node-eq node (tsc-root-node tree-sitter-tree))
-       (setq first (point-min)))
-      ((= 0 (car (syntax-after first)))
-       (save-excursion
-         (goto-char first)
-         (skip-syntax-forward "-")
-         (setq first (point)))))
+     ((tsc-node-eq node (tsc-root-node tree-sitter-tree))
+      (setq first (point-min)))
+     ((= 0 (car (syntax-after first)))
+      (save-excursion
+        (goto-char first)
+        (skip-syntax-forward "-")
+        (setq first (point)))))
     first))
 
 (defun pygn-mode--true-node-last-position (node)
@@ -1082,17 +1082,17 @@ Also respect narrowing."
 Also respect narrowing."
   (let ((last (min (point-max) (tsc-node-end-position node))))
     (cond
-      ((tsc-node-eq node (tsc-root-node tree-sitter-tree))
-       (setq last (point-max)))
-      ;; todo: avoid this save-excursion when possible
-      (t
-       (save-excursion
-         (goto-char last)
-         (skip-syntax-backward "-")
-         (while (and (> (point) (point-min))
-                     (looking-at-p "\\s-"))
-           (forward-char -1))
-         (setq last (point)))))
+     ((tsc-node-eq node (tsc-root-node tree-sitter-tree))
+      (setq last (point-max)))
+     ;; todo: avoid this save-excursion when possible
+     (t
+      (save-excursion
+        (goto-char last)
+        (skip-syntax-backward "-")
+        (while (and (> (point) (point-min))
+                    (looking-at-p "\\s-"))
+          (forward-char -1))
+        (setq last (point)))))
     last))
 
 (defun pygn-mode--true-node-after-position (node)
@@ -1615,11 +1615,11 @@ Intended for use in `post-command-hook'."
       (let ((server-script-path (expand-file-name "pygn_server.py" pygn-mode-script-directory)))
         (if (and (file-exists-p server-script-path)
                  (zerop (call-process pygn-mode-python-executable  nil nil nil server-script-path "-version")))
-           (insert (format "[x] Good. The pygn-mode-script-directory ('%s') is found and the server script is callable.\n\n" pygn-mode-script-directory))
-         (insert
-          (format
-           "[ ] Bad. The pygn-mode-script-directory ('%s') is bad or does not contain working server script (pygn_server.py).\n\n" pygn-mode-script-directory))
-         (cl-return-from pygn-mode--run-diagnostic nil)))
+            (insert (format "[x] Good. The pygn-mode-script-directory ('%s') is found and the server script is callable.\n\n" pygn-mode-script-directory))
+          (insert
+           (format
+            "[ ] Bad. The pygn-mode-script-directory ('%s') is bad or does not contain working server script (pygn_server.py).\n\n" pygn-mode-script-directory))
+          (cl-return-from pygn-mode--run-diagnostic nil)))
       (dolist (melpa-lib '(uci-mode nav-flash ivy))
         (if (featurep melpa-lib)
             (insert (format "[x] Good.  The `%s' library is available.\n\n" melpa-lib))
@@ -1668,20 +1668,20 @@ With numeric prefix ARG, advance ARG games."
     (let ((node (pygn-mode--true-containing-node '(game series_of_games))))
       (dotimes (_ arg)
         (cond
-          ((eq 'series_of_games (tsc-node-type node))
-           (let ((newpos (save-excursion
-                           (skip-syntax-forward "-")
-                           (point))))
-             (if (pygn-mode--true-containing-node 'game newpos)
-                 (progn
-                   (goto-char newpos)
-                   (setq node (pygn-mode--true-containing-node 'game)))
-               (error "No more games"))))
-          (t
-           (setq node (tsc-get-next-sibling node))
-           (if node
-               (goto-char (pygn-mode--true-node-first-position node))
-             (error "No more games"))))))
+         ((eq 'series_of_games (tsc-node-type node))
+          (let ((newpos (save-excursion
+                          (skip-syntax-forward "-")
+                          (point))))
+            (if (pygn-mode--true-containing-node 'game newpos)
+                (progn
+                  (goto-char newpos)
+                  (setq node (pygn-mode--true-containing-node 'game)))
+              (error "No more games"))))
+         (t
+          (setq node (tsc-get-next-sibling node))
+          (if node
+              (goto-char (pygn-mode--true-node-first-position node))
+            (error "No more games"))))))
     (pygn-mode-focus-game-at-point)))
 
 (defun pygn-mode-previous-game (&optional arg)
@@ -1696,20 +1696,20 @@ With numeric prefix ARG, move back ARG games."
     (let ((node (pygn-mode--true-containing-node '(game series_of_games))))
       (dotimes (_ arg)
         (cond
-          ((eq 'series_of_games (tsc-node-type node))
-           (let ((newpos (save-excursion
-                           (skip-syntax-backward "-")
-                           (unless (= (point) (point-min))
-                             (forward-char -1))
-                           (point))))
-             (if-let ((newnode (pygn-mode--true-containing-node 'game newpos)))
-                 (goto-char (pygn-mode--true-node-first-position newnode))
-               (error "No more games"))))
-          (t
-           (setq node (tsc-get-prev-sibling node))
-           (if node
-               (goto-char (pygn-mode--true-node-first-position node))
-             (error "No more games"))))))
+         ((eq 'series_of_games (tsc-node-type node))
+          (let ((newpos (save-excursion
+                          (skip-syntax-backward "-")
+                          (unless (= (point) (point-min))
+                            (forward-char -1))
+                          (point))))
+            (if-let ((newnode (pygn-mode--true-containing-node 'game newpos)))
+                (goto-char (pygn-mode--true-node-first-position newnode))
+              (error "No more games"))))
+         (t
+          (setq node (tsc-get-prev-sibling node))
+          (if node
+              (goto-char (pygn-mode--true-node-first-position node))
+            (error "No more games"))))))
     (pygn-mode-focus-game-at-point)))
 
 ;; when tree-sitter-node-at-pos is used instead of pygn-mode--true-containing-node
@@ -1753,22 +1753,22 @@ With numeric prefix ARG, advance ARG moves forward."
           (while (not (pygn-mode--true-containing-node '(san_move lan_move)))
             (setq node (tree-sitter-node-at-pos))
             (cond
-              ((>= (pygn-mode--true-node-last-position node)
-                   (point-max))
-               (goto-char thumb)
-               (error "No more moves"))
-              ((pygn-mode--true-containing-node
-                '(variation inline_comment rest_of_line_comment))
-               (goto-char (pygn-mode--true-node-after-position
-                           (pygn-mode--true-containing-node
-                            '(variation inline_comment rest_of_line_comment)))))
-              ((looking-at-p "\\s-")
-               (skip-syntax-forward "-"))
-              (t
-               (setq node (tsc-get-next-sibling node))
-               (if node
-                   (goto-char (pygn-mode--true-node-first-position node))
-                 (forward-char 1)))))
+             ((>= (pygn-mode--true-node-last-position node)
+                  (point-max))
+              (goto-char thumb)
+              (error "No more moves"))
+             ((pygn-mode--true-containing-node
+               '(variation inline_comment rest_of_line_comment))
+              (goto-char (pygn-mode--true-node-after-position
+                          (pygn-mode--true-containing-node
+                           '(variation inline_comment rest_of_line_comment)))))
+             ((looking-at-p "\\s-")
+              (skip-syntax-forward "-"))
+             (t
+              (setq node (tsc-get-next-sibling node))
+              (if node
+                  (goto-char (pygn-mode--true-node-first-position node))
+                (forward-char 1)))))
           (skip-syntax-forward "-")))
       (pygn-mode--maybe-flash-move-at-point))))
 
@@ -1819,22 +1819,22 @@ With numeric prefix ARG, move ARG moves backward."
                        (pygn-mode--true-containing-node 'variation))
               (setq node (tree-sitter-node-at-pos))
               (cond
-                ((<= (pygn-mode--true-node-first-position node)
-                     (point-min))
-                 (goto-char thumb)
-                 (error "No more moves"))
-                ((pygn-mode--true-containing-node
-                  '(variation inline_comment rest_of_line_comment))
-                 (goto-char (pygn-mode--true-node-before-position
-                             (pygn-mode--true-containing-node
-                              '(variation inline_comment rest_of_line_comment)))))
-                ((looking-back "\\s-" 1)
-                 (skip-syntax-backward "-"))
-                (t
-                 (setq node (tsc-get-prev-sibling node))
-                 (if node
-                     (goto-char (pygn-mode--true-node-first-position node))
-                   (forward-char -1)))))
+               ((<= (pygn-mode--true-node-first-position node)
+                    (point-min))
+                (goto-char thumb)
+                (error "No more moves"))
+               ((pygn-mode--true-containing-node
+                 '(variation inline_comment rest_of_line_comment))
+                (goto-char (pygn-mode--true-node-before-position
+                            (pygn-mode--true-containing-node
+                             '(variation inline_comment rest_of_line_comment)))))
+               ((looking-back "\\s-" 1)
+                (skip-syntax-backward "-"))
+               (t
+                (setq node (tsc-get-prev-sibling node))
+                (if node
+                    (goto-char (pygn-mode--true-node-first-position node))
+                  (forward-char -1)))))
             (skip-syntax-backward "w")
             (skip-syntax-forward "-")))
         (pygn-mode--maybe-flash-move-at-point)))))
@@ -1994,12 +1994,12 @@ With optional universal prefix ARG, write a board image to a file,
 prompting for image size."
   (interactive "d\nP")
   (cond
-    (arg
-     (pygn-mode--save-gui-board-at-pos pos))
-    ((display-graphic-p)
-     (pygn-mode-display-gui-board-at-pos pos))
-    (t
-     (pygn-mode-display-text-board-at-pos pos))))
+   (arg
+    (pygn-mode--save-gui-board-at-pos pos))
+   ((display-graphic-p)
+    (pygn-mode-display-gui-board-at-pos pos))
+   (t
+    (pygn-mode-display-text-board-at-pos pos))))
 
 (defun pygn-mode-mouse-display-variation-board (event)
   "Display the board corresponding to a mouse click in a separate buffer.
@@ -2095,12 +2095,12 @@ giving a universal prefix argument."
   (interactive "d\nP")
   (setq depth
         (cond
-          ((numberp depth)
-           depth)
-          ((and depth (listp depth))
-           (completing-read "Depth: " nil))
-          (t
-           pygn-mode-default-engine-depth)))
+         ((numberp depth)
+          depth)
+         ((and depth (listp depth))
+          (completing-read "Depth: " nil))
+         (t
+          pygn-mode-default-engine-depth)))
   (unless (and (boundp 'uci-mode-engine-buffer)
                uci-mode-engine-buffer
                (window-live-p
@@ -2122,12 +2122,12 @@ giving a universal prefix argument."
   (interactive "d\nP")
   (setq seconds
         (cond
-          ((numberp seconds)
-           seconds)
-          ((and seconds (listp seconds))
-           (completing-read "Seconds: " nil))
-          (t
-           pygn-mode-default-engine-time)))
+         ((numberp seconds)
+          seconds)
+         ((and seconds (listp seconds))
+          (completing-read "Seconds: " nil))
+         (t
+          pygn-mode-default-engine-time)))
   (unless (and (boundp 'uci-mode-engine-buffer)
                uci-mode-engine-buffer
                (window-live-p
@@ -2169,20 +2169,20 @@ giving a universal prefix argument."
                 (point))))
   (setq move
         (cond
-          ((stringp move)
-           move)
-          ((and move (listp move))
-           (completing-read "Search move: " nil))
-          (t
-           move)))
+         ((stringp move)
+          move)
+         ((and move (listp move))
+          (completing-read "Search move: " nil))
+         (t
+          move)))
   (setq depth
         (cond
-          ((numberp depth)
-           depth)
-          ((and depth (listp depth))
-           (completing-read "Depth: " nil))
-          (t
-           pygn-mode-default-engine-depth)))
+         ((numberp depth)
+          depth)
+         ((and depth (listp depth))
+          (completing-read "Depth: " nil))
+         (t
+          pygn-mode-default-engine-depth)))
   (unless (and (boundp 'uci-mode-engine-buffer)
                uci-mode-engine-buffer
                (window-live-p
