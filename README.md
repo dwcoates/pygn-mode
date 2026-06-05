@@ -146,6 +146,10 @@ of each game starting with an `[Event "?"]` tagpair.
  * `pygn-mode-triple-window-layout-bottom` — arrange windows for engine evaluation
  * `pygn-mode-triple-window-layout-right` — arrange windows for engine evaluation
 
+### Engine Commands
+
+ * `pygn-mode-display-score-at-pos` — display engine evaluation corresponding to the position of the point
+
 ## Minor Mode
 
 Enabling `pygn-mode-follow-minor-mode` causes a board rendering to be displayed
